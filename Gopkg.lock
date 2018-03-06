@@ -8,6 +8,12 @@
   version = "v0.19.0"
 
 [[projects]]
+  name = "github.com/codegangsta/cli"
+  packages = ["."]
+  revision = "cfb38830724cc34fedffe9a2a29fb54fa9169cd1"
+  version = "v1.20.0"
+
+[[projects]]
   name = "github.com/golang/protobuf"
   packages = ["proto"]
   revision = "925541529c1fa6821df4e44ce2723319eb2be768"
@@ -65,6 +71,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "0a2ea1fe09577bfa053209ca5b01fd52b2e4bf3b87a48492a3ff0e804ad56d9e"
+  inputs-digest = "9b8e1b587870aba66f057d1711f8bd2376a6a6a861c8e5efcedeb1bce5c31bab"
   solver-name = "gps-cdcl"
   solver-version = 1
