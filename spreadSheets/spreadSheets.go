@@ -83,7 +83,7 @@ func contains(s []interface{}, e interface{}) int {
 	return -1
 }
 
-func GetSampleValues() [][]interface{} {
+func getService() *sheets.Service {
 	ctx := context.Background()
 
 	b, err := ioutil.ReadFile("client_secret.json")
@@ -93,7 +93,7 @@ func GetSampleValues() [][]interface{} {
 
 	// If modifying these scopes, delete your previously saved credentials
 	// at ~/.credentials/sheets.googleapis.com-go-quickstart.json
-	config, err := google.ConfigFromJSON(b, "https://www.googleapis.com/auth/spreadsheets.readonly")
+	config, err := google.ConfigFromJSON(b, "https://www.googleapis.com/auth/spreadsheets")
 	if err != nil {
 		log.Fatalf("Unable to parse client secret file to config: %v", err)
 	}
@@ -103,6 +103,12 @@ func GetSampleValues() [][]interface{} {
 	if err != nil {
 		log.Fatalf("Unable to retrieve Sheets Client %v", err)
 	}
+
+	return srv
+}
+
+func GetSampleValues() [][]interface{} {
+	srv := getService()
 
 	// Prints the names and majors of students in a sample spreadsheet:
 	// https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit
