@@ -2,14 +2,14 @@ package datasource
 
 import (
 	"io"
-	"github.com/pkg/errors"
+	"errors"
 )
+
+func NewCSVDataSource(r io.Reader) (*CSVDataSource, error) {
+	// TODO: implements
+	return nil, errors.New("not implemented")
+}
 
 // CSV data source
 type CSVDataSource struct {
-}
-
-func (ds *CSVDataSource) Output(dst DataSource, w io.Writer) error {
-	// TODO: implements
-	return errors.New("not implemented")
 }
