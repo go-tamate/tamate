@@ -1,5 +1,8 @@
 vendor/
 
+# Max OSX
+.DS_Store
+
 # Binaries for programs and plugins
 *.exe
 *.exe~
