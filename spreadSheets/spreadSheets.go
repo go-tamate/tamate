@@ -12,16 +12,17 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
-	"tamate/database"
 	"time"
 
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	sheets "google.golang.org/api/sheets/v4"
+
+	"github.com/Mitu217/tamate/database"
 )
 
 func OutputCSV(schema schema.Schema) {
-	values := getSampleValues()
+	values := GetSampleValues()
 
 	columnNames := values[0]
 
@@ -82,7 +83,7 @@ func contains(s []interface{}, e interface{}) int {
 	return -1
 }
 
-func getSampleValues() [][]interface{} {
+func GetSampleValues() [][]interface{} {
 	ctx := context.Background()
 
 	b, err := ioutil.ReadFile("client_secret.json")

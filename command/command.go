@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 	"os"
-	"tamate/spreadSheets"
 
 	"github.com/codegangsta/cli"
+	"github.com/Mitu217/tamate/spreadSheets"
 )
 
 func main() {

@@ -1,8 +1,8 @@
 package main
 
 import (
-	"tamate/database"
-	"tamate/spreadSheets"
+	"github.com/Mitu217/tamate/database"
+	"github.com/Mitu217/tamate/spreadSheets"
 )
 
 func main() {
