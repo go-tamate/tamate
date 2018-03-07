@@ -20,6 +20,12 @@
   version = "v1.0.0"
 
 [[projects]]
+  name = "github.com/pkg/errors"
+  packages = ["."]
+  revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
+  version = "v0.8.0"
+
+[[projects]]
   branch = "master"
   name = "golang.org/x/net"
   packages = [
@@ -49,7 +55,7 @@
     "googleapi/internal/uritemplates",
     "sheets/v4"
   ]
-  revision = "a96eae85978352858b50d3d75dadf5f906c2a023"
+  revision = "8dd9492f46214d3ecd264e970de1cf530c51c12e"
 
 [[projects]]
   name = "google.golang.org/appengine"
@@ -71,6 +77,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "9b8e1b587870aba66f057d1711f8bd2376a6a6a861c8e5efcedeb1bce5c31bab"
+  inputs-digest = "a6d5801dbc462a0d6c0dbb04c56fff5637f9cf88c871463cc8477415fb272414"
   solver-name = "gps-cdcl"
   solver-version = 1
