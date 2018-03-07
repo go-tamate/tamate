@@ -77,6 +77,14 @@ func (db *SQLDatabase) dumpSQLTable(schema *schema.Schema) error {
 	return nil
 }
 
+func (db *SQLDatabase) restoreSQLTable(schema *schema.Schema, data [][]string) error {
+	return nil
+}
+
 func (db *SQLDatabase) Dump(schema *schema.Schema) error {
 	return db.dumpSQLTable(schema)
+}
+
+func (db *SQLDatabase) Restore(schema *schema.Schema, data [][]string) error {
+	return db.restoreSQLTable(schema, data)
 }
