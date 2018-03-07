@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/Mitu217/tamate/spreadsheets"
 	"github.com/codegangsta/cli"
-	"github.com/Mitu217/tamate/spreadSheets"
 )
 
 func main() {
@@ -64,7 +64,7 @@ func exportSpreadSheetAction(c *cli.Context) {
 		fmt.Printf("Hello world! %s\n", paramFirst)
 	*/
 
-	values := spreadSheets.GetSampleValues()
+	values := spreadsheets.GetSampleValues()
 
 	for _, row := range values {
 		// Print columns A and E, which correspond to indices 0 and 4.

@@ -1,4 +1,4 @@
-package spreadSheets
+package spreadsheets
 
 import (
 	"context"
