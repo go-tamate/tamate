@@ -83,7 +83,7 @@ func contains(s []interface{}, e interface{}) int {
 	return -1
 }
 
-func GetSampleValues() [][]interface{} {
+func getService() *sheets.Service {
 	ctx := context.Background()
 
 	b, err := ioutil.ReadFile("client_secret.json")
@@ -93,7 +93,7 @@ func GetSampleValues() [][]interface{} {
 
 	// If modifying these scopes, delete your previously saved credentials
 	// at ~/.credentials/sheets.googleapis.com-go-quickstart.json
-	config, err := google.ConfigFromJSON(b, "https://www.googleapis.com/auth/spreadsheets.readonly")
+	config, err := google.ConfigFromJSON(b, "https://www.googleapis.com/auth/spreadsheets")
 	if err != nil {
 		log.Fatalf("Unable to parse client secret file to config: %v", err)
 	}
@@ -104,6 +104,12 @@ func GetSampleValues() [][]interface{} {
 		log.Fatalf("Unable to retrieve Sheets Client %v", err)
 	}
 
+	return srv
+}
+
+func GetSampleValues() [][]interface{} {
+	srv := getService()
+
 	// Prints the names and majors of students in a sample spreadsheet:
 	// https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit
 	spreadsheetID := "1uCEt_DpNCRPZjvxS0hdnIhSnQQKYjmV0FN2KneRbkKk"
@@ -112,12 +118,28 @@ func GetSampleValues() [][]interface{} {
 	if err != nil {
 		log.Fatalf("Unable to retrieve data from sheet. %v", err)
 	}
-
 	if len(resp.Values) == 0 {
 		fmt.Print("No data found.")
 	}
 
 	return resp.Values
+}
+
+func SetSampleValues(values [][]interface{}) {
+	srv := getService()
+
+	// https://docs.google.com/spreadsheets/d/1_Um82wSffMiMVqvRISAo348Ti8u51CLdV_kGN7TYDko/edit#gid=0
+	spreadsheetID := "1_Um82wSffMiMVqvRISAo348Ti8u51CLdV_kGN7TYDko"
+	rangeData := "sheet1!A1:XX"
+	valueRange := &sheets.ValueRange{
+		Range:  rangeData,
+		Values: values,
+	}
+
+	_, err := srv.Spreadsheets.Values.Update(spreadsheetID, rangeData, valueRange).ValueInputOption("USER_ENTERED").Do()
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 // GetClient uses a Context and Config to retrieve a Token
