@@ -116,7 +116,7 @@ func (db *SQLDatabase) restoreSQLTable(schema *schema.Schema, data [][]interface
 	}
 	values_text := strings.Join(values, ",")
 
-	// Truncate data
+	// Insert data
 	_, err = cnn.Query("INSERT INTO " + schema.Table.Name + " (" + columns_text + ") VALUES " + values_text)
 	if err != nil {
 		return err
