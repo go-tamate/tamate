@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/Mitu217/tamate/datasource"
-	"github.com/Mitu217/tamate/spreadSheets"
+	"github.com/Mitu217/tamate/spreadsheets"
 )
 
 func main() {
@@ -12,7 +12,7 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		spreadSheets.OutputCSV(sc)
+		spreadsheets.OutputCSV(sc)
 	*/
 
 	// Input mock
@@ -20,5 +20,5 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	spreadSheets.SetSampleValues(ds.Values)
+	spreadsheets.SetSampleValues(ds.Values)
 }
