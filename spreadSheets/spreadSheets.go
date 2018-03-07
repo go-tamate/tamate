@@ -118,12 +118,28 @@ func GetSampleValues() [][]interface{} {
 	if err != nil {
 		log.Fatalf("Unable to retrieve data from sheet. %v", err)
 	}
-
 	if len(resp.Values) == 0 {
 		fmt.Print("No data found.")
 	}
 
 	return resp.Values
+}
+
+func SetSampleValues(values [][]interface{}) {
+	srv := getService()
+
+	// https://docs.google.com/spreadsheets/d/1_Um82wSffMiMVqvRISAo348Ti8u51CLdV_kGN7TYDko/edit#gid=0
+	spreadsheetID := "1_Um82wSffMiMVqvRISAo348Ti8u51CLdV_kGN7TYDko"
+	rangeData := "sheet1!A1:XX"
+	valueRange := &sheets.ValueRange{
+		Range:  rangeData,
+		Values: values,
+	}
+
+	_, err := srv.Spreadsheets.Values.Update(spreadsheetID, rangeData, valueRange).ValueInputOption("USER_ENTERED").Do()
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 // GetClient uses a Context and Config to retrieve a Token
