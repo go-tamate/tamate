@@ -18,10 +18,10 @@ import (
 	"golang.org/x/oauth2/google"
 	sheets "google.golang.org/api/sheets/v4"
 
-	"github.com/Mitu217/tamate/database"
+	"github.com/Mitu217/tamate/schema"
 )
 
-func OutputCSV(schema schema.Schema) {
+func OutputCSV(schema *schema.Schema) {
 	values := GetSampleValues()
 
 	columnNames := values[0]
