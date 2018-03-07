@@ -10,6 +10,7 @@ import (
 
 type Database interface {
 	Dump(*schema.Schema) error
+	Restore(*schema.Schema, [][]string) error
 }
 
 type Server struct {
