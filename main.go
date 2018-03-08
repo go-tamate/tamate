@@ -1,10 +1,5 @@
 package main
 
-import (
-	"github.com/Mitu217/tamate/schema"
-	"github.com/Mitu217/tamate/server"
-)
-
 func main() {
 	// Output mock
 	/*
@@ -65,14 +60,16 @@ func main() {
 	*/
 
 	// sql to schema
-	server, err := server.NewJsonFileServer("./resources/host/mysql/sample.json")
-	if err != nil {
-		panic(err)
-	}
-	sc := &schema.SQLSchema{
-		Server:       server,
-		DatabaseName: "Sample",
-	}
-	sc.NewServerSchema("Sample")
-	sc.Output("sample.json")
+	/*
+		server, err := server.NewJsonFileServer("./resources/host/mysql/sample.json")
+		if err != nil {
+			panic(err)
+		}
+		sc := &schema.SQLSchema{
+			Server:       server,
+			DatabaseName: "Sample",
+		}
+		sc.NewServerSchema("Sample")
+		sc.Output("sample.json")
+	*/
 }

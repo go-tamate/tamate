@@ -4,9 +4,6 @@ import (
 	"encoding/csv"
 	"io"
 	"os"
-	"time"
-
-	"github.com/Mitu217/tamate/schema"
 )
 
 func NewCSVDataSource(r io.Reader) (*CSVDataSource, error) {
@@ -36,6 +33,7 @@ func NewCSVFileDataSource(path string) (*CSVDataSource, error) {
 	return NewCSVDataSource(r)
 }
 
+/*
 func OutputCSV(schema *schema.Schema, columns []string, rows [][]string) error {
 	var data [][]string
 	for _, row := range rows {
@@ -77,6 +75,11 @@ func OutputCSV(schema *schema.Schema, columns []string, rows [][]string) error {
 		}
 	}
 
+	return nil
+}
+*/
+
+func (ds *CSVDataSource) OutputCSV(path string) error {
 	return nil
 }
 
