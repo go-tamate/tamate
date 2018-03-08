@@ -81,6 +81,14 @@ func (sc *SQLSchema) NewServerSchema(tableName string) error {
 	return nil
 }
 
+func (sc *SQLSchema) GetColumns() []Column {
+	return sc.Columns
+}
+
+func (sc *SQLSchema) GetTableName() string {
+	return sc.Table.Name
+}
+
 func (sc *SQLSchema) Output(path string) error {
 	// Output with indentation
 	jsonBytes, err := json.MarshalIndent(sc, "", "  ")

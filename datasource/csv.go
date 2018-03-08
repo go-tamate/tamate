@@ -33,52 +33,6 @@ func NewCSVFileDataSource(path string) (*CSVDataSource, error) {
 	return NewCSVDataSource(r)
 }
 
-/*
-func OutputCSV(schema *schema.Schema, columns []string, rows [][]string) error {
-	var data [][]string
-	for _, row := range rows {
-		var datum []string
-		for _, property := range schema.Properties {
-			index := contains(columns, property.Name)
-			if index == -1 {
-				// set default value.
-				if property.NotNull {
-					// typeに応じて綺麗に対応する方法を考える（デフォルト値対応も）
-					if property.Type == "datetime" {
-						datum = append(datum, time.Now().Format("2006-01-02 15:04:05"))
-					} else {
-						datum = append(datum, "")
-					}
-				} else {
-					datum = append(datum, "")
-				}
-			} else {
-				datum = append(datum, row[index])
-			}
-		}
-		data = append(data, datum)
-	}
-
-	file, err := os.Create("sample.csv")
-	if err != nil {
-		panic(err)
-	}
-	defer file.Close()
-
-	writer := csv.NewWriter(file)
-	defer writer.Flush()
-
-	for _, value := range data {
-		err := writer.Write(value)
-		if err != nil {
-			panic(err)
-		}
-	}
-
-	return nil
-}
-*/
-
 func (ds *CSVDataSource) OutputCSV(path string) error {
 	return nil
 }
