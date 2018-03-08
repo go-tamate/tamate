@@ -22,8 +22,20 @@ func NewJsonFileSchema(path string) (*JsonSchema, error) {
 	return NewJsonSchema(r)
 }
 
+func (sc *JsonSchema) GetColumns() []Column {
+	return sc.Columns
+}
+
+func (sc *JsonSchema) GetTableName() string {
+	return sc.Table.Name
+}
+
+func (sc *JsonSchema) Output() error {
+	return nil
+}
+
 type JsonSchema struct {
 	Description string   `json:"description"`
 	Table       Table    `json:"table"`
-	Properties  []Column `json:"properties"`
+	Columns     []Column `json:"properties"`
 }

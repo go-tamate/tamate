@@ -1,9 +1,9 @@
-package spreadsheets
+package datasource
 
 import (
 	"context"
-	"encoding/csv"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -14,73 +14,72 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/Mitu217/tamate/schema"
+
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	sheets "google.golang.org/api/sheets/v4"
-
-	"github.com/Mitu217/tamate/schema"
 )
 
-func OutputCSV(schema *schema.Schema) {
-	values := GetSampleValues()
+func (ds *SpreadSheetsDataSource) OutputCSV(sc schema.Schema, path string) error {
+	rows := GetSampleValues()
 
-	columnNames := values[0]
-
-	// Delete except data.
-	values = append(values[:0], values[2:]...) //appendは遅いらしい
-	rows := make([][]interface{}, len(values))
-	copy(rows, values)
-
-	// 以下は共通化して切り出せるはず
-
-	var data [][]string
+	// Get columns
+	spreadsheetsColumnNames := make([]string, 0)
 	for _, row := range rows {
-		var datum []string
-		for _, property := range schema.Properties {
-			index := contains(columnNames, property.Name)
-			if index == -1 {
-				// set default value.
-				if property.NotNull {
-					// typeに応じて綺麗に対応する方法を考える（デフォルト値対応も）
-					if property.Type == "datetime" {
-						datum = append(datum, time.Now().Format("2006-01-02 15:04:05"))
-					} else {
-						datum = append(datum, "")
-					}
-				} else {
-					datum = append(datum, "")
-				}
-			} else {
-				datum = append(datum, row[index].(string))
+		tagField := row[0]
+		if tagField == "COLUMN" {
+			spreadsheetsColumns := append(row[:0], row[1:]...)
+			for _, spreadsheetsColumn := range spreadsheetsColumns {
+				spreadsheetsColumnNames = append(spreadsheetsColumnNames, spreadsheetsColumn.(string))
 			}
 		}
-		data = append(data, datum)
+	}
+	if len(spreadsheetsColumnNames) == 0 {
+		return errors.New("No columns in SpreadSheets. ID: " + ds.SpreadSheetsID)
 	}
 
-	file, err := os.Create("sample.csv")
-	if err != nil {
-		panic(err)
-	}
-	defer file.Close()
-
-	writer := csv.NewWriter(file)
-	defer writer.Flush()
-
-	for _, value := range data {
-		err := writer.Write(value)
-		if err != nil {
-			panic(err)
+	// Get data
+	values := make([][]string, 0)
+	for _, row := range rows {
+		tagField := row[0]
+		switch tagField {
+		case "COLUMN":
+			continue
+		case "":
+			// Get Data
+			value := make([]string, 0)
+			for _, column := range sc.GetColumns() {
+				index := contains(spreadsheetsColumnNames, column.Name)
+				if index == -1 {
+					if column.NotNull {
+						// typeに応じて綺麗に対応する方法を考える（デフォルト値対応も）
+						if column.Type == "datetime" {
+							value = append(value, time.Now().Format("2006-01-02 15:04:05"))
+						} else {
+							value = append(value, "")
+						}
+					} else {
+						value = append(value, "NULL")
+					}
+					continue
+				}
+				value = append(value, row[index+1].(string))
+			}
+			values = append(values, value)
+		default:
+			// FIXME: support tag
+			continue
 		}
 	}
-}
 
-func contains(s []interface{}, e interface{}) int {
-	for i, v := range s {
-		if e == v {
-			return i
-		}
+	// Create output data
+	columns := make([]string, 0)
+	for _, column := range sc.GetColumns() {
+		columns = append(columns, column.Name)
 	}
-	return -1
+	values = append([][]string{columns}, values...) // TODO: 遅いので修正する（https://mattn.kaoriya.net/software/lang/go/20150928144704.htm）
+	return Output(path, values)
 }
 
 func getService() *sheets.Service {
@@ -212,4 +211,10 @@ func saveToken(file string, token *oauth2.Token) {
 	}
 	defer f.Close()
 	json.NewEncoder(f).Encode(token)
+}
+
+type SpreadSheetsDataSource struct {
+	SpreadSheetsID string
+	Columns        []string
+	Values         [][]interface{}
 }
