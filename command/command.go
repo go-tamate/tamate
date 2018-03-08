@@ -4,7 +4,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/Mitu217/tamate/spreadsheets"
+	"github.com/Mitu217/tamate/datasource"
+	"github.com/Mitu217/tamate/schema"
+	"github.com/Mitu217/tamate/server"
+
 	"github.com/codegangsta/cli"
 )
 
@@ -25,10 +28,14 @@ func main() {
 	// Commands.
 	app.Commands = []cli.Command{
 		{
-			Name:    "export-sheets-csv",
-			Aliases: []string{"os"},
-			Usage:   "",
-			Action:  exportSpreadSheetAction,
+			Name:   "dump:spreadsheet",
+			Usage:  "Dump CSV from SpreadSheet.",
+			Action: dumpSpreadSheetAction,
+		},
+		{
+			Name:   "dump:sql",
+			Usage:  "Dump CSV from SQL Server.",
+			Action: dumpSQLAction,
 		},
 	}
 
@@ -46,28 +53,52 @@ func main() {
 	app.Run(os.Args)
 }
 
-func exportSpreadSheetAction(c *cli.Context) {
-	// グローバルオプション
-	/*
-		var isDry = c.GlobalBool("dryrun")
-		if isDry {
-			fmt.Println("this is dry-run")
-		}
-	*/
+func dumpSpreadSheetAction(c *cli.Context) {
+	// Check args.
+	if len(c.Args()) < 2 {
+		fmt.Println("[Error] Argument is missing! 2 arguments are required.")
+	}
 
-	// パラメータ
-	/*
-		var paramFirst = ""
-		if len(c.Args()) > 0 {
-			paramFirst = c.Args().First() //c.Args()[0]と同義
-		}
-		fmt.Printf("Hello world! %s\n", paramFirst)
-	*/
+	spreadSheetsID := c.Args()[0]
+	outputPath := c.Args()[1]
 
-	values := spreadsheets.GetSampleValues()
+	sc, err := schema.NewJsonFileSchema("./resources/schema/sample.json")
+	if err != nil {
+		panic(err)
+	}
+	ds := datasource.SpreadSheetsDataSource{
+		SpreadSheetsID: spreadSheetsID,
+	}
+	if err = ds.OutputCSV(sc, outputPath); err != nil {
+		panic(err)
+	}
+}
 
-	for _, row := range values {
-		// Print columns A and E, which correspond to indices 0 and 4.
-		fmt.Printf("%s\n", row[2])
+func dumpSQLAction(c *cli.Context) {
+	// Check args.
+	if len(c.Args()) < 4 {
+		fmt.Println("[Error] Argument is missing! 4 arguments are required.")
+	}
+
+	hostSettingPath := c.Args()[0]
+	dbName := c.Args()[1]
+	//tableName := c.Args()[2]
+	outputPath := c.Args()[3]
+
+	sc, err := schema.NewJsonFileSchema("./resources/schema/sample.json")
+	server, err := server.NewJsonFileServer(hostSettingPath)
+	if err != nil {
+		panic(err)
+	}
+	ds := &datasource.SQLDatabase{
+		Server:       server,
+		DatabaseName: dbName,
+	}
+	if err = ds.Dump(sc); err != nil {
+		panic(err)
+	}
+
+	for _, table := range ds.Tables {
+		ds.OutputCSV(sc, outputPath, table.Columns, table.Records)
 	}
 }

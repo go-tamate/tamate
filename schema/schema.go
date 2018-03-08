@@ -14,5 +14,7 @@ type Column struct {
 }
 
 type Schema interface {
+	GetColumns() []Column
+	GetTableName() string
 	Output() error
 }

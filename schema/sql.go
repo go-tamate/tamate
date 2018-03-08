@@ -77,8 +77,16 @@ func (sc *SQLSchema) NewServerSchema(tableName string) error {
 		}
 		columns = append(columns, column)
 	}
-	sc.Properties = columns
+	sc.Columns = columns
 	return nil
+}
+
+func (sc *SQLSchema) GetColumns() []Column {
+	return sc.Columns
+}
+
+func (sc *SQLSchema) GetTableName() string {
+	return sc.Table.Name
 }
 
 func (sc *SQLSchema) Output(path string) error {
@@ -95,5 +103,5 @@ type SQLSchema struct {
 	DatabaseName string         `json:"database"`
 	Description  string         `json:"description"`
 	Table        Table          `json:"table"`
-	Properties   []Column       `json:"properties"`
+	Columns      []Column       `json:"properties"`
 }
