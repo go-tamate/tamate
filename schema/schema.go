@@ -1,11 +1,5 @@
 package schema
 
-type Schema struct {
-	Description string   `json:"description"`
-	Table       Table    `json:"table"`
-	Properties  []Column `json:"properties"`
-}
-
 type Table struct {
 	Name       string   `json:"name"`
 	PrimaryKey string   `json:"primary_key"`
@@ -17,4 +11,8 @@ type Column struct {
 	Type          string `json:"type"`
 	NotNull       bool   `json:"not_null"`
 	AutoIncrement bool   `json:"auto_increment"`
+}
+
+type Schema interface {
+	Output() error
 }
