@@ -6,6 +6,7 @@ import (
 
 	"github.com/Mitu217/tamate/datasource"
 	"github.com/Mitu217/tamate/schema"
+	"github.com/Mitu217/tamate/server"
 
 	"github.com/codegangsta/cli"
 )
@@ -32,7 +33,7 @@ func main() {
 			Action: dumpSpreadSheetAction,
 		},
 		{
-			Name:   "dump:sql, dsql",
+			Name:   "dump:sql",
 			Usage:  "Dump CSV from SQL Server.",
 			Action: dumpSQLAction,
 		},
@@ -55,7 +56,7 @@ func main() {
 func dumpSpreadSheetAction(c *cli.Context) {
 	// Check args.
 	if len(c.Args()) < 2 {
-		fmt.Println("[Error] Argument is missing! 3 arguments are required.")
+		fmt.Println("[Error] Argument is missing! 2 arguments are required.")
 	}
 
 	spreadSheetsID := c.Args()[0]
@@ -74,21 +75,30 @@ func dumpSpreadSheetAction(c *cli.Context) {
 }
 
 func dumpSQLAction(c *cli.Context) {
-	// グローバルオプション
-	/*
-		var isDry = c.GlobalBool("dryrun")
-		if isDry {
-			fmt.Println("this is dry-run")
-		}
-	*/
+	// Check args.
+	if len(c.Args()) < 4 {
+		fmt.Println("[Error] Argument is missing! 4 arguments are required.")
+	}
 
-	// パラメータ
-	/*
-		var paramFirst = ""
-		if len(c.Args()) > 0 {
-			paramFirst = c.Args().First() //c.Args()[0]と同義
-		}
-		fmt.Printf("Hello world! %s\n", paramFirst)
-	*/
+	hostSettingPath := c.Args()[0]
+	dbName := c.Args()[1]
+	//tableName := c.Args()[2]
+	outputPath := c.Args()[3]
 
+	sc, err := schema.NewJsonFileSchema("./resources/schema/sample.json")
+	server, err := server.NewJsonFileServer(hostSettingPath)
+	if err != nil {
+		panic(err)
+	}
+	ds := &datasource.SQLDatabase{
+		Server:       server,
+		DatabaseName: dbName,
+	}
+	if err = ds.Dump(sc); err != nil {
+		panic(err)
+	}
+
+	for _, table := range ds.Tables {
+		ds.OutputCSV(sc, outputPath, table.Columns, table.Records)
+	}
 }

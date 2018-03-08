@@ -26,6 +26,10 @@ func (sc *JsonSchema) GetColumns() []Column {
 	return sc.Columns
 }
 
+func (sc *JsonSchema) GetTableName() string {
+	return sc.Table.Name
+}
+
 func (sc *JsonSchema) Output() error {
 	return nil
 }
