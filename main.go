@@ -1,9 +1,8 @@
 package main
 
 import (
-	"github.com/Mitu217/tamate/database"
-	"github.com/Mitu217/tamate/datasource"
 	"github.com/Mitu217/tamate/schema"
+	"github.com/Mitu217/tamate/server"
 )
 
 func main() {
@@ -46,20 +45,34 @@ func main() {
 	*/
 
 	// Restore sql mock
-	sc, err := schema.NewJsonFileSchema("./resources/schema/sample.json")
-	ds, err := datasource.NewCSVFileDataSource("./resources/datasource/csv/sample.csv")
+	/*
+		sc, err := schema.NewJsonFileSchema("./resources/schema/sample.json")
+		ds, err := datasource.NewCSVFileDataSource("./resources/datasource/csv/sample.csv")
+		if err != nil {
+			panic(err)
+		}
+		server, err := database.NewJsonFileServer("./resources/host/mysql/sample.json")
+		if err != nil {
+			panic(err)
+		}
+		sql := &database.SQLDatabase{
+			Server: server,
+			Name:   "Sample",
+		}
+		if err = sql.Restore(sc, ds.Values); err != nil {
+			panic(err)
+		}
+	*/
+
+	// sql to schema
+	server, err := server.NewJsonFileServer("./resources/host/mysql/sample.json")
 	if err != nil {
 		panic(err)
 	}
-	server, err := database.NewJsonFileServer("./resources/host/mysql/sample.json")
-	if err != nil {
-		panic(err)
+	sc := &schema.SQLSchema{
+		Server:       server,
+		DatabaseName: "Sample",
 	}
-	sql := &database.SQLDatabase{
-		Server: server,
-		Name:   "Sample",
-	}
-	if err = sql.Restore(sc, ds.Values); err != nil {
-		panic(err)
-	}
+	sc.NewServerSchema("Sample")
+	sc.Output("sample.json")
 }
