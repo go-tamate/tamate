@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/Mitu217/tamate/spreadsheets"
+	"github.com/Mitu217/tamate/datasource"
+	"github.com/Mitu217/tamate/schema"
+
 	"github.com/codegangsta/cli"
 )
 
@@ -25,10 +27,14 @@ func main() {
 	// Commands.
 	app.Commands = []cli.Command{
 		{
-			Name:    "export-sheets-csv",
-			Aliases: []string{"os"},
-			Usage:   "",
-			Action:  exportSpreadSheetAction,
+			Name:   "dump:spreadsheet",
+			Usage:  "Dump CSV from SpreadSheet.",
+			Action: dumpSpreadSheetAction,
+		},
+		{
+			Name:   "dump:sql, dsql",
+			Usage:  "Dump CSV from SQL Server.",
+			Action: dumpSQLAction,
 		},
 	}
 
@@ -46,7 +52,28 @@ func main() {
 	app.Run(os.Args)
 }
 
-func exportSpreadSheetAction(c *cli.Context) {
+func dumpSpreadSheetAction(c *cli.Context) {
+	// Check args.
+	if len(c.Args()) < 2 {
+		fmt.Println("[Error] Argument is missing! 3 arguments are required.")
+	}
+
+	spreadSheetsID := c.Args()[0]
+	outputPath := c.Args()[1]
+
+	sc, err := schema.NewJsonFileSchema("./resources/schema/sample.json")
+	if err != nil {
+		panic(err)
+	}
+	ds := datasource.SpreadSheetsDataSource{
+		SpreadSheetsID: spreadSheetsID,
+	}
+	if err = ds.OutputCSV(sc, outputPath); err != nil {
+		panic(err)
+	}
+}
+
+func dumpSQLAction(c *cli.Context) {
 	// グローバルオプション
 	/*
 		var isDry = c.GlobalBool("dryrun")
@@ -64,10 +91,4 @@ func exportSpreadSheetAction(c *cli.Context) {
 		fmt.Printf("Hello world! %s\n", paramFirst)
 	*/
 
-	values := spreadsheets.GetSampleValues()
-
-	for _, row := range values {
-		// Print columns A and E, which correspond to indices 0 and 4.
-		fmt.Printf("%s\n", row[2])
-	}
 }
