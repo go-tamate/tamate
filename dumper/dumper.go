@@ -7,12 +7,6 @@ import (
 // Dumper :
 type Dumper struct{}
 
-// Rows :
-type Rows struct {
-	Columns []string
-	Values  [][]string
-}
-
 // NewDumper :
 func NewDumper() *Dumper {
 	return &Dumper{}
@@ -20,22 +14,12 @@ func NewDumper() *Dumper {
 
 // Dump :
 func (d *Dumper) Dump(src datasource.DataSource, dst datasource.DataSource) error {
-	columns := src.GetColumns()
-	values := src.GetValues()
-	dst.SetColumns(columns)
-	dst.SetValues(values)
-
+	dst.SetRows(src.GetRows())
 	return nil
 }
 
 // DumpRows :
-func (d *Dumper) DumpRows(src datasource.DataSource) (*Rows, error) {
-	columns := src.GetColumns()
-	values := src.GetValues()
-
-	rows := &Rows{
-		Columns: columns,
-		Values:  values,
-	}
+func (d *Dumper) DumpRows(src datasource.DataSource) (*datasource.Rows, error) {
+	rows := src.GetRows()
 	return rows, nil
 }

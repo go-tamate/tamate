@@ -30,9 +30,8 @@ type SpreadSheetsConfig struct {
 
 // SpreadSheetsDataSource :
 type SpreadSheetsDataSource struct {
-	Config  *SpreadSheetsConfig
-	Columns []string
-	Values  [][]string
+	Config *SpreadSheetsConfig
+	Rows   *Rows
 }
 
 // NewSpreadSheetsConfig :
@@ -117,9 +116,11 @@ func NewSpreadSheetsDataSource(sc schema.Schema, config *SpreadSheetsConfig) (*S
 	//values = append([][]string{columns}, values...) // TODO: 遅いので修正する（https://mattn.kaoriya.net/software/lang/go/20150928144704.htm）
 
 	ds := &SpreadSheetsDataSource{
-		Config:  config,
-		Columns: columns,
-		Values:  values,
+		Config: config,
+		Rows: &Rows{
+			Columns: columns,
+			Values:  values,
+		},
 	}
 	return ds, nil
 }
@@ -133,24 +134,14 @@ func contains(s []string, e string) int {
 	return -1
 }
 
-// GetColumns :
-func (ds *SpreadSheetsDataSource) GetColumns() []string {
-	return ds.Columns
+// GetRows :
+func (ds *SpreadSheetsDataSource) GetRows() *Rows {
+	return ds.Rows
 }
 
-// SetColumns :
-func (ds *SpreadSheetsDataSource) SetColumns(columns []string) {
-	ds.Columns = columns
-}
-
-// GetValues :
-func (ds *SpreadSheetsDataSource) GetValues() [][]string {
-	return ds.Values
-}
-
-// SetValues :
-func (ds *SpreadSheetsDataSource) SetValues(values [][]string) {
-	ds.Values = values
+// SetRows :
+func (ds *SpreadSheetsDataSource) SetRows(rows *Rows) {
+	ds.Rows = rows
 }
 
 // Output :
@@ -158,7 +149,7 @@ func (ds *SpreadSheetsDataSource) Output() error {
 	srv := getService()
 
 	outputValues := make([][]interface{}, 0)
-	for _, value := range ds.Values {
+	for _, value := range ds.Rows.Values {
 		outputValue := make([]interface{}, len(value))
 		for i := range value {
 			outputValue[i] = value[i]

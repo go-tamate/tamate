@@ -15,9 +15,8 @@ type CSVConfig struct {
 
 // CSVDataSource :
 type CSVDataSource struct {
-	Config  *CSVConfig
-	Columns []string
-	Values  [][]string
+	Config *CSVConfig
+	Rows   *Rows
 }
 
 // NewCSVConfig :
@@ -52,31 +51,23 @@ func NewCSVDataSource(sc schema.Schema, config *CSVConfig) (*CSVDataSource, erro
 	columns := records[0]
 	values := append(records[:0], records[1:]...)
 	ds := &CSVDataSource{
-		Config:  config,
-		Columns: columns,
-		Values:  values,
+		Config: config,
+		Rows: &Rows{
+			Columns: columns,
+			Values:  values,
+		},
 	}
 	return ds, err
 }
 
-// GetColumns :
-func (ds *CSVDataSource) GetColumns() []string {
-	return ds.Columns
+// GetRows :
+func (ds *CSVDataSource) GetRows() *Rows {
+	return ds.Rows
 }
 
-// SetColumns :
-func (ds *CSVDataSource) SetColumns(columns []string) {
-	ds.Columns = columns
-}
-
-// GetValues :
-func (ds *CSVDataSource) GetValues() [][]string {
-	return ds.Values
-}
-
-// SetValues :
-func (ds *CSVDataSource) SetValues(values [][]string) {
-	ds.Values = values
+// SetRows :
+func (ds *CSVDataSource) SetRows(rows *Rows) {
+	ds.Rows = rows
 }
 
 // Output :
@@ -90,7 +81,7 @@ func (ds *CSVDataSource) Output() error {
 	writer := csv.NewWriter(file)
 	defer writer.Flush()
 
-	for _, value := range append([][]string{ds.Columns}, ds.Values...) {
+	for _, value := range append([][]string{ds.Rows.Columns}, ds.Rows.Values...) {
 		err := writer.Write(value)
 		if err != nil {
 			return err
