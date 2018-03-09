@@ -94,25 +94,32 @@ func dumpSQLAction(c *cli.Context) {
 		fmt.Println("[Error] Argument is missing! 4 arguments are required.")
 	}
 
-	/*
-		hostSettingPath := c.Args()[0]
-		outputPath := c.Args()[1]
-		dbName := c.Args()[2]
-		tableName := c.Args()[3]
+	hostSettingPath := c.Args()[0]
+	outputPath := c.Args()[1]
+	dbName := c.Args()[2]
+	tableName := c.Args()[3]
 
-		sc, err := schema.NewJsonFileSchema("./resources/schema/sample.json")
-		server, err := server.NewJsonFileServer(hostSettingPath)
-		if err != nil {
-			panic(err)
-		}
-		ds := &datasource.SQLDataSource{
-			Server:       server,
-			DatabaseName: dbName,
-			TableName:    tableName,
-		}
-		if err = ds.Dump(sc); err != nil {
-			panic(err)
-		}
-		ds.OutputCSV(sc, outputPath, ds.Columns, ds.Values)
-	*/
+	sc, err := schema.NewJsonFileSchema("./resources/schema/sample.json")
+	if err != nil {
+		panic(err)
+	}
+
+	sqlConfig, err := datasource.NewJSONSQLConfig(hostSettingPath, dbName, tableName)
+	if err != nil {
+		panic(err)
+	}
+	sqlDataSource, err := datasource.NewSQLDataSource(sc, sqlConfig)
+	if err != nil {
+		panic(err)
+	}
+
+	csvConfig := datasource.NewCSVConfig("", outputPath)
+	csvDataSource, err := datasource.NewCSVDataSource(sc, csvConfig)
+	if err != nil {
+		panic(err)
+	}
+
+	// dump rows by dumper
+	d := dumper.NewDumper()
+	d.Dump(sqlDataSource, csvDataSource)
 }
