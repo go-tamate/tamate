@@ -16,24 +16,21 @@ type Table struct {
 	Records [][]string
 }
 
-type SQLDatabase struct {
+type SQLDataSource struct {
 	Server       *server.Server
 	DatabaseName string
-	Tables       []*Table
+	TableName    string
+	Columns      []string
+	Values       [][]string
 }
 
-type SQLDataSource struct {
-	Columns []string
-	Values  [][]interface{}
+func (ds *SQLDataSource) open() (*sql.DB, error) {
+	dataSourceName := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", ds.Server.User, ds.Server.Password, ds.Server.Host, ds.Server.Port, ds.DatabaseName)
+	return sql.Open(ds.Server.DriverName, dataSourceName)
 }
 
-func (db *SQLDatabase) open() (*sql.DB, error) {
-	dataSourceName := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", db.Server.User, db.Server.Password, db.Server.Host, db.Server.Port, db.DatabaseName)
-	return sql.Open(db.Server.DriverName, dataSourceName)
-}
-
-func (db *SQLDatabase) dumpSQLTable(sc schema.Schema) error {
-	cnn, err := db.open()
+func (ds *SQLDataSource) dumpSQLTable(sc schema.Schema) error {
+	cnn, err := ds.open()
 
 	// Get data
 	rows, err := cnn.Query("SELECT * FROM " + sc.GetTableName())
@@ -75,17 +72,14 @@ func (db *SQLDatabase) dumpSQLTable(sc schema.Schema) error {
 
 		records = append(records, dataStrings)
 	}
+	ds.Columns = columns
+	ds.Values = records
 
-	table := &Table{
-		Columns: columns,
-		Records: records,
-	}
-	db.Tables = append(db.Tables, table)
 	return nil
 }
 
-func (db *SQLDatabase) resetSQLTable(sc schema.Schema) error {
-	cnn, err := db.open()
+func (ds *SQLDataSource) resetSQLTable(sc schema.Schema) error {
+	cnn, err := ds.open()
 	if err != nil {
 		return err
 	}
@@ -96,7 +90,7 @@ func (db *SQLDatabase) resetSQLTable(sc schema.Schema) error {
 	return nil
 }
 
-func (db *SQLDatabase) restoreSQLTable(sc schema.Schema, data [][]interface{}) error {
+func (ds *SQLDataSource) restoreSQLTable(sc schema.Schema, data [][]interface{}) error {
 	/*
 		cnn, err := db.open()
 		if err != nil {
@@ -131,16 +125,16 @@ func (db *SQLDatabase) restoreSQLTable(sc schema.Schema, data [][]interface{}) e
 	return nil
 }
 
-func (db *SQLDatabase) OutputCSV(sc schema.Schema, path string, columns []string, values [][]string) error {
+func (ds *SQLDataSource) OutputCSV(sc schema.Schema, path string, columns []string, values [][]string) error {
 	values = append([][]string{columns}, values...) // TODO: 遅いので修正する（https://mattn.kaoriya.net/software/lang/go/20150928144704.htm）
 	return Output(path, values)
 }
 
-func (db *SQLDatabase) Dump(schema schema.Schema) error {
-	return db.dumpSQLTable(schema)
+func (ds *SQLDataSource) Dump(schema schema.Schema) error {
+	return ds.dumpSQLTable(schema)
 }
 
-func (db *SQLDatabase) Restore(schema *schema.Schema, data [][]interface{}) error {
+func (ds *SQLDataSource) Restore(schema *schema.Schema, data [][]interface{}) error {
 	/*
 		err := db.resetSQLTable(schema)
 		if err != nil {
