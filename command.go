@@ -8,7 +8,6 @@ import (
 
 	"github.com/Mitu217/tamate/datasource"
 	"github.com/Mitu217/tamate/schema"
-	"github.com/Mitu217/tamate/server"
 
 	"github.com/codegangsta/cli"
 )
@@ -61,25 +60,35 @@ func dumpSpreadSheetsAction(c *cli.Context) {
 		fmt.Println("[Error] Argument is missing! 2 arguments are required.")
 	}
 
-	spreadSheetsID := c.Args()[0]
 	outputPath := c.Args()[1]
+
+	sheetsID := "1uCEt_DpNCRPZjvxS0hdnIhSnQQKYjmV0FN2KneRbkKk" //c.Args()[0]
+	sheetName := "Class Data"
+	targetRange := "A1:XX"
 
 	sc, err := schema.NewJsonFileSchema("./resources/schema/sample.json")
 	if err != nil {
 		panic(err)
 	}
-	ds := datasource.SpreadSheetsDataSource{
-		SpreadSheetsID: spreadSheetsID,
-	}
 
-	if err = ds.OutputCSV(sc, outputPath); err != nil {
+	sheetConfig := datasource.NewSpreadSheetsConfig(sheetsID, sheetName, targetRange)
+	sheetDataSource, err := datasource.NewSpreadSheetsDataSource(sc, sheetConfig)
+	if err != nil {
 		panic(err)
 	}
 
-	// dumperを使用したものに変更
+	csvConfig := datasource.NewCSVConfig("", outputPath)
+	csvDataSource, err := datasource.NewCSVDataSource(sc, csvConfig)
+	if err != nil {
+		panic(err)
+	}
+
+	// dump rows by dumper
 	d := dumper.NewDumper()
-	rows, err := d.DumpRows(&ds)
-	fmt.Println(rows.Columns)
+	d.Dump(sheetDataSource, csvDataSource)
+	if err := csvDataSource.Output(); err != nil {
+		panic(err)
+	}
 }
 
 func dumpSQLAction(c *cli.Context) {
@@ -88,23 +97,25 @@ func dumpSQLAction(c *cli.Context) {
 		fmt.Println("[Error] Argument is missing! 4 arguments are required.")
 	}
 
-	hostSettingPath := c.Args()[0]
-	outputPath := c.Args()[1]
-	dbName := c.Args()[2]
-	tableName := c.Args()[3]
+	/*
+		hostSettingPath := c.Args()[0]
+		outputPath := c.Args()[1]
+		dbName := c.Args()[2]
+		tableName := c.Args()[3]
 
-	sc, err := schema.NewJsonFileSchema("./resources/schema/sample.json")
-	server, err := server.NewJsonFileServer(hostSettingPath)
-	if err != nil {
-		panic(err)
-	}
-	ds := &datasource.SQLDataSource{
-		Server:       server,
-		DatabaseName: dbName,
-		TableName:    tableName,
-	}
-	if err = ds.Dump(sc); err != nil {
-		panic(err)
-	}
-	ds.OutputCSV(sc, outputPath, ds.Columns, ds.Values)
+		sc, err := schema.NewJsonFileSchema("./resources/schema/sample.json")
+		server, err := server.NewJsonFileServer(hostSettingPath)
+		if err != nil {
+			panic(err)
+		}
+		ds := &datasource.SQLDataSource{
+			Server:       server,
+			DatabaseName: dbName,
+			TableName:    tableName,
+		}
+		if err = ds.Dump(sc); err != nil {
+			panic(err)
+		}
+		ds.OutputCSV(sc, outputPath, ds.Columns, ds.Values)
+	*/
 }

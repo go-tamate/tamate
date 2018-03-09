@@ -125,10 +125,12 @@ func (ds *SQLDataSource) restoreSQLTable(sc schema.Schema, data [][]interface{})
 	return nil
 }
 
+/*
 func (ds *SQLDataSource) OutputCSV(sc schema.Schema, path string, columns []string, values [][]string) error {
 	values = append([][]string{columns}, values...) // TODO: 遅いので修正する（https://mattn.kaoriya.net/software/lang/go/20150928144704.htm）
 	return Output(path, values)
 }
+*/
 
 func (ds *SQLDataSource) Dump(schema schema.Schema) error {
 	return ds.dumpSQLTable(schema)
