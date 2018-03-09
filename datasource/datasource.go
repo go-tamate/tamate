@@ -8,6 +8,10 @@ import (
 )
 
 type DataSource interface {
+	GetColumns() ([]string, error)
+	SetColumns([]string) error
+	GetValues() ([][]string, error)
+	SetValues([][]string) error
 	OutputCSV(schema.Schema, string) error
 }
 

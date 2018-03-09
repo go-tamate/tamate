@@ -21,6 +21,30 @@ import (
 	sheets "google.golang.org/api/sheets/v4"
 )
 
+type SpreadSheetsDataSource struct {
+	SpreadSheetsID string
+	Columns        []string
+	Values         [][]string
+}
+
+func (ds *SpreadSheetsDataSource) GetColumns() ([]string, error) {
+	return ds.Columns, nil
+}
+
+func (ds *SpreadSheetsDataSource) SetColumns(columns []string) error {
+	ds.Columns = columns
+	return nil
+}
+
+func (ds *SpreadSheetsDataSource) GetValues() ([][]string, error) {
+	return ds.Values, nil
+}
+
+func (ds *SpreadSheetsDataSource) SetValues(values [][]string) error {
+	ds.Values = values
+	return nil
+}
+
 func (ds *SpreadSheetsDataSource) OutputCSV(sc schema.Schema, path string) error {
 	rows := GetSampleValues()
 
@@ -79,6 +103,10 @@ func (ds *SpreadSheetsDataSource) OutputCSV(sc schema.Schema, path string) error
 		columns = append(columns, column.Name)
 	}
 	values = append([][]string{columns}, values...) // TODO: 遅いので修正する（https://mattn.kaoriya.net/software/lang/go/20150928144704.htm）
+
+	ds.Columns = columns
+	ds.Values = values
+
 	return Output(path, values)
 }
 
@@ -211,10 +239,4 @@ func saveToken(file string, token *oauth2.Token) {
 	}
 	defer f.Close()
 	json.NewEncoder(f).Encode(token)
-}
-
-type SpreadSheetsDataSource struct {
-	SpreadSheetsID string
-	Columns        []string
-	Values         [][]interface{}
 }
