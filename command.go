@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/Mitu217/tamate/differ"
 	"github.com/Mitu217/tamate/dumper"
 
 	"github.com/Mitu217/tamate/datasource"
@@ -37,6 +38,11 @@ func main() {
 			Name:   "dump:sql",
 			Usage:  "Dump CSV from SQL Server.",
 			Action: dumpSQLAction,
+		},
+		{
+			Name:   "diff",
+			Usage:  "Diff Sample.",
+			Action: diffAction,
 		},
 	}
 
@@ -122,4 +128,54 @@ func dumpSQLAction(c *cli.Context) {
 	// dump rows by dumper
 	d := dumper.NewDumper()
 	d.Dump(sqlDataSource, csvDataSource)
+}
+
+func diffAction(c *cli.Context) {
+	sc, err := schema.NewJSONFileSchema("./resources/schema/sample.json")
+	if err != nil {
+		panic(err)
+	}
+
+	// spreaddsheets
+	sheetsID := "1uCEt_DpNCRPZjvxS0hdnIhSnQQKYjmV0FN2KneRbkKk" //c.Args()[0]
+	sheetName := "Class Data"
+	targetRange := "A1:XX"
+
+	sheetConfig := datasource.NewSpreadSheetsConfig(sheetsID, sheetName, targetRange)
+	sheetDataSource, err := datasource.NewSpreadSheetsDataSource(sc, sheetConfig)
+	if err != nil {
+		panic(err)
+	}
+
+	// sql
+	hostSettingPath := "./resources/host/mysql/sample.json"
+	dbName := "Sample"
+	tableName := "Sample"
+
+	sqlConfig, err := datasource.NewJSONSQLConfig(hostSettingPath, dbName, tableName)
+	if err != nil {
+		panic(err)
+	}
+	sqlDataSource, err := datasource.NewSQLDataSource(sc, sqlConfig)
+	if err != nil {
+		panic(err)
+	}
+
+	// dump rows by dumper
+	d := differ.NewDiffer(sheetDataSource, sqlDataSource)
+	//diff, err := d.RowsOnlyLeft(sc)
+	diff, err := d.RowsOnlyRight(sc)
+
+	fmt.Println("[Add]")
+	for _, add := range diff.Add.Values {
+		fmt.Println(add)
+	}
+	fmt.Println("[Delete]")
+	for _, delete := range diff.Delete.Values {
+		fmt.Println(delete)
+	}
+	fmt.Println("[Modify]")
+	for _, modify := range diff.Modify.Values {
+		fmt.Println(modify)
+	}
 }
