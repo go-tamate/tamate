@@ -1,9 +1,14 @@
 package datasource
 
+// Rows :
+type Rows struct {
+	Columns []string
+	Values  [][]string
+}
+
+// DataSource :
 type DataSource interface {
-	GetColumns() []string
-	SetColumns([]string)
-	GetValues() [][]string
-	SetValues([][]string)
+	GetRows() *Rows
+	SetRows(*Rows)
 	Output() error
 }
