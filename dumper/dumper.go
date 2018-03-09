@@ -14,12 +14,12 @@ func NewDumper() *Dumper {
 
 // Dump :
 func (d *Dumper) Dump(src datasource.DataSource, dst datasource.DataSource) error {
-	dst.SetRows(src.GetRows())
+	rows, err := src.GetRows()
+	if err != nil {
+		return err
+	}
+	if err := dst.SetRows(rows); err != nil {
+		return err
+	}
 	return nil
-}
-
-// DumpRows :
-func (d *Dumper) DumpRows(src datasource.DataSource) (*datasource.Rows, error) {
-	rows := src.GetRows()
-	return rows, nil
 }

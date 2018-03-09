@@ -8,7 +8,6 @@ type Rows struct {
 
 // DataSource :
 type DataSource interface {
-	GetRows() *Rows
-	SetRows(*Rows)
-	Output() error
+	GetRows() (*Rows, error)
+	SetRows(*Rows) error
 }
