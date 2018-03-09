@@ -8,8 +8,6 @@ import (
 	"io/ioutil"
 	"strings"
 
-	"github.com/Mitu217/tamate/server"
-
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -98,10 +96,11 @@ func (sc *SQLSchema) Output(path string) error {
 	return ioutil.WriteFile(path, jsonBytes, 0644)
 }
 
+// SQLSchema :
 type SQLSchema struct {
-	Server       *server.Server `json:"server"`
-	DatabaseName string         `json:"database"`
-	Description  string         `json:"description"`
-	Table        Table          `json:"table"`
-	Columns      []Column       `json:"properties"`
+	Server       *Server  `json:"server"`
+	DatabaseName string   `json:"database"`
+	Description  string   `json:"description"`
+	Table        Table    `json:"table"`
+	Columns      []Column `json:"properties"`
 }
