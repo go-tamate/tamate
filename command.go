@@ -86,9 +86,6 @@ func dumpSpreadSheetsAction(c *cli.Context) {
 	// dump rows by dumper
 	d := dumper.NewDumper()
 	d.Dump(sheetDataSource, csvDataSource)
-	if err := csvDataSource.Output(); err != nil {
-		panic(err)
-	}
 }
 
 func dumpSQLAction(c *cli.Context) {

@@ -16,7 +16,7 @@ type CSVConfig struct {
 // CSVDataSource :
 type CSVDataSource struct {
 	Config *CSVConfig
-	Rows   *Rows
+	Schema schema.Schema
 }
 
 // NewCSVConfig :
@@ -30,14 +30,16 @@ func NewCSVConfig(srcPath string, dstPath string) *CSVConfig {
 
 // NewCSVDataSource :
 func NewCSVDataSource(sc schema.Schema, config *CSVConfig) (*CSVDataSource, error) {
-	if config.SoursePath == "" {
-		ds := &CSVDataSource{
-			Config: config,
-		}
-		return ds, nil
+	ds := &CSVDataSource{
+		Config: config,
+		Schema: sc,
 	}
+	return ds, nil
+}
 
-	r, err := os.Open(config.SoursePath)
+// GetRows :
+func (ds *CSVDataSource) GetRows() (*Rows, error) {
+	r, err := os.Open(ds.Config.SoursePath)
 	if err != nil {
 		return nil, err
 	}
@@ -50,28 +52,15 @@ func NewCSVDataSource(sc schema.Schema, config *CSVConfig) (*CSVDataSource, erro
 	// FIXME: columnsはSchemaを正とするようにデータを生成する
 	columns := records[0]
 	values := append(records[:0], records[1:]...)
-	ds := &CSVDataSource{
-		Config: config,
-		Rows: &Rows{
-			Columns: columns,
-			Values:  values,
-		},
+	rows := &Rows{
+		Columns: columns,
+		Values:  values,
 	}
-	return ds, err
-}
-
-// GetRows :
-func (ds *CSVDataSource) GetRows() *Rows {
-	return ds.Rows
+	return rows, nil
 }
 
 // SetRows :
-func (ds *CSVDataSource) SetRows(rows *Rows) {
-	ds.Rows = rows
-}
-
-// Output :
-func (ds *CSVDataSource) Output() error {
+func (ds *CSVDataSource) SetRows(rows *Rows) error {
 	file, err := os.Create(ds.Config.OutputPath)
 	if err != nil {
 		return err
@@ -81,7 +70,7 @@ func (ds *CSVDataSource) Output() error {
 	writer := csv.NewWriter(file)
 	defer writer.Flush()
 
-	for _, value := range append([][]string{ds.Rows.Columns}, ds.Rows.Values...) {
+	for _, value := range append([][]string{rows.Columns}, rows.Values...) {
 		err := writer.Write(value)
 		if err != nil {
 			return err

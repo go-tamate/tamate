@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/Mitu217/tamate/schema"
-
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	sheets "google.golang.org/api/sheets/v4"
@@ -31,7 +30,7 @@ type SpreadSheetsConfig struct {
 // SpreadSheetsDataSource :
 type SpreadSheetsDataSource struct {
 	Config *SpreadSheetsConfig
-	Rows   *Rows
+	Schema schema.Schema
 }
 
 // NewSpreadSheetsConfig :
@@ -46,22 +45,40 @@ func NewSpreadSheetsConfig(sheetsID string, sheetName string, targetRange string
 
 // NewSpreadSheetsDataSource :
 func NewSpreadSheetsDataSource(sc schema.Schema, config *SpreadSheetsConfig) (*SpreadSheetsDataSource, error) {
+	ds := &SpreadSheetsDataSource{
+		Config: config,
+		Schema: sc,
+	}
+	return ds, nil
+}
+
+func contains(s []string, e string) int {
+	for i, v := range s {
+		if e == v {
+			return i
+		}
+	}
+	return -1
+}
+
+// GetRows :
+func (ds *SpreadSheetsDataSource) GetRows() (*Rows, error) {
 	srv := getService()
 
 	// Get data
-	readRange := config.SheetName + "!" + config.Range
-	resp, err := srv.Spreadsheets.Values.Get(config.SpreadSheetsID, readRange).Do()
+	readRange := ds.Config.SheetName + "!" + ds.Config.Range
+	resp, err := srv.Spreadsheets.Values.Get(ds.Config.SpreadSheetsID, readRange).Do()
 	if err != nil {
 		return nil, err
 	}
 	if len(resp.Values) == 0 {
 		return nil, errors.New("No data found")
 	}
-	rows := resp.Values
+	sheetRows := resp.Values
 
 	// Get columns
 	spreadsheetsColumnNames := make([]string, 0)
-	for _, row := range rows {
+	for _, row := range sheetRows {
 		tagField := row[0]
 		if tagField == "COLUMN" {
 			spreadsheetsColumns := append(row[:0], row[1:]...)
@@ -71,12 +88,12 @@ func NewSpreadSheetsDataSource(sc schema.Schema, config *SpreadSheetsConfig) (*S
 		}
 	}
 	if len(spreadsheetsColumnNames) == 0 {
-		return nil, errors.New("No columns in SpreadSheets. ID: " + config.SpreadSheetsID)
+		return nil, errors.New("No columns in SpreadSheets. ID: " + ds.Config.SpreadSheetsID)
 	}
 
 	// Get data
 	values := make([][]string, 0)
-	for _, row := range rows {
+	for _, row := range sheetRows {
 		tagField := row[0]
 		switch tagField {
 		case "COLUMN":
@@ -84,7 +101,7 @@ func NewSpreadSheetsDataSource(sc schema.Schema, config *SpreadSheetsConfig) (*S
 		case "":
 			// Get Data
 			value := make([]string, 0)
-			for _, column := range sc.GetColumns() {
+			for _, column := range ds.Schema.GetColumns() {
 				index := contains(spreadsheetsColumnNames, column.Name)
 				if index == -1 {
 					if column.NotNull {
@@ -110,46 +127,24 @@ func NewSpreadSheetsDataSource(sc schema.Schema, config *SpreadSheetsConfig) (*S
 
 	// Create output data
 	columns := make([]string, 0)
-	for _, column := range sc.GetColumns() {
+	for _, column := range ds.Schema.GetColumns() {
 		columns = append(columns, column.Name)
 	}
 	//values = append([][]string{columns}, values...) // TODO: 遅いので修正する（https://mattn.kaoriya.net/software/lang/go/20150928144704.htm）
 
-	ds := &SpreadSheetsDataSource{
-		Config: config,
-		Rows: &Rows{
-			Columns: columns,
-			Values:  values,
-		},
+	rows := &Rows{
+		Columns: columns,
+		Values:  values,
 	}
-	return ds, nil
-}
-
-func contains(s []string, e string) int {
-	for i, v := range s {
-		if e == v {
-			return i
-		}
-	}
-	return -1
-}
-
-// GetRows :
-func (ds *SpreadSheetsDataSource) GetRows() *Rows {
-	return ds.Rows
+	return rows, nil
 }
 
 // SetRows :
-func (ds *SpreadSheetsDataSource) SetRows(rows *Rows) {
-	ds.Rows = rows
-}
-
-// Output :
-func (ds *SpreadSheetsDataSource) Output() error {
+func (ds *SpreadSheetsDataSource) SetRows(rows *Rows) error {
 	srv := getService()
 
 	outputValues := make([][]interface{}, 0)
-	for _, value := range ds.Rows.Values {
+	for _, value := range rows.Values {
 		outputValue := make([]interface{}, len(value))
 		for i := range value {
 			outputValue[i] = value[i]
