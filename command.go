@@ -66,7 +66,7 @@ func dumpSpreadSheetsAction(c *cli.Context) {
 	sheetName := "Class Data"
 	targetRange := "A1:XX"
 
-	sc, err := schema.NewJsonFileSchema("./resources/schema/sample.json")
+	sc, err := schema.NewJSONFileSchema("./resources/schema/sample.json")
 	if err != nil {
 		panic(err)
 	}
@@ -99,7 +99,7 @@ func dumpSQLAction(c *cli.Context) {
 	dbName := c.Args()[2]
 	tableName := c.Args()[3]
 
-	sc, err := schema.NewJsonFileSchema("./resources/schema/sample.json")
+	sc, err := schema.NewJSONFileSchema("./resources/schema/sample.json")
 	if err != nil {
 		panic(err)
 	}
