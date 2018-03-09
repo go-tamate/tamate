@@ -21,32 +21,44 @@ import (
 	sheets "google.golang.org/api/sheets/v4"
 )
 
-type SpreadSheetsDataSource struct {
+// SpreadSheetsConfig :
+type SpreadSheetsConfig struct {
 	SpreadSheetsID string
-	Columns        []string
-	Values         [][]string
+	SheetName      string
+	Range          string
 }
 
-func (ds *SpreadSheetsDataSource) GetColumns() ([]string, error) {
-	return ds.Columns, nil
+// SpreadSheetsDataSource :
+type SpreadSheetsDataSource struct {
+	Config  *SpreadSheetsConfig
+	Columns []string
+	Values  [][]string
 }
 
-func (ds *SpreadSheetsDataSource) SetColumns(columns []string) error {
-	ds.Columns = columns
-	return nil
+// NewSpreadSheetsConfig :
+func NewSpreadSheetsConfig(sheetsID string, sheetName string, targetRange string) *SpreadSheetsConfig {
+	config := &SpreadSheetsConfig{
+		SpreadSheetsID: sheetsID,
+		SheetName:      sheetName,
+		Range:          targetRange,
+	}
+	return config
 }
 
-func (ds *SpreadSheetsDataSource) GetValues() ([][]string, error) {
-	return ds.Values, nil
-}
+// NewSpreadSheetsDataSource :
+func NewSpreadSheetsDataSource(sc schema.Schema, config *SpreadSheetsConfig) (*SpreadSheetsDataSource, error) {
+	srv := getService()
 
-func (ds *SpreadSheetsDataSource) SetValues(values [][]string) error {
-	ds.Values = values
-	return nil
-}
-
-func (ds *SpreadSheetsDataSource) OutputCSV(sc schema.Schema, path string) error {
-	rows := GetSampleValues()
+	// Get data
+	readRange := config.SheetName + "!" + config.Range
+	resp, err := srv.Spreadsheets.Values.Get(config.SpreadSheetsID, readRange).Do()
+	if err != nil {
+		return nil, err
+	}
+	if len(resp.Values) == 0 {
+		return nil, errors.New("No data found")
+	}
+	rows := resp.Values
 
 	// Get columns
 	spreadsheetsColumnNames := make([]string, 0)
@@ -60,7 +72,7 @@ func (ds *SpreadSheetsDataSource) OutputCSV(sc schema.Schema, path string) error
 		}
 	}
 	if len(spreadsheetsColumnNames) == 0 {
-		return errors.New("No columns in SpreadSheets. ID: " + ds.SpreadSheetsID)
+		return nil, errors.New("No columns in SpreadSheets. ID: " + config.SpreadSheetsID)
 	}
 
 	// Get data
@@ -102,12 +114,72 @@ func (ds *SpreadSheetsDataSource) OutputCSV(sc schema.Schema, path string) error
 	for _, column := range sc.GetColumns() {
 		columns = append(columns, column.Name)
 	}
-	values = append([][]string{columns}, values...) // TODO: 遅いので修正する（https://mattn.kaoriya.net/software/lang/go/20150928144704.htm）
+	//values = append([][]string{columns}, values...) // TODO: 遅いので修正する（https://mattn.kaoriya.net/software/lang/go/20150928144704.htm）
 
+	ds := &SpreadSheetsDataSource{
+		Config:  config,
+		Columns: columns,
+		Values:  values,
+	}
+	return ds, nil
+}
+
+func contains(s []string, e string) int {
+	for i, v := range s {
+		if e == v {
+			return i
+		}
+	}
+	return -1
+}
+
+// GetColumns :
+func (ds *SpreadSheetsDataSource) GetColumns() []string {
+	return ds.Columns
+}
+
+// SetColumns :
+func (ds *SpreadSheetsDataSource) SetColumns(columns []string) {
 	ds.Columns = columns
-	ds.Values = values
+}
 
-	return Output(path, values)
+// GetValues :
+func (ds *SpreadSheetsDataSource) GetValues() [][]string {
+	return ds.Values
+}
+
+// SetValues :
+func (ds *SpreadSheetsDataSource) SetValues(values [][]string) {
+	ds.Values = values
+}
+
+// Output :
+func (ds *SpreadSheetsDataSource) Output() error {
+	srv := getService()
+
+	outputValues := make([][]interface{}, 0)
+	for _, value := range ds.Values {
+		outputValue := make([]interface{}, len(value))
+		for i := range value {
+			outputValue[i] = value[i]
+		}
+	}
+
+	// https://docs.google.com/spreadsheets/d/1_Um82wSffMiMVqvRISAo348Ti8u51CLdV_kGN7TYDko/edit#gid=0
+	spreadsheetID := "1_Um82wSffMiMVqvRISAo348Ti8u51CLdV_kGN7TYDko"
+	rangeData := "sheet1!A1:XX"
+
+	valueRange := &sheets.ValueRange{
+		Range:  rangeData,
+		Values: outputValues,
+	}
+
+	_, err := srv.Spreadsheets.Values.Update(spreadsheetID, rangeData, valueRange).ValueInputOption("USER_ENTERED").Do()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func getService() *sheets.Service {
@@ -132,41 +204,6 @@ func getService() *sheets.Service {
 	}
 
 	return srv
-}
-
-func GetSampleValues() [][]interface{} {
-	srv := getService()
-
-	// Prints the names and majors of students in a sample spreadsheet:
-	// https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit
-	spreadsheetID := "1uCEt_DpNCRPZjvxS0hdnIhSnQQKYjmV0FN2KneRbkKk"
-	readRange := "Class Data!A1:XX"
-	resp, err := srv.Spreadsheets.Values.Get(spreadsheetID, readRange).Do()
-	if err != nil {
-		log.Fatalf("Unable to retrieve data from sheet. %v", err)
-	}
-	if len(resp.Values) == 0 {
-		fmt.Print("No data found.")
-	}
-
-	return resp.Values
-}
-
-func SetSampleValues(values [][]interface{}) {
-	srv := getService()
-
-	// https://docs.google.com/spreadsheets/d/1_Um82wSffMiMVqvRISAo348Ti8u51CLdV_kGN7TYDko/edit#gid=0
-	spreadsheetID := "1_Um82wSffMiMVqvRISAo348Ti8u51CLdV_kGN7TYDko"
-	rangeData := "sheet1!A1:XX"
-	valueRange := &sheets.ValueRange{
-		Range:  rangeData,
-		Values: values,
-	}
-
-	_, err := srv.Spreadsheets.Values.Update(spreadsheetID, rangeData, valueRange).ValueInputOption("USER_ENTERED").Do()
-	if err != nil {
-		log.Fatal(err)
-	}
 }
 
 // GetClient uses a Context and Config to retrieve a Token
