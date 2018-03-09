@@ -2,55 +2,91 @@ package datasource
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
+	"strings"
 
 	"github.com/Mitu217/tamate/schema"
-	"github.com/Mitu217/tamate/server"
 
 	_ "github.com/go-sql-driver/mysql"
 )
 
-type Table struct {
-	Columns []string
-	Records [][]string
-}
-
-type SQLDataSource struct {
-	Server       *server.Server
+// SQLConfig :
+type SQLConfig struct {
+	Server       *schema.Server
 	DatabaseName string
 	TableName    string
-	Columns      []string
-	Values       [][]string
+}
+
+// SQLDataSource :
+type SQLDataSource struct {
+	Config *SQLConfig
+	Schema schema.Schema
+}
+
+// NewJSONSQLConfig :
+func NewJSONSQLConfig(jsonPath string, dbName string, tableName string) (*SQLConfig, error) {
+	var sv *schema.Server
+	r, err := os.Open(jsonPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := json.NewDecoder(r).Decode(&sv); err != nil {
+		return nil, err
+	}
+	config := &SQLConfig{
+		Server:       sv,
+		DatabaseName: dbName,
+		TableName:    tableName,
+	}
+	return config, nil
+}
+
+// NewSQLDataSource :
+func NewSQLDataSource(sc schema.Schema, config *SQLConfig) (*SQLDataSource, error) {
+	ds := &SQLDataSource{
+		Config: config,
+		Schema: sc,
+	}
+	return ds, nil
 }
 
 func (ds *SQLDataSource) open() (*sql.DB, error) {
-	dataSourceName := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", ds.Server.User, ds.Server.Password, ds.Server.Host, ds.Server.Port, ds.DatabaseName)
-	return sql.Open(ds.Server.DriverName, dataSourceName)
+	user := ds.Config.Server.User
+	pw := ds.Config.Server.Password
+	host := ds.Config.Server.Host
+	port := ds.Config.Server.Port
+	dbName := ds.Config.DatabaseName
+	dataSourceName := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", user, pw, host, port, dbName)
+	return sql.Open(ds.Config.Server.DriverName, dataSourceName)
 }
 
-func (ds *SQLDataSource) dumpSQLTable(sc schema.Schema) error {
+// GetRows :
+func (ds *SQLDataSource) GetRows() (*Rows, error) {
 	cnn, err := ds.open()
 
 	// Get data
-	rows, err := cnn.Query("SELECT * FROM " + sc.GetTableName())
+	sqlRows, err := cnn.Query("SELECT * FROM " + ds.Schema.GetTableName())
 	if err != nil {
-		return err
+		return nil, err
 	}
-	defer rows.Close()
+	defer sqlRows.Close()
 
 	// Get columns
-	columns, err := rows.Columns()
+	columns, err := sqlRows.Columns()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if len(columns) == 0 {
-		return errors.New("No columns in table " + sc.GetTableName() + ".")
+		return nil, errors.New("No columns in table " + ds.Schema.GetTableName() + ".")
 	}
 
 	// Read data
 	records := make([][]string, 0)
-	for rows.Next() {
+	for sqlRows.Next() {
 		data := make([]*sql.NullString, len(columns))
 		ptrs := make([]interface{}, len(columns))
 		for i := range data {
@@ -58,8 +94,8 @@ func (ds *SQLDataSource) dumpSQLTable(sc schema.Schema) error {
 		}
 
 		// Read data
-		if err := rows.Scan(ptrs...); err != nil {
-			return err
+		if err := sqlRows.Scan(ptrs...); err != nil {
+			return nil, err
 		}
 
 		dataStrings := make([]string, len(columns))
@@ -72,9 +108,46 @@ func (ds *SQLDataSource) dumpSQLTable(sc schema.Schema) error {
 
 		records = append(records, dataStrings)
 	}
-	ds.Columns = columns
-	ds.Values = records
 
+	rows := &Rows{
+		Columns: columns,
+		Values:  records,
+	}
+	return rows, nil
+}
+
+// SetRows :
+func (ds *SQLDataSource) SetRows(rows *Rows) error {
+	cnn, err := ds.open()
+	if err != nil {
+		return err
+	}
+
+	columns := make([]string, 0)
+	for _, column := range ds.Schema.GetColumns() {
+		columns = append(columns, column.Name)
+	}
+	columnsText := strings.Join(columns, ",")
+
+	data := rows.Values
+	values := make([]string, len(data))
+	for i := range data {
+		valueText := make([]string, len(data[i]))
+		for j := range data[i] {
+			if ds.Schema.GetColumns()[j].Type == "int" {
+				valueText[j] = data[i][j]
+			}
+			valueText[j] = "'" + data[i][j] + "'"
+		}
+		values[i] = "(" + strings.Join(valueText, ",") + ")"
+	}
+	valuesText := strings.Join(values, ",")
+
+	// Insert data
+	_, err = cnn.Query("INSERT INTO " + ds.Config.TableName + " (" + columnsText + ") VALUES " + valuesText)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -87,62 +160,5 @@ func (ds *SQLDataSource) resetSQLTable(sc schema.Schema) error {
 	// Truncate data
 	cnn.Query("TRUNCATE TABLE " + sc.GetTableName())
 
-	return nil
-}
-
-func (ds *SQLDataSource) restoreSQLTable(sc schema.Schema, data [][]interface{}) error {
-	/*
-		cnn, err := db.open()
-		if err != nil {
-			return err
-		}
-
-		columns := make([]string, 0)
-		for _, column := range sc.GetColumns() {
-			columns = append(columns, column.Name)
-		}
-		columns_text := strings.Join(columns, ",")
-
-		values := make([]string, len(data))
-		for i := range data {
-			value_text := make([]string, len(data[i]))
-			for j := range data[i] {
-				if schema.Properties[j].Type == "int" {
-					value_text[j] = data[i][j].(string)
-				}
-				value_text[j] = "'" + data[i][j].(string) + "'"
-			}
-			values[i] = "(" + strings.Join(value_text, ",") + ")"
-		}
-		values_text := strings.Join(values, ",")
-
-		// Insert data
-		_, err = cnn.Query("INSERT INTO " + schema.Table.Name + " (" + columns_text + ") VALUES " + values_text)
-		if err != nil {
-			return err
-		}
-	*/
-	return nil
-}
-
-/*
-func (ds *SQLDataSource) OutputCSV(sc schema.Schema, path string, columns []string, values [][]string) error {
-	values = append([][]string{columns}, values...) // TODO: 遅いので修正する（https://mattn.kaoriya.net/software/lang/go/20150928144704.htm）
-	return Output(path, values)
-}
-*/
-
-func (ds *SQLDataSource) Dump(schema schema.Schema) error {
-	return ds.dumpSQLTable(schema)
-}
-
-func (ds *SQLDataSource) Restore(schema *schema.Schema, data [][]interface{}) error {
-	/*
-		err := db.resetSQLTable(schema)
-		if err != nil {
-			return err
-		}
-		return db.restoreSQLTable(schema, data)
-	*/
 	return nil
 }
