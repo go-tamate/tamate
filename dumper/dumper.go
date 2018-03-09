@@ -20,40 +20,22 @@ func NewDumper() *Dumper {
 
 // Dump :
 func (d *Dumper) Dump(src datasource.DataSource, dst datasource.DataSource) error {
-	columns, err := src.GetColumns()
-	if err != nil {
-		return err
-	}
-	err = dst.SetColumns(columns)
-	if err != nil {
-		return err
-	}
+	columns := src.GetColumns()
+	values := src.GetValues()
+	dst.SetColumns(columns)
+	dst.SetValues(values)
 
-	values, err := src.GetValues()
-	if err != nil {
-		return err
-	}
-	err = dst.SetValues(values)
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
 // DumpRows :
 func (d *Dumper) DumpRows(src datasource.DataSource) (*Rows, error) {
-	rows := &Rows{}
+	columns := src.GetColumns()
+	values := src.GetValues()
 
-	columns, err := src.GetColumns()
-	if err != nil {
-		return rows, err
+	rows := &Rows{
+		Columns: columns,
+		Values:  values,
 	}
-	values, err := src.GetValues()
-	if err != nil {
-		return rows, err
-	}
-
-	rows.Columns = columns
-	rows.Values = values
 	return rows, nil
 }
