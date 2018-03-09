@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/Mitu217/tamate/dumper"
+
 	"github.com/Mitu217/tamate/datasource"
 	"github.com/Mitu217/tamate/schema"
 	"github.com/Mitu217/tamate/server"
@@ -69,9 +71,15 @@ func dumpSpreadSheetsAction(c *cli.Context) {
 	ds := datasource.SpreadSheetsDataSource{
 		SpreadSheetsID: spreadSheetsID,
 	}
+
 	if err = ds.OutputCSV(sc, outputPath); err != nil {
 		panic(err)
 	}
+
+	// dumperを使用したものに変更
+	d := dumper.NewDumper()
+	rows, err := d.DumpRows(&ds)
+	fmt.Println(rows.Columns)
 }
 
 func dumpSQLAction(c *cli.Context) {
