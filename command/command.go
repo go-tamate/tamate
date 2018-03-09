@@ -28,9 +28,9 @@ func main() {
 	// Commands.
 	app.Commands = []cli.Command{
 		{
-			Name:   "dump:spreadsheet",
-			Usage:  "Dump CSV from SpreadSheet.",
-			Action: dumpSpreadSheetAction,
+			Name:   "dump:spreadsheets",
+			Usage:  "Dump CSV from SpreadSheets.",
+			Action: dumpSpreadSheetsAction,
 		},
 		{
 			Name:   "dump:sql",
@@ -53,7 +53,7 @@ func main() {
 	app.Run(os.Args)
 }
 
-func dumpSpreadSheetAction(c *cli.Context) {
+func dumpSpreadSheetsAction(c *cli.Context) {
 	// Check args.
 	if len(c.Args()) < 2 {
 		fmt.Println("[Error] Argument is missing! 2 arguments are required.")
@@ -81,24 +81,22 @@ func dumpSQLAction(c *cli.Context) {
 	}
 
 	hostSettingPath := c.Args()[0]
-	dbName := c.Args()[1]
-	//tableName := c.Args()[2]
-	outputPath := c.Args()[3]
+	outputPath := c.Args()[1]
+	dbName := c.Args()[2]
+	tableName := c.Args()[3]
 
 	sc, err := schema.NewJsonFileSchema("./resources/schema/sample.json")
 	server, err := server.NewJsonFileServer(hostSettingPath)
 	if err != nil {
 		panic(err)
 	}
-	ds := &datasource.SQLDatabase{
+	ds := &datasource.SQLDataSource{
 		Server:       server,
 		DatabaseName: dbName,
+		TableName:    tableName,
 	}
 	if err = ds.Dump(sc); err != nil {
 		panic(err)
 	}
-
-	for _, table := range ds.Tables {
-		ds.OutputCSV(sc, outputPath, table.Columns, table.Records)
-	}
+	ds.OutputCSV(sc, outputPath, ds.Columns, ds.Values)
 }
