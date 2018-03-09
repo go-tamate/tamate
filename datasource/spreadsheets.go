@@ -15,18 +15,70 @@ import (
 	"time"
 
 	"github.com/Mitu217/tamate/schema"
-
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	sheets "google.golang.org/api/sheets/v4"
 )
 
-func (ds *SpreadSheetsDataSource) OutputCSV(sc schema.Schema, path string) error {
-	rows := GetSampleValues()
+// SpreadSheetsConfig :
+type SpreadSheetsConfig struct {
+	SpreadSheetsID string
+	SheetName      string
+	Range          string
+}
+
+// SpreadSheetsDataSource :
+type SpreadSheetsDataSource struct {
+	Config *SpreadSheetsConfig
+	Schema schema.Schema
+}
+
+// NewSpreadSheetsConfig :
+func NewSpreadSheetsConfig(sheetsID string, sheetName string, targetRange string) *SpreadSheetsConfig {
+	config := &SpreadSheetsConfig{
+		SpreadSheetsID: sheetsID,
+		SheetName:      sheetName,
+		Range:          targetRange,
+	}
+	return config
+}
+
+// NewSpreadSheetsDataSource :
+func NewSpreadSheetsDataSource(sc schema.Schema, config *SpreadSheetsConfig) (*SpreadSheetsDataSource, error) {
+	ds := &SpreadSheetsDataSource{
+		Config: config,
+		Schema: sc,
+	}
+	return ds, nil
+}
+
+func contains(s []string, e string) int {
+	for i, v := range s {
+		if e == v {
+			return i
+		}
+	}
+	return -1
+}
+
+// GetRows :
+func (ds *SpreadSheetsDataSource) GetRows() (*Rows, error) {
+	srv := getService()
+
+	// Get data
+	readRange := ds.Config.SheetName + "!" + ds.Config.Range
+	resp, err := srv.Spreadsheets.Values.Get(ds.Config.SpreadSheetsID, readRange).Do()
+	if err != nil {
+		return nil, err
+	}
+	if len(resp.Values) == 0 {
+		return nil, errors.New("No data found")
+	}
+	sheetRows := resp.Values
 
 	// Get columns
 	spreadsheetsColumnNames := make([]string, 0)
-	for _, row := range rows {
+	for _, row := range sheetRows {
 		tagField := row[0]
 		if tagField == "COLUMN" {
 			spreadsheetsColumns := append(row[:0], row[1:]...)
@@ -36,12 +88,12 @@ func (ds *SpreadSheetsDataSource) OutputCSV(sc schema.Schema, path string) error
 		}
 	}
 	if len(spreadsheetsColumnNames) == 0 {
-		return errors.New("No columns in SpreadSheets. ID: " + ds.SpreadSheetsID)
+		return nil, errors.New("No columns in SpreadSheets. ID: " + ds.Config.SpreadSheetsID)
 	}
 
 	// Get data
 	values := make([][]string, 0)
-	for _, row := range rows {
+	for _, row := range sheetRows {
 		tagField := row[0]
 		switch tagField {
 		case "COLUMN":
@@ -49,7 +101,7 @@ func (ds *SpreadSheetsDataSource) OutputCSV(sc schema.Schema, path string) error
 		case "":
 			// Get Data
 			value := make([]string, 0)
-			for _, column := range sc.GetColumns() {
+			for _, column := range ds.Schema.GetColumns() {
 				index := contains(spreadsheetsColumnNames, column.Name)
 				if index == -1 {
 					if column.NotNull {
@@ -75,11 +127,45 @@ func (ds *SpreadSheetsDataSource) OutputCSV(sc schema.Schema, path string) error
 
 	// Create output data
 	columns := make([]string, 0)
-	for _, column := range sc.GetColumns() {
+	for _, column := range ds.Schema.GetColumns() {
 		columns = append(columns, column.Name)
 	}
-	values = append([][]string{columns}, values...) // TODO: 遅いので修正する（https://mattn.kaoriya.net/software/lang/go/20150928144704.htm）
-	return Output(path, values)
+	//values = append([][]string{columns}, values...) // TODO: 遅いので修正する（https://mattn.kaoriya.net/software/lang/go/20150928144704.htm）
+
+	rows := &Rows{
+		Columns: columns,
+		Values:  values,
+	}
+	return rows, nil
+}
+
+// SetRows :
+func (ds *SpreadSheetsDataSource) SetRows(rows *Rows) error {
+	srv := getService()
+
+	outputValues := make([][]interface{}, 0)
+	for _, value := range rows.Values {
+		outputValue := make([]interface{}, len(value))
+		for i := range value {
+			outputValue[i] = value[i]
+		}
+	}
+
+	// https://docs.google.com/spreadsheets/d/1_Um82wSffMiMVqvRISAo348Ti8u51CLdV_kGN7TYDko/edit#gid=0
+	spreadsheetID := "1_Um82wSffMiMVqvRISAo348Ti8u51CLdV_kGN7TYDko"
+	rangeData := "sheet1!A1:XX"
+
+	valueRange := &sheets.ValueRange{
+		Range:  rangeData,
+		Values: outputValues,
+	}
+
+	_, err := srv.Spreadsheets.Values.Update(spreadsheetID, rangeData, valueRange).ValueInputOption("USER_ENTERED").Do()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func getService() *sheets.Service {
@@ -104,41 +190,6 @@ func getService() *sheets.Service {
 	}
 
 	return srv
-}
-
-func GetSampleValues() [][]interface{} {
-	srv := getService()
-
-	// Prints the names and majors of students in a sample spreadsheet:
-	// https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit
-	spreadsheetID := "1uCEt_DpNCRPZjvxS0hdnIhSnQQKYjmV0FN2KneRbkKk"
-	readRange := "Class Data!A1:XX"
-	resp, err := srv.Spreadsheets.Values.Get(spreadsheetID, readRange).Do()
-	if err != nil {
-		log.Fatalf("Unable to retrieve data from sheet. %v", err)
-	}
-	if len(resp.Values) == 0 {
-		fmt.Print("No data found.")
-	}
-
-	return resp.Values
-}
-
-func SetSampleValues(values [][]interface{}) {
-	srv := getService()
-
-	// https://docs.google.com/spreadsheets/d/1_Um82wSffMiMVqvRISAo348Ti8u51CLdV_kGN7TYDko/edit#gid=0
-	spreadsheetID := "1_Um82wSffMiMVqvRISAo348Ti8u51CLdV_kGN7TYDko"
-	rangeData := "sheet1!A1:XX"
-	valueRange := &sheets.ValueRange{
-		Range:  rangeData,
-		Values: values,
-	}
-
-	_, err := srv.Spreadsheets.Values.Update(spreadsheetID, rangeData, valueRange).ValueInputOption("USER_ENTERED").Do()
-	if err != nil {
-		log.Fatal(err)
-	}
 }
 
 // GetClient uses a Context and Config to retrieve a Token
@@ -211,10 +262,4 @@ func saveToken(file string, token *oauth2.Token) {
 	}
 	defer f.Close()
 	json.NewEncoder(f).Encode(token)
-}
-
-type SpreadSheetsDataSource struct {
-	SpreadSheetsID string
-	Columns        []string
-	Values         [][]interface{}
 }

@@ -2,51 +2,79 @@ package datasource
 
 import (
 	"encoding/csv"
-	"io"
 	"os"
+
+	"github.com/Mitu217/tamate/schema"
 )
 
-func NewCSVDataSource(r io.Reader) (*CSVDataSource, error) {
-	recodes, err := csv.NewReader(r).ReadAll()
-	if err != nil {
-		return nil, err
-	}
-	values := make([][]interface{}, len(recodes))
-	for i, recode := range recodes {
-		value := make([]interface{}, len(recode))
-		for k, v := range recode {
-			value[k] = v
-		}
-		values[i] = value
-	}
-	ds := &CSVDataSource{
-		Values: values,
-	}
-	return ds, err
+// CSVConfig :
+type CSVConfig struct {
+	SoursePath string
+	OutputPath string
 }
 
-func NewCSVFileDataSource(path string) (*CSVDataSource, error) {
-	r, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	return NewCSVDataSource(r)
-}
-
-func (ds *CSVDataSource) OutputCSV(path string) error {
-	return nil
-}
-
-func contains(s []string, e string) int {
-	for i, v := range s {
-		if e == v {
-			return i
-		}
-	}
-	return -1
-}
-
-// CSV data source
+// CSVDataSource :
 type CSVDataSource struct {
-	Values [][]interface{}
+	Config *CSVConfig
+	Schema schema.Schema
+}
+
+// NewCSVConfig :
+func NewCSVConfig(srcPath string, dstPath string) *CSVConfig {
+	config := &CSVConfig{
+		SoursePath: srcPath,
+		OutputPath: dstPath,
+	}
+	return config
+}
+
+// NewCSVDataSource :
+func NewCSVDataSource(sc schema.Schema, config *CSVConfig) (*CSVDataSource, error) {
+	ds := &CSVDataSource{
+		Config: config,
+		Schema: sc,
+	}
+	return ds, nil
+}
+
+// GetRows :
+func (ds *CSVDataSource) GetRows() (*Rows, error) {
+	r, err := os.Open(ds.Config.SoursePath)
+	if err != nil {
+		return nil, err
+	}
+
+	records, err := csv.NewReader(r).ReadAll()
+	if err != nil {
+		return nil, err
+	}
+
+	// FIXME: columnsはSchemaを正とするようにデータを生成する
+	columns := records[0]
+	values := append(records[:0], records[1:]...)
+	rows := &Rows{
+		Columns: columns,
+		Values:  values,
+	}
+	return rows, nil
+}
+
+// SetRows :
+func (ds *CSVDataSource) SetRows(rows *Rows) error {
+	file, err := os.Create(ds.Config.OutputPath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	writer := csv.NewWriter(file)
+	defer writer.Flush()
+
+	for _, value := range append([][]string{rows.Columns}, rows.Values...) {
+		err := writer.Write(value)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

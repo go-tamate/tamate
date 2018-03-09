@@ -1,31 +1,13 @@
 package datasource
 
-import (
-	"encoding/csv"
-	"os"
-
-	"github.com/Mitu217/tamate/schema"
-)
-
-type DataSource interface {
-	OutputCSV(schema.Schema, string) error
+// Rows :
+type Rows struct {
+	Columns []string
+	Values  [][]string
 }
 
-func Output(path string, data [][]string) error {
-	file, err := os.Create(path)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	writer := csv.NewWriter(file)
-	defer writer.Flush()
-
-	for _, value := range data {
-		err := writer.Write(value)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+// DataSource :
+type DataSource interface {
+	GetRows() (*Rows, error)
+	SetRows(*Rows) error
 }
