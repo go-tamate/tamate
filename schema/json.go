@@ -8,9 +8,10 @@ import (
 
 // JSONSchema :
 type JSONSchema struct {
-	Description string   `json:"description"`
-	Table       Table    `json:"table"`
-	Columns     []Column `json:"properties"`
+	DatabaseName string   `json:"database"`
+	Description  string   `json:"description"`
+	Table        Table    `json:"table"`
+	Columns      []Column `json:"properties"`
 }
 
 // NewJSONSchema :

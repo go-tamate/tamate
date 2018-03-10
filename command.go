@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strconv"
 	"syscall"
 
 	"github.com/Mitu217/tamate/config"
@@ -158,41 +157,41 @@ func generateConfig(configType string, outputPath string) (string, error) {
 }
 
 func generateSchemaAction(c *cli.Context) {
-	if len(c.Args()) < 1 || c.Args()[0] == "" {
-		log.Fatalln("Please specify the output path.")
+	// Override output path
+	outputPath := ""
+	if c.String("output") != "" {
+		outputPath = c.String("output")
 	}
-	outputPath := c.Args()[0]
 
 	inputType := c.String("type")
+	configPath := c.String("config")
 
 	switch inputType {
 	case "SQL":
-		// FIXME: 対話式に情報を収集した方がよさそう
-		driverName := c.Args()[1]
-		host := c.Args()[2]
-		port, _ := strconv.Atoi(c.Args()[3])
-		user := c.Args()[4]
-		pw := c.Args()[5]
-		dbName := c.Args()[6]
-		tableName := c.Args()[7]
-		server := &schema.Server{
-			DriverName: driverName,
-			Host:       host,
-			Port:       port,
-			User:       user,
-			Password:   pw,
+		if configPath == "" {
+			path, err := generateConfig(inputType, outputPath)
+			if err != nil {
+				log.Fatalln(err)
+			}
+			configPath = path
 		}
+		serverConfig, err := config.NewJSONServerConfig(configPath)
+		if err != nil {
+			log.Fatalf("Unable to read config file: %v", err)
+		}
+		// TODO: dbNameとtableNameは任意の引数にしたい
+		dbName := c.Args()[0]
+		tableName := c.Args()[1]
 		sc := &schema.SQLSchema{
-			Server:       server,
 			DatabaseName: dbName,
+			Table: schema.Table{
+				Name: tableName,
+			},
 		}
-		sc.NewServerSchema(tableName)
-		sc.Output(outputPath)
-		break
-	case "SpreadSheets":
-
-		break
-	case "CSV":
+		sc.NewServerSchema(serverConfig)
+		if err := sc.Output(outputPath); err != nil {
+			log.Fatalln(err)
+		}
 		break
 	default:
 		log.Fatalln("Not defined input type. type:" + inputType)

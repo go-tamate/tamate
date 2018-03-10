@@ -14,9 +14,9 @@ import (
 )
 
 // NewServerSchema :
-func (sc *SQLSchema) NewServerSchema() error {
-	dataSourceName := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", sc.Server.User, sc.Server.Password, sc.Server.Host, sc.Server.Port, sc.DatabaseName)
-	cnn, err := sql.Open(sc.Server.DriverName, dataSourceName)
+func (sc *SQLSchema) NewServerSchema(c *config.ServerConfig) error {
+	dataSourceName := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", c.User, c.Password, c.Host, c.Port, sc.DatabaseName)
+	cnn, err := sql.Open(c.DriverName, dataSourceName)
 	if err != nil {
 		return err
 	}
@@ -99,7 +99,7 @@ func (sc *SQLSchema) GetTableName() string {
 func (sc *SQLSchema) Output(path string) error {
 	// Set default path and default file name.
 	if path == "" {
-		path = "resources/schema/" + sc.Server.Host + "_" + sc.DatabaseName + "_" + sc.Table.Name + ".json"
+		path = "resources/schema/" + sc.DatabaseName + "_" + sc.Table.Name + ".json"
 	}
 
 	// Output with indentation
@@ -112,9 +112,8 @@ func (sc *SQLSchema) Output(path string) error {
 
 // SQLSchema :
 type SQLSchema struct {
-	Server       *config.ServerConfig `json:"server"`
-	DatabaseName string               `json:"database"`
-	Description  string               `json:"description"`
-	Table        Table                `json:"table"`
-	Columns      []Column             `json:"properties"`
+	DatabaseName string   `json:"database"`
+	Description  string   `json:"description"`
+	Table        Table    `json:"table"`
+	Columns      []Column `json:"properties"`
 }

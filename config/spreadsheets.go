@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/json"
 	"io/ioutil"
+	"os"
 )
 
 // SpreadSheetsConfig :
@@ -10,6 +11,20 @@ type SpreadSheetsConfig struct {
 	SpreadSheetsID string `json:"driver_name"`
 	SheetName      string `json:"sheet_name"`
 	Range          string `json:"range"`
+}
+
+// NewJSONSpreadSheetsConfig :
+func NewJSONSpreadSheetsConfig(jsonPath string) (*SpreadSheetsConfig, error) {
+	var config *SpreadSheetsConfig
+	r, err := os.Open(jsonPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := json.NewDecoder(r).Decode(&config); err != nil {
+		return nil, err
+	}
+	return config, nil
 }
 
 // Output :

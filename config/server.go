@@ -17,16 +17,16 @@ type ServerConfig struct {
 
 // NewJSONServerConfig :
 func NewJSONServerConfig(jsonPath string) (*ServerConfig, error) {
-	var serverConfig *ServerConfig
+	var config *ServerConfig
 	r, err := os.Open(jsonPath)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := json.NewDecoder(r).Decode(&serverConfig); err != nil {
+	if err := json.NewDecoder(r).Decode(&config); err != nil {
 		return nil, err
 	}
-	return serverConfig, nil
+	return config, nil
 }
 
 // Output :
