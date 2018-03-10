@@ -41,15 +41,6 @@ func (sc *JSONSchema) GetColumns() []Column {
 	return sc.Columns
 }
 
-// GetColumnNames :
-func (sc *JSONSchema) GetColumnNames() []string {
-	columnNames := make([]string, len(sc.Columns))
-	for i := range sc.Columns {
-		columnNames[i] = sc.Columns[i].Name
-	}
-	return columnNames
-}
-
 // GetTableName :
 func (sc *JSONSchema) GetTableName() string {
 	return sc.Table.Name

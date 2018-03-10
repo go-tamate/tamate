@@ -83,14 +83,6 @@ func (sc *SQLSchema) GetColumns() []Column {
 	return sc.Columns
 }
 
-func (sc *SQLSchema) GetColumnNames() []string {
-	columnNames := make([]string, len(sc.Columns))
-	for i := range sc.Columns {
-		columnNames[i] = sc.Columns[i].Name
-	}
-	return columnNames
-}
-
 func (sc *SQLSchema) GetTableName() string {
 	return sc.Table.Name
 }

@@ -114,7 +114,10 @@ func (d *Differ) DiffRows() (*DiffRows, error) {
 	}
 
 	// Get diff
-	columnNames := d.Schema.GetColumnNames()
+	columnNames := make([]string, len(d.Schema.GetColumns()))
+	for i, column := range d.Schema.GetColumns() {
+		columnNames[i] = column.Name
+	}
 	diff := &DiffRows{
 		Add: &datasource.Rows{
 			Columns: columnNames,
@@ -137,9 +140,9 @@ func (d *Differ) DiffRows() (*DiffRows, error) {
 
 					// Modify
 					if i == 0 {
-						modifyValues := make([]string, len(d.Schema.GetColumns()))
+						modifyValues := make([]string, len(columnNames))
 						modify := false
-						for _, columnName := range d.Schema.GetColumnNames() {
+						for _, columnName := range columnNames {
 							srcColumnIndex := contains(srcRows.Columns, columnName)
 							srcColumnValue := srcValue[srcColumnIndex]
 							dstColumnIndex := contains(dstRows.Columns, columnName)
