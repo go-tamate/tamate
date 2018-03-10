@@ -1,24 +1,42 @@
 package differ
 
-import "github.com/Mitu217/tamate/schema"
+import (
+	"github.com/Mitu217/tamate/datasource"
+)
 
-// Diff :
-type Diff struct {
-	Columns []schema.Column
-	Add     [][]string
-	Modify  [][]string
-	Delete  [][]string
+// DiffColumns :
+type DiffColumns struct {
+	Add    []string
+	Delete []string
 }
 
-// IsExistDiff :
-func (d *Diff) IsExistDiff() bool {
-	if len(d.Add) != 0 {
+// DiffRows :
+type DiffRows struct {
+	Add    *datasource.Rows
+	Modify *datasource.Rows
+	Delete *datasource.Rows
+}
+
+// IsDiff :
+func (dc *DiffColumns) IsDiff() bool {
+	if len(dc.Add) != 0 {
 		return true
 	}
-	if len(d.Delete) != 0 {
+	if len(dc.Delete) != 0 {
 		return true
 	}
-	if len(d.Modify) != 0 {
+	return false
+}
+
+// IsDiff :
+func (dr *DiffRows) IsDiff() bool {
+	if len(dr.Add.Values) != 0 {
+		return true
+	}
+	if len(dr.Delete.Values) != 0 {
+		return true
+	}
+	if len(dr.Modify.Values) != 0 {
 		return true
 	}
 	return false

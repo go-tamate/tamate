@@ -30,25 +30,68 @@ func NewRowsDiffer(leftSrc datasource.DataSource, rightSrc datasource.DataSource
 		LeftSource:  leftSrc,
 		RightSource: rightSrc,
 	}
-	diff, err := d.DiffSchema()
+
+	diffColumns, err := d.diffColumns()
 	if err != nil {
 		return nil, err
 	}
-	if !diff.IsExistDiff() {
+	if !diffColumns.IsDiff() {
 		return nil, errors.New("Schema between two data does not match")
 	}
-	d.Schema = leftSrc.GetSchema()
+
+	sc, err := leftSrc.GetSchema()
+	if err != nil {
+		return nil, err
+	}
+	d.Schema = sc
 	return d, err
 }
 
-// DiffSchema :
-func (d *Differ) DiffSchema() (*Diff, error) {
-	diff := &Diff{}
+// DiffColumns :
+func (d *Differ) diffColumns() (*DiffColumns, error) {
+	// Get Rows
+	srcRows, err := d.LeftSource.GetRows()
+	if err != nil {
+		return nil, err
+	}
+	dstRows, err := d.RightSource.GetRows()
+	if err != nil {
+		return nil, err
+	}
+
+	// Get diff
+	diff := &DiffColumns{}
+	for i := 0; i < 2; i++ {
+		for _, srcColumn := range srcRows.Columns {
+			found := false
+			for _, dstColumn := range dstRows.Columns {
+				if srcColumn == dstColumn {
+					found = true
+					break
+				}
+			}
+			if !found {
+				if i == 0 {
+					// Add
+					diff.Add = append(diff.Add, srcColumn)
+				} else {
+					// Delete
+					diff.Delete = append(diff.Delete, srcColumn)
+				}
+			}
+		}
+
+		// Swap
+		if i == 0 {
+			srcRows, dstRows = dstRows, srcRows
+		}
+	}
+
 	return diff, nil
 }
 
 // DiffRows :
-func (d *Differ) DiffRows() (*Diff, error) {
+func (d *Differ) DiffRows() (*DiffRows, error) {
 	// Get Rows
 	srcRows, err := d.LeftSource.GetRows()
 	if err != nil {
@@ -60,19 +103,29 @@ func (d *Differ) DiffRows() (*Diff, error) {
 	}
 
 	// Get Primary
-	// TODO: PrimaryKey時代はDataStoreからも引っ張れるがどうするか
 	primaryKey := d.Schema.GetPrimaryKey()
 	srcPrimaryIndex := contains(srcRows.Columns, primaryKey)
 	if srcPrimaryIndex == -1 {
-		return nil, errors.New("TODO")
+		return nil, errors.New("Not defineded PrimaryKey in `" + d.Schema.GetTableName() + "` Schema")
 	}
 	dstPrimaryIndex := contains(dstRows.Columns, primaryKey)
 	if dstPrimaryIndex == -1 {
-		return nil, errors.New("TODO")
+		return nil, errors.New("Not defineded PrimaryKey in `" + d.Schema.GetTableName() + "` Schema")
 	}
 
 	// Get diff
-	diff := &Diff{}
+	columnNames := d.Schema.GetColumnNames()
+	diff := &DiffRows{
+		Add: &datasource.Rows{
+			Columns: columnNames,
+		},
+		Delete: &datasource.Rows{
+			Columns: columnNames,
+		},
+		Modify: &datasource.Rows{
+			Columns: columnNames,
+		},
+	}
 	for i := 0; i < 2; i++ {
 		for _, srcValue := range srcRows.Values {
 			srcPrimaryValue := srcValue[srcPrimaryIndex]
@@ -84,26 +137,33 @@ func (d *Differ) DiffRows() (*Diff, error) {
 
 					// Modify
 					if i == 0 {
-						// スキーマ基準で差分を比較する
-						modifyValues := make([]string, len(srcValue))
+						modifyValues := make([]string, len(d.Schema.GetColumns()))
 						modify := false
 						for _, column := range d.Schema.GetColumns() {
-							// TODO index == -1 チェック
 							srcColumnIndex := contains(srcRows.Columns, column.Name)
 							srcColumnValue := srcValue[srcColumnIndex]
 							dstColumnIndex := contains(dstRows.Columns, column.Name)
 							dstColumnValue := dstValue[dstColumnIndex]
-							// Primaryは必須
 							if srcPrimaryIndex == srcColumnIndex {
-								modifyValues[srcColumnIndex] = dstColumnValue
+								// Skip Primarykey column
+								continue
+							}
+							if dstColumnIndex == -1 {
+								// Delete column
+								modifyValues[srcColumnIndex] = ""
+								modify = true
+								break
 							}
 							if srcColumnValue != dstColumnValue {
+								// Modify column
 								modifyValues[srcColumnIndex] = dstColumnValue
 								modify = true
+								break
 							}
 						}
 						if modify {
-							diff.Modify = append(diff.Modify, [][]string{modifyValues}...)
+							modifyValues[srcPrimaryIndex] = srcPrimaryValue
+							diff.Modify.Values = append(diff.Modify.Values, [][]string{modifyValues}...)
 						}
 					}
 					break
@@ -112,11 +172,10 @@ func (d *Differ) DiffRows() (*Diff, error) {
 			if !found {
 				if i == 0 {
 					// Add
-					diff.Add = append(diff.Add, [][]string{srcValue}...)
+					diff.Add.Values = append(diff.Add.Values, [][]string{srcValue}...)
 				} else {
-					//TODO schemaが異なるときに不具合がおきるはずなので修正必須
 					// Delete
-					diff.Delete = append(diff.Delete, [][]string{srcValue}...)
+					diff.Delete.Values = append(diff.Delete.Values, [][]string{srcValue}...)
 				}
 			}
 		}
@@ -126,7 +185,6 @@ func (d *Differ) DiffRows() (*Diff, error) {
 			srcRows, dstRows = dstRows, srcRows
 		}
 	}
-
 	return diff, nil
 }
 
