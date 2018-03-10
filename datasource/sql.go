@@ -64,6 +64,11 @@ func (ds *SQLDataSource) open() (*sql.DB, error) {
 	return sql.Open(ds.Config.Server.DriverName, dataSourceName)
 }
 
+// GetSchema :
+func (ds *SQLDataSource) GetSchema() schema.Schema {
+	return ds.Schema
+}
+
 // GetRows :
 func (ds *SQLDataSource) GetRows() (*Rows, error) {
 	cnn, err := ds.open()

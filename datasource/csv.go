@@ -37,6 +37,11 @@ func NewCSVDataSource(sc schema.Schema, config *CSVConfig) (*CSVDataSource, erro
 	return ds, nil
 }
 
+// GetSchema :
+func (ds *CSVDataSource) GetSchema() schema.Schema {
+	return ds.Schema
+}
+
 // GetRows :
 func (ds *CSVDataSource) GetRows() (*Rows, error) {
 	r, err := os.Open(ds.Config.SoursePath)

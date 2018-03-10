@@ -16,20 +16,33 @@ type Diff struct {
 
 // Differ :
 type Differ struct {
+	Schema      schema.Schema
 	LeftSource  datasource.DataSource
 	RightSource datasource.DataSource
 }
 
-// NewDiffer :
-func NewDiffer(leftSrc datasource.DataSource, rightSrc datasource.DataSource) *Differ {
-	return &Differ{
+// NewSchemaDiffer :
+func NewSchemaDiffer(sc schema.Schema, leftSrc datasource.DataSource, rightSrc datasource.DataSource) (*Differ, error) {
+	d := &Differ{
+		Schema:      sc,
 		LeftSource:  leftSrc,
 		RightSource: rightSrc,
 	}
+	return d, nil
+}
+
+// NewRowsDiffer :
+func NewRowsDiffer(leftSrc datasource.DataSource, rightSrc datasource.DataSource) (*Differ, error) {
+	err := errors.New("") // Schemaチェック
+	if err != nil {
+		return nil, err
+	}
+
+	return NewSchemaDiffer(leftSrc.GetSchema(), leftSrc, rightSrc)
 }
 
 // DiffRows :
-func (d *Differ) DiffRows(sc schema.Schema) (*Diff, error) {
+func (d *Differ) DiffRows() (*Diff, error) {
 	// Get Rows
 	srcRows, err := d.LeftSource.GetRows()
 	if err != nil {
@@ -42,7 +55,7 @@ func (d *Differ) DiffRows(sc schema.Schema) (*Diff, error) {
 
 	// Get Primary
 	// TODO: PrimaryKey時代はDataStoreからも引っ張れるがどうするか
-	primaryKey := sc.GetPrimaryKey()
+	primaryKey := d.Schema.GetPrimaryKey()
 	srcPrimaryIndex := contains(srcRows.Columns, primaryKey)
 	if srcPrimaryIndex == -1 {
 		return nil, errors.New("TODO")
@@ -68,7 +81,7 @@ func (d *Differ) DiffRows(sc schema.Schema) (*Diff, error) {
 						// スキーマ基準で差分を比較する
 						modifyValues := make([]string, len(srcValue))
 						modify := false
-						for _, column := range sc.GetColumns() {
+						for _, column := range d.Schema.GetColumns() {
 							// TODO index == -1 チェック
 							srcColumnIndex := contains(srcRows.Columns, column.Name)
 							srcColumnValue := srcValue[srcColumnIndex]
