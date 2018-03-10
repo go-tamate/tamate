@@ -8,12 +8,6 @@
   version = "v0.19.0"
 
 [[projects]]
-  name = "github.com/codegangsta/cli"
-  packages = ["."]
-  revision = "cfb38830724cc34fedffe9a2a29fb54fa9169cd1"
-  version = "v1.20.0"
-
-[[projects]]
   name = "github.com/go-sql-driver/mysql"
   packages = ["."]
   revision = "a0583e0143b1624142adab07e0e97fe106d99561"
@@ -26,13 +20,19 @@
   version = "v1.0.0"
 
 [[projects]]
+  name = "github.com/urfave/cli"
+  packages = ["."]
+  revision = "cfb38830724cc34fedffe9a2a29fb54fa9169cd1"
+  version = "v1.20.0"
+
+[[projects]]
   branch = "master"
   name = "golang.org/x/net"
   packages = [
     "context",
     "context/ctxhttp"
   ]
-  revision = "d25186b37f34ebdbbea8f488ef055638dfab272d"
+  revision = "d0aafc73d5cdc42264b0af071c261abac580695e"
 
 [[projects]]
   branch = "master"
@@ -55,7 +55,7 @@
     "googleapi/internal/uritemplates",
     "sheets/v4"
   ]
-  revision = "8dd9492f46214d3ecd264e970de1cf530c51c12e"
+  revision = "fd84a7d742f699417e6d39a933a987ff2386c99c"
 
 [[projects]]
   name = "google.golang.org/appengine"
@@ -77,6 +77,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "d6b141719ef7e609b90bf3990e48fefa52a22d4ba6a9f3c1f7ff581793bc2944"
+  inputs-digest = "5d84450a906714e6d168a4b10e753a825d4cc64b33350aa0680622ec83db37f0"
   solver-name = "gps-cdcl"
   solver-version = 1

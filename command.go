@@ -1,17 +1,27 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"log"
 	"os"
+	"strconv"
+	"syscall"
+
+	"github.com/Mitu217/tamate/config"
+
+	"golang.org/x/crypto/ssh/terminal"
 
 	"github.com/Mitu217/tamate/differ"
-	"github.com/Mitu217/tamate/dumper"
 
 	"github.com/Mitu217/tamate/datasource"
 	"github.com/Mitu217/tamate/schema"
 
-	"github.com/codegangsta/cli"
+	"github.com/urfave/cli"
 )
+
+var leftSource string
+var rightSource string
 
 func main() {
 	app := cli.NewApp()
@@ -19,121 +29,177 @@ func main() {
 	app.Usage = "tamate commands"
 	app.Version = "0.1.0"
 
-	// Global Options.
-	app.Flags = []cli.Flag{
-		cli.BoolFlag{
-			Name:  "dryrun, d",
-			Usage: "sample global option.",
-		},
-	}
-
-	// Commands.
+	// Commands
 	app.Commands = []cli.Command{
 		{
-			Name:   "dump:spreadsheets",
-			Usage:  "Dump CSV from SpreadSheets.",
-			Action: dumpSpreadSheetsAction,
-		},
-		{
-			Name:   "dump:sql",
-			Usage:  "Dump CSV from SQL Server.",
-			Action: dumpSQLAction,
+			Name:   "dump",
+			Usage:  "Dump Command.",
+			Action: dumpAction,
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "schema, s",
+					Usage: "schema file path.",
+				},
+				cli.StringFlag{
+					Name:  "input, i",
+					Usage: "input DataSource type.",
+				},
+				cli.StringFlag{
+					Name:  "output, o",
+					Usage: "input DataSource type. If not specified, standard output",
+				},
+			},
 		},
 		{
 			Name:   "diff",
-			Usage:  "Diff Sample.",
+			Usage:  "Diff between left data and right data.",
 			Action: diffAction,
+		},
+		{
+			Name:   "generate:schema",
+			Usage:  "Generate schema file.",
+			Action: generateSchemaAction,
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "type, t",
+					Usage: "",
+				},
+			},
+		},
+		{
+			Name:   "generate:config",
+			Usage:  "Generate config file.",
+			Action: generateConfigAction,
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "type, t",
+					Usage: "",
+				},
+				cli.StringFlag{
+					Name:  "output, o",
+					Usage: "",
+				},
+			},
 		},
 	}
 
-	// Action before commands exec.
-	app.Before = func(c *cli.Context) error {
-		return nil
-	}
-
-	// Action after commands exec.
-	app.After = func(c *cli.Context) error {
-		return nil
-	}
-
-	// Run Commands.
+	// Run Commands
 	app.Run(os.Args)
 }
 
-func dumpSpreadSheetsAction(c *cli.Context) {
-	// Check args.
-	if len(c.Args()) < 2 {
-		fmt.Println("[Error] Argument is missing! 2 arguments are required.")
+func generateConfigAction(c *cli.Context) {
+	// Override output path
+	outputPath := ""
+	if c.String("output") != "" {
+		outputPath = c.String("output")
 	}
 
-	outputPath := c.Args()[1]
-
-	sheetsID := "1uCEt_DpNCRPZjvxS0hdnIhSnQQKYjmV0FN2KneRbkKk" //c.Args()[0]
-	sheetName := "Class Data"
-	targetRange := "A1:XX"
-
-	sc, err := schema.NewJSONFileSchema("./resources/schema/sample.json")
-	if err != nil {
-		panic(err)
+	switch c.String("type") {
+	case "SQL":
+		host := config.HostConfig{}
+		if terminal.IsTerminal(syscall.Stdin) {
+			fmt.Print("DriverName: ")
+			fmt.Scan(&host.DriverName)
+		}
+		if terminal.IsTerminal(syscall.Stdin) {
+			fmt.Print("Host: ")
+			fmt.Scan(&host.Host)
+		}
+		if terminal.IsTerminal(syscall.Stdin) {
+			fmt.Print("Port: ")
+			fmt.Scan(&host.Port)
+		}
+		if terminal.IsTerminal(syscall.Stdin) {
+			fmt.Print("User: ")
+			fmt.Scan(&host.User)
+		}
+		if terminal.IsTerminal(syscall.Stdin) {
+			fmt.Print("Password: ")
+			fmt.Scan(&host.Password)
+		}
+		host.Output(outputPath)
+		break
+	case "SpreadSheets":
+		break
+	case "CSV":
+		break
+	default:
+		log.Fatalln("Not defined input type. type:" + c.String("type"))
 	}
-
-	sheetConfig := datasource.NewSpreadSheetsConfig(sheetsID, sheetName, targetRange)
-	sheetDataSource, err := datasource.NewSpreadSheetsDataSource(sc, sheetConfig)
-	if err != nil {
-		panic(err)
-	}
-
-	csvConfig := datasource.NewCSVConfig("", outputPath)
-	csvDataSource, err := datasource.NewCSVDataSource(sc, csvConfig)
-	if err != nil {
-		panic(err)
-	}
-
-	// dump rows by dumper
-	d := dumper.NewDumper()
-	d.Dump(sheetDataSource, csvDataSource)
 }
 
-func dumpSQLAction(c *cli.Context) {
-	// Check args.
-	if len(c.Args()) < 4 {
-		fmt.Println("[Error] Argument is missing! 4 arguments are required.")
+func generateSchemaAction(c *cli.Context) {
+	if len(c.Args()) < 1 || c.Args()[0] == "" {
+		log.Fatalln("Please specify the output path.")
 	}
+	outputPath := c.Args()[0]
 
-	hostSettingPath := c.Args()[0]
-	outputPath := c.Args()[1]
-	dbName := c.Args()[2]
-	tableName := c.Args()[3]
+	inputType := c.String("type")
 
-	sc, err := schema.NewJSONFileSchema("./resources/schema/sample.json")
-	if err != nil {
-		panic(err)
+	switch inputType {
+	case "SQL":
+		// FIXME: 対話式に情報を収集した方がよさそう
+		driverName := c.Args()[1]
+		host := c.Args()[2]
+		port, _ := strconv.Atoi(c.Args()[3])
+		user := c.Args()[4]
+		pw := c.Args()[5]
+		dbName := c.Args()[6]
+		tableName := c.Args()[7]
+		server := &schema.Server{
+			DriverName: driverName,
+			Host:       host,
+			Port:       port,
+			User:       user,
+			Password:   pw,
+		}
+		sc := &schema.SQLSchema{
+			Server:       server,
+			DatabaseName: dbName,
+		}
+		sc.NewServerSchema(tableName)
+		sc.Output(outputPath)
+		break
+	case "SpreadSheets":
+
+		break
+	case "CSV":
+		break
+	default:
+		log.Fatalln("Not defined input type. type:" + inputType)
 	}
+}
 
-	sqlConfig, err := datasource.NewJSONSQLConfig(hostSettingPath, dbName, tableName)
-	if err != nil {
-		panic(err)
-	}
-	sqlDataSource, err := datasource.NewSQLDataSource(sc, sqlConfig)
-	if err != nil {
-		panic(err)
-	}
+func dumpAction(c *cli.Context) {
+	/*
+		inputDatasourceType := c.String("input")
+		outputDatasourceType := c.String("output")
 
-	csvConfig := datasource.NewCSVConfig("", outputPath)
-	csvDataSource, err := datasource.NewCSVDataSource(sc, csvConfig)
-	if err != nil {
-		panic(err)
-	}
+		// read schema
+		if len(c.Args()) >= 1 || c.Args()[0] == "" {
+			log.Fatalf("Please specify the schema file path.")
+			return
+		}
+		schemaFilePath := c.Args()[0]
+		sc, err := schema.NewJSONFileSchema(schemaFilePath)
+		if err != nil {
+			log.Fatalf("Unable to read schema file: %v", err)
+		}
 
-	// dump rows by dumper
-	d := dumper.NewDumper()
-	d.Dump(sqlDataSource, csvDataSource)
+		// create input datasource
+		if len(c.Args()) >= 2 || c.Args()[1] == "" {
+			log.Fatalf("Please specify the input datasource config path.")
+			return
+		}
+		inputConfigPath := c.Args()[1]
+		inputDatasource, err := getDatasource(sc, inputDatasourceType, inputConfigPath)
+	*/
 }
 
 func diffAction(c *cli.Context) {
 	sc, err := schema.NewJSONFileSchema("./resources/schema/sample.json")
 	if err != nil {
-		panic(err)
+		log.Fatalf("Unable to read schema file: %v", err)
 	}
 
 	// spreaddsheets
@@ -184,3 +250,87 @@ func diffAction(c *cli.Context) {
 		fmt.Println(modify)
 	}
 }
+
+func getDatasource(sc schema.Schema, sourceType string, configPath string) (datasource.DataSource, error) {
+	switch sourceType {
+	case "SpreadSheets":
+		return getSpreadSheetsDataSource(sc)
+	case "CSV":
+		return nil, nil
+	case "SQL":
+		return nil, nil
+	default:
+		return nil, errors.New("Not defined source type. type:" + sourceType)
+	}
+}
+
+func getSpreadSheetsDataSource(sc schema.Schema) (*datasource.SpreadSheetsDataSource, error) {
+	/*
+		sheetsID := "1uCEt_DpNCRPZjvxS0hdnIhSnQQKYjmV0FN2KneRbkKk" //c.Args()[0]
+		sheetName := "Class Data"
+		targetRange := "A1:XX"
+
+		sheetConfig := datasource.NewSpreadSheetsConfig(sheetsID, sheetName, targetRange)
+		sheetDataSource, err := datasource.NewSpreadSheetsDataSource(sc, sheetConfig)
+		if err != nil {
+			panic(err)
+		}
+	*/
+	return nil, nil
+}
+
+/*
+func dumpSpreadSheetsAction(c *cli.Context) {
+
+
+	outputPath := c.Args()[1]
+
+
+
+	csvConfig := datasource.NewCSVConfig("", outputPath)
+	csvDataSource, err := datasource.NewCSVDataSource(sc, csvConfig)
+	if err != nil {
+		panic(err)
+	}
+
+	// dump rows by dumper
+	d := dumper.NewDumper()
+	d.Dump(sheetDataSource, csvDataSource)
+}
+
+func dumpSQLAction(c *cli.Context) {
+	// Check args.
+	if len(c.Args()) < 4 {
+		fmt.Println("[Error] Argument is missing! 4 arguments are required.")
+	}
+
+	hostSettingPath := c.Args()[0]
+	outputPath := c.Args()[1]
+	dbName := c.Args()[2]
+	tableName := c.Args()[3]
+
+	sc, err := schema.NewJSONFileSchema("./resources/schema/sample.json")
+	if err != nil {
+		panic(err)
+	}
+
+	sqlConfig, err := datasource.NewJSONSQLConfig(hostSettingPath, dbName, tableName)
+	if err != nil {
+		panic(err)
+	}
+	sqlDataSource, err := datasource.NewSQLDataSource(sc, sqlConfig)
+	if err != nil {
+		panic(err)
+	}
+
+	csvConfig := datasource.NewCSVConfig("", outputPath)
+	csvDataSource, err := datasource.NewCSVDataSource(sc, csvConfig)
+	if err != nil {
+		panic(err)
+	}
+
+	// dump rows by dumper
+	d := dumper.NewDumper()
+	d.Dump(sqlDataSource, csvDataSource)
+}
+*/
