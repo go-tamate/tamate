@@ -28,35 +28,16 @@ func NewDiffer(leftSrc datasource.DataSource, rightSrc datasource.DataSource) *D
 	}
 }
 
-// RowsOnlyLeft :
-func (d *Differ) RowsOnlyLeft(sc schema.Schema) (*Diff, error) {
-	return d.diff(sc, true)
-}
-
-// RowsOnlyRight :
-func (d *Differ) RowsOnlyRight(sc schema.Schema) (*Diff, error) {
-	return d.diff(sc, false)
-}
-
-func (d *Differ) diff(sc schema.Schema, isOnlyLeft bool) (*Diff, error) {
+// DiffRows :
+func (d *Differ) DiffRows(sc schema.Schema) (*Diff, error) {
 	// Get Rows
-	leftRows, err := d.LeftSource.GetRows()
+	srcRows, err := d.LeftSource.GetRows()
 	if err != nil {
 		return nil, err
 	}
-	rightRows, err := d.RightSource.GetRows()
+	dstRows, err := d.RightSource.GetRows()
 	if err != nil {
 		return nil, err
-	}
-
-	var srcRows *datasource.Rows
-	var dstRows *datasource.Rows
-	if isOnlyLeft {
-		srcRows = leftRows
-		dstRows = rightRows
-	} else {
-		srcRows = rightRows
-		dstRows = leftRows
 	}
 
 	// Get Primary

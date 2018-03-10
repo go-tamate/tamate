@@ -163,8 +163,7 @@ func diffAction(c *cli.Context) {
 
 	// dump rows by dumper
 	d := differ.NewDiffer(sheetDataSource, sqlDataSource)
-	//diff, err := d.RowsOnlyLeft(sc)
-	diff, err := d.RowsOnlyRight(sc)
+	diff, err := d.DiffRows(sc)
 
 	fmt.Println("[Add]")
 	for _, add := range diff.Add.Values {
