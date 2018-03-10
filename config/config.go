@@ -2,5 +2,5 @@ package config
 
 // Config :
 type Config interface {
-	Output(path string) error
+	Output(path string) (*string, error)
 }

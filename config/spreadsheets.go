@@ -13,10 +13,13 @@ type SpreadSheetsConfig struct {
 }
 
 // Output :
-func (c *SpreadSheetsConfig) Output(path string) error {
+func (c *SpreadSheetsConfig) Output(path string) (string, error) {
+	if path == "" {
+		path = "resources/config/spreadsheets/" + c.SpreadSheetsID + "_" + c.SheetName + ".json"
+	}
 	jsonBytes, err := json.MarshalIndent(c, "", "  ")
 	if err != nil {
-		return err
+		return "", err
 	}
-	return ioutil.WriteFile(path, jsonBytes, 0644)
+	return "", ioutil.WriteFile(path, jsonBytes, 0644)
 }

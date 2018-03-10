@@ -32,6 +32,36 @@ func main() {
 	// Commands
 	app.Commands = []cli.Command{
 		{
+			Name:   "generate:config",
+			Usage:  "Generate config file.",
+			Action: generateConfigAction,
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "type, t",
+					Usage: "",
+				},
+				cli.StringFlag{
+					Name:  "output, o",
+					Usage: "",
+				},
+			},
+		},
+		{
+			Name:   "generate:schema",
+			Usage:  "Generate schema file.",
+			Action: generateSchemaAction,
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "type, t",
+					Usage: "",
+				},
+				cli.StringFlag{
+					Name:  "config, c",
+					Usage: "",
+				},
+			},
+		},
+		{
 			Name:   "dump",
 			Usage:  "Dump Command.",
 			Action: dumpAction,
@@ -52,34 +82,8 @@ func main() {
 		},
 		{
 			Name:   "diff",
-			Usage:  "Diff between left data and right data.",
+			Usage:  "Diff between 2 schema.",
 			Action: diffAction,
-		},
-		{
-			Name:   "generate:schema",
-			Usage:  "Generate schema file.",
-			Action: generateSchemaAction,
-			Flags: []cli.Flag{
-				cli.StringFlag{
-					Name:  "type, t",
-					Usage: "",
-				},
-			},
-		},
-		{
-			Name:   "generate:config",
-			Usage:  "Generate config file.",
-			Action: generateConfigAction,
-			Flags: []cli.Flag{
-				cli.StringFlag{
-					Name:  "type, t",
-					Usage: "",
-				},
-				cli.StringFlag{
-					Name:  "output, o",
-					Usage: "",
-				},
-			},
 		},
 	}
 
@@ -94,37 +98,62 @@ func generateConfigAction(c *cli.Context) {
 		outputPath = c.String("output")
 	}
 
-	switch c.String("type") {
+	_, err := generateConfig(c.String("type"), outputPath)
+	if err != nil {
+		log.Fatalln(err)
+	}
+}
+
+func generateConfig(configType string, outputPath string) (string, error) {
+	switch configType {
 	case "SQL":
-		host := config.HostConfig{}
+		config := config.ServerConfig{}
 		if terminal.IsTerminal(syscall.Stdin) {
 			fmt.Print("DriverName: ")
-			fmt.Scan(&host.DriverName)
+			fmt.Scan(&config.DriverName)
 		}
 		if terminal.IsTerminal(syscall.Stdin) {
 			fmt.Print("Host: ")
-			fmt.Scan(&host.Host)
+			fmt.Scan(&config.Host)
 		}
 		if terminal.IsTerminal(syscall.Stdin) {
 			fmt.Print("Port: ")
-			fmt.Scan(&host.Port)
+			fmt.Scan(&config.Port)
 		}
 		if terminal.IsTerminal(syscall.Stdin) {
 			fmt.Print("User: ")
-			fmt.Scan(&host.User)
+			fmt.Scan(&config.User)
 		}
 		if terminal.IsTerminal(syscall.Stdin) {
 			fmt.Print("Password: ")
-			fmt.Scan(&host.Password)
+			fmt.Scan(&config.Password)
 		}
-		host.Output(outputPath)
-		break
+		return config.Output(outputPath)
 	case "SpreadSheets":
-		break
+		config := config.SpreadSheetsConfig{}
+		if terminal.IsTerminal(syscall.Stdin) {
+			fmt.Print("SpreadSheetsID: ")
+			fmt.Scan(&config.SpreadSheetsID)
+		}
+		// TODO: スペース入りの文字列が対応不可
+		if terminal.IsTerminal(syscall.Stdin) {
+			fmt.Print("SheetName: ")
+			fmt.Scan(&config.SheetName)
+		}
+		if terminal.IsTerminal(syscall.Stdin) {
+			fmt.Print("Range: ")
+			fmt.Scan(&config.Range)
+		}
+		return config.Output(outputPath)
 	case "CSV":
-		break
+		config := config.CSVConfig{}
+		if terminal.IsTerminal(syscall.Stdin) {
+			fmt.Print("FilePath: ")
+			fmt.Scan(&config.Path)
+		}
+		return config.Output(outputPath)
 	default:
-		log.Fatalln("Not defined input type. type:" + c.String("type"))
+		return "", errors.New("Not defined input type. type:" + configType)
 	}
 }
 

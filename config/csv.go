@@ -1,6 +1,8 @@
 package config
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"io/ioutil"
 )
@@ -11,10 +13,15 @@ type CSVConfig struct {
 }
 
 // Output :
-func (c *CSVConfig) Output(path string) error {
+func (c *CSVConfig) Output(path string) (string, error) {
+	if path == "" {
+		hashedFileNameBytes := sha256.Sum256([]byte(c.Path))
+		path = "resources/config/csv/" + hex.EncodeToString(hashedFileNameBytes[:]) + ".json"
+	}
+
 	jsonBytes, err := json.MarshalIndent(c, "", "  ")
 	if err != nil {
-		return err
+		return "", err
 	}
-	return ioutil.WriteFile(path, jsonBytes, 0644)
+	return "", ioutil.WriteFile(path, jsonBytes, 0644)
 }
