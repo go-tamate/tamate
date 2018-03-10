@@ -103,65 +103,6 @@ func generateConfigAction(c *cli.Context) {
 	}
 }
 
-func generateConfig(configType string, outputPath string) (string, error) {
-	switch configType {
-	case "SQL":
-		server := config.ServerConfig{}
-		config := config.SQLConfig{}
-		if terminal.IsTerminal(syscall.Stdin) {
-			fmt.Print("DriverName: ")
-			fmt.Scan(&server.DriverName)
-		}
-		if terminal.IsTerminal(syscall.Stdin) {
-			fmt.Print("Host: ")
-			fmt.Scan(&server.Host)
-		}
-		if terminal.IsTerminal(syscall.Stdin) {
-			fmt.Print("Port: ")
-			fmt.Scan(&server.Port)
-		}
-		if terminal.IsTerminal(syscall.Stdin) {
-			fmt.Print("User: ")
-			fmt.Scan(&server.User)
-		}
-		if terminal.IsTerminal(syscall.Stdin) {
-			fmt.Print("Password: ")
-			fmt.Scan(&server.Password)
-		}
-		if terminal.IsTerminal(syscall.Stdin) {
-			fmt.Print("DatabaseName: ")
-			fmt.Scan(&config.DatabaseName)
-		}
-		config.Server = &server
-		return config.Output(outputPath)
-	case "SpreadSheets":
-		config := config.SpreadSheetsConfig{}
-		if terminal.IsTerminal(syscall.Stdin) {
-			fmt.Print("SpreadSheetsID: ")
-			fmt.Scan(&config.SpreadSheetsID)
-		}
-		// TODO: スペース入りの文字列が対応不可
-		if terminal.IsTerminal(syscall.Stdin) {
-			fmt.Print("SheetName: ")
-			fmt.Scan(&config.SheetName)
-		}
-		if terminal.IsTerminal(syscall.Stdin) {
-			fmt.Print("Range: ")
-			fmt.Scan(&config.Range)
-		}
-		return config.Output(outputPath)
-	case "CSV":
-		config := config.CSVConfig{}
-		if terminal.IsTerminal(syscall.Stdin) {
-			fmt.Print("FilePath: ")
-			fmt.Scan(&config.Path)
-		}
-		return config.Output(outputPath)
-	default:
-		return "", errors.New("Not defined input type. type:" + configType)
-	}
-}
-
 func generateSchemaAction(c *cli.Context) {
 	// Override output path
 	outputPath := ""
@@ -251,6 +192,65 @@ func dumpAction(c *cli.Context) {
 }
 
 func diffAction(c *cli.Context) {
+}
+
+func generateConfig(configType string, outputPath string) (string, error) {
+	switch configType {
+	case "SQL":
+		server := config.ServerConfig{}
+		config := config.SQLConfig{}
+		if terminal.IsTerminal(syscall.Stdin) {
+			fmt.Print("DriverName: ")
+			fmt.Scan(&server.DriverName)
+		}
+		if terminal.IsTerminal(syscall.Stdin) {
+			fmt.Print("Host: ")
+			fmt.Scan(&server.Host)
+		}
+		if terminal.IsTerminal(syscall.Stdin) {
+			fmt.Print("Port: ")
+			fmt.Scan(&server.Port)
+		}
+		if terminal.IsTerminal(syscall.Stdin) {
+			fmt.Print("User: ")
+			fmt.Scan(&server.User)
+		}
+		if terminal.IsTerminal(syscall.Stdin) {
+			fmt.Print("Password: ")
+			fmt.Scan(&server.Password)
+		}
+		if terminal.IsTerminal(syscall.Stdin) {
+			fmt.Print("DatabaseName: ")
+			fmt.Scan(&config.DatabaseName)
+		}
+		config.Server = &server
+		return config.Output(outputPath)
+	case "SpreadSheets":
+		config := config.SpreadSheetsConfig{}
+		if terminal.IsTerminal(syscall.Stdin) {
+			fmt.Print("SpreadSheetsID: ")
+			fmt.Scan(&config.SpreadSheetsID)
+		}
+		// TODO: スペース入りの文字列が対応不可
+		if terminal.IsTerminal(syscall.Stdin) {
+			fmt.Print("SheetName: ")
+			fmt.Scan(&config.SheetName)
+		}
+		if terminal.IsTerminal(syscall.Stdin) {
+			fmt.Print("Range: ")
+			fmt.Scan(&config.Range)
+		}
+		return config.Output(outputPath)
+	case "CSV":
+		config := config.CSVConfig{}
+		if terminal.IsTerminal(syscall.Stdin) {
+			fmt.Print("FilePath: ")
+			fmt.Scan(&config.Path)
+		}
+		return config.Output(outputPath)
+	default:
+		return "", errors.New("Not defined input type. type:" + configType)
+	}
 }
 
 func getDatasource(sc schema.Schema, sourceType string, configPath string) (datasource.DataSource, error) {
