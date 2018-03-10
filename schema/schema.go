@@ -28,6 +28,7 @@ type Column struct {
 type Schema interface {
 	GetPrimaryKey() string
 	GetColumns() []Column
+	GetColumnNames() []string
 	GetTableName() string
 	Output() error
 }
