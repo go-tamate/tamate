@@ -10,6 +10,7 @@ import (
 
 	"github.com/Mitu217/tamate/config"
 
+	// MySQL driver
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -88,6 +89,11 @@ func (sc *SQLSchema) NewServerSchema(c *config.ServerConfig) error {
 // GetColumns :
 func (sc *SQLSchema) GetColumns() []Column {
 	return sc.Columns
+}
+
+// GetDatabaseName :
+func (sc *SQLSchema) GetDatabaseName() string {
+	return sc.DatabaseName
 }
 
 // GetTableName :

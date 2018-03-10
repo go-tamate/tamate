@@ -42,6 +42,11 @@ func (sc *JSONSchema) GetColumns() []Column {
 	return sc.Columns
 }
 
+// GetDatabaseName :
+func (sc *JSONSchema) GetDatabaseName() string {
+	return sc.DatabaseName
+}
+
 // GetTableName :
 func (sc *JSONSchema) GetTableName() string {
 	return sc.Table.Name

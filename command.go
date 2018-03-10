@@ -7,11 +7,11 @@ import (
 	"os"
 	"syscall"
 
+	"github.com/Mitu217/tamate/dumper"
+
 	"github.com/Mitu217/tamate/config"
 
 	"golang.org/x/crypto/ssh/terminal"
-
-	"github.com/Mitu217/tamate/differ"
 
 	"github.com/Mitu217/tamate/datasource"
 	"github.com/Mitu217/tamate/schema"
@@ -205,166 +205,99 @@ func generateSchemaAction(c *cli.Context) {
 }
 
 func dumpAction(c *cli.Context) {
-	/*
-		inputDatasourceType := c.String("input")
-		outputDatasourceType := c.String("output")
+	schemaFilePath := c.String("schema")
+	inputDatasourceType := c.String("input")
+	outputDatasourceType := c.String("output")
 
-		// read schema
-		if len(c.Args()) >= 1 || c.Args()[0] == "" {
-			log.Fatalf("Please specify the schema file path.")
-			return
-		}
-		schemaFilePath := c.Args()[0]
-		sc, err := schema.NewJSONFileSchema(schemaFilePath)
-		if err != nil {
-			log.Fatalf("Unable to read schema file: %v", err)
-		}
-
-		// create input datasource
-		if len(c.Args()) >= 2 || c.Args()[1] == "" {
-			log.Fatalf("Please specify the input datasource config path.")
-			return
-		}
-		inputConfigPath := c.Args()[1]
-		inputDatasource, err := getDatasource(sc, inputDatasourceType, inputConfigPath)
-	*/
-}
-
-func diffAction(c *cli.Context) {
-	sc, err := schema.NewJSONFileSchema("./resources/schema/sample.json")
+	// read schema
+	sc, err := schema.NewJSONFileSchema(schemaFilePath)
 	if err != nil {
 		log.Fatalf("Unable to read schema file: %v", err)
 	}
 
-	// spreaddsheets
-	sheetsID := "1uCEt_DpNCRPZjvxS0hdnIhSnQQKYjmV0FN2KneRbkKk" //c.Args()[0]
-	sheetName := "Class Data"
-	targetRange := "A1:XX"
-
-	sheetConfig := datasource.NewSpreadSheetsConfig(sheetsID, sheetName, targetRange)
-	sheetDataSource, err := datasource.NewSpreadSheetsDataSource(sc, sheetConfig)
+	// input datasource
+	if len(c.Args()) < 1 || inputDatasourceType == "" {
+		log.Fatalf("Please specify the input type and datasource config path.")
+	}
+	inputConfigPath := c.Args()[0]
+	inputDatasource, err := getDatasource(sc, inputDatasourceType, inputConfigPath)
 	if err != nil {
-		panic(err)
+		log.Fatalln(err)
 	}
 
-	// sql
-	hostSettingPath := "./resources/host/mysql/sample.json"
-	dbName := "Sample"
-	tableName := "Sample"
+	// output datasource
+	if outputDatasourceType == "" {
+		// standard output
+		rows, err := inputDatasource.GetRows()
+		if err != nil {
+			log.Fatalln(err)
+		}
+		fmt.Println(rows)
+	} else {
+		if len(c.Args()) < 2 {
+			log.Fatalf("Please specify the output datasource config path.")
+		}
+		outputConfigPath := c.Args()[1]
+		outputDatasource, err := getDatasource(sc, outputDatasourceType, outputConfigPath)
+		if err != nil {
+			log.Fatalln(err)
+		}
 
-	sqlConfig, err := datasource.NewJSONSQLConfig(hostSettingPath, dbName, tableName)
-	if err != nil {
-		panic(err)
+		d := dumper.NewDumper()
+		if err := d.Dump(inputDatasource, outputDatasource); err != nil {
+			log.Fatalln(err)
+		}
 	}
-	sqlDataSource, err := datasource.NewSQLDataSource(sc, sqlConfig)
-	if err != nil {
-		panic(err)
-	}
+}
 
-	// dump rows by dumper
-	d, err := differ.NewSchemaDiffer(sc, sheetDataSource, sqlDataSource)
-	if err != nil {
-		panic(err)
-	}
-	diff, err := d.DiffRows()
-
-	fmt.Println("[Add]")
-	fmt.Println(diff.Add.Columns)
-	for _, add := range diff.Add.Values {
-		fmt.Println(add)
-	}
-	fmt.Println("[Delete]")
-	fmt.Println(diff.Delete.Columns)
-	for _, delete := range diff.Delete.Values {
-		fmt.Println(delete)
-	}
-	fmt.Println("[Modify]")
-	fmt.Println(diff.Modify.Columns)
-	for _, modify := range diff.Modify.Values {
-		fmt.Println(modify)
-	}
+func diffAction(c *cli.Context) {
 }
 
 func getDatasource(sc schema.Schema, sourceType string, configPath string) (datasource.DataSource, error) {
 	switch sourceType {
 	case "SpreadSheets":
-		return getSpreadSheetsDataSource(sc)
+		return getSpreadSheetsDataSource(sc, configPath)
 	case "CSV":
-		return nil, nil
+		return getCSVDataSource(sc, configPath)
 	case "SQL":
-		return nil, nil
+		return getSQLDataSource(sc, configPath)
 	default:
 		return nil, errors.New("Not defined source type. type:" + sourceType)
 	}
 }
 
-func getSpreadSheetsDataSource(sc schema.Schema) (*datasource.SpreadSheetsDataSource, error) {
-	/*
-		sheetsID := "1uCEt_DpNCRPZjvxS0hdnIhSnQQKYjmV0FN2KneRbkKk" //c.Args()[0]
-		sheetName := "Class Data"
-		targetRange := "A1:XX"
-
-		sheetConfig := datasource.NewSpreadSheetsConfig(sheetsID, sheetName, targetRange)
-		sheetDataSource, err := datasource.NewSpreadSheetsDataSource(sc, sheetConfig)
-		if err != nil {
-			panic(err)
-		}
-	*/
-	return nil, nil
+func getSpreadSheetsDataSource(sc schema.Schema, configPath string) (*datasource.SpreadSheetsDataSource, error) {
+	config, err := config.NewJSONSpreadSheetsConfig(configPath)
+	if err != nil {
+		return nil, err
+	}
+	ds, err := datasource.NewSpreadSheetsDataSource(sc, config)
+	if err != nil {
+		return nil, err
+	}
+	return ds, nil
 }
 
-/*
-func dumpSpreadSheetsAction(c *cli.Context) {
-
-
-	outputPath := c.Args()[1]
-
-
-
-	csvConfig := datasource.NewCSVConfig("", outputPath)
-	csvDataSource, err := datasource.NewCSVDataSource(sc, csvConfig)
+func getCSVDataSource(sc schema.Schema, configPath string) (*datasource.CSVDataSource, error) {
+	config, err := config.NewJSONCSVConfig(configPath)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-
-	// dump rows by dumper
-	d := dumper.NewDumper()
-	d.Dump(sheetDataSource, csvDataSource)
+	ds, err := datasource.NewCSVDataSource(sc, config)
+	if err != nil {
+		return nil, err
+	}
+	return ds, nil
 }
 
-func dumpSQLAction(c *cli.Context) {
-	// Check args.
-	if len(c.Args()) < 4 {
-		fmt.Println("[Error] Argument is missing! 4 arguments are required.")
-	}
-
-	hostSettingPath := c.Args()[0]
-	outputPath := c.Args()[1]
-	dbName := c.Args()[2]
-	tableName := c.Args()[3]
-
-	sc, err := schema.NewJSONFileSchema("./resources/schema/sample.json")
+func getSQLDataSource(sc schema.Schema, configPath string) (*datasource.SQLDataSource, error) {
+	config, err := config.NewJSONSQLConfig(configPath, sc.GetDatabaseName())
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-
-	sqlConfig, err := datasource.NewJSONSQLConfig(hostSettingPath, dbName, tableName)
+	ds, err := datasource.NewSQLDataSource(sc, config)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-	sqlDataSource, err := datasource.NewSQLDataSource(sc, sqlConfig)
-	if err != nil {
-		panic(err)
-	}
-
-	csvConfig := datasource.NewCSVConfig("", outputPath)
-	csvDataSource, err := datasource.NewCSVDataSource(sc, csvConfig)
-	if err != nil {
-		panic(err)
-	}
-
-	// dump rows by dumper
-	d := dumper.NewDumper()
-	d.Dump(sqlDataSource, csvDataSource)
+	return ds, nil
 }
-*/
