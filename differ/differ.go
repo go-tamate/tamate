@@ -26,12 +26,25 @@ func NewSchemaDiffer(sc schema.Schema, leftSrc datasource.DataSource, rightSrc d
 
 // NewRowsDiffer :
 func NewRowsDiffer(leftSrc datasource.DataSource, rightSrc datasource.DataSource) (*Differ, error) {
-	err := errors.New("") // Schemaチェック
+	d := &Differ{
+		LeftSource:  leftSrc,
+		RightSource: rightSrc,
+	}
+	diff, err := d.DiffSchema()
 	if err != nil {
 		return nil, err
 	}
+	if !diff.IsExistDiff() {
+		return nil, errors.New("Schema between two data does not match")
+	}
+	d.Schema = leftSrc.GetSchema()
+	return d, err
+}
 
-	return NewSchemaDiffer(leftSrc.GetSchema(), leftSrc, rightSrc)
+// DiffSchema :
+func (d *Differ) DiffSchema() (*Diff, error) {
+	diff := &Diff{}
+	return diff, nil
 }
 
 // DiffRows :
