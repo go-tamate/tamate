@@ -12,7 +12,7 @@ type Rows struct {
 
 // DataSource :
 type DataSource interface {
-	GetSchema() schema.Schema
+	GetSchema() (schema.Schema, error)
 	GetRows() (*Rows, error)
 	SetRows(*Rows) error
 }

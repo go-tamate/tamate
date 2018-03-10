@@ -65,8 +65,8 @@ func (ds *SQLDataSource) open() (*sql.DB, error) {
 }
 
 // GetSchema :
-func (ds *SQLDataSource) GetSchema() schema.Schema {
-	return ds.Schema
+func (ds *SQLDataSource) GetSchema() (schema.Schema, error) {
+	return ds.Schema, nil
 }
 
 // GetRows :

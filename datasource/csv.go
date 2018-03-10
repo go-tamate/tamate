@@ -38,8 +38,8 @@ func NewCSVDataSource(sc schema.Schema, config *CSVConfig) (*CSVDataSource, erro
 }
 
 // GetSchema :
-func (ds *CSVDataSource) GetSchema() schema.Schema {
-	return ds.Schema
+func (ds *CSVDataSource) GetSchema() (schema.Schema, error) {
+	return ds.Schema, nil
 }
 
 // GetRows :

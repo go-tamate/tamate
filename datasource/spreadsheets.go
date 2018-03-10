@@ -62,8 +62,8 @@ func contains(s []string, e string) int {
 }
 
 // GetSchema :
-func (ds *SpreadSheetsDataSource) GetSchema() schema.Schema {
-	return ds.Schema
+func (ds *SpreadSheetsDataSource) GetSchema() (schema.Schema, error) {
+	return ds.Schema, nil
 }
 
 // GetRows :
