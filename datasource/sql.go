@@ -2,51 +2,24 @@ package datasource
 
 import (
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 
+	"github.com/Mitu217/tamate/config"
 	"github.com/Mitu217/tamate/schema"
 
 	_ "github.com/go-sql-driver/mysql"
 )
 
-// SQLConfig :
-type SQLConfig struct {
-	Server       *schema.Server
-	DatabaseName string
-	TableName    string
-}
-
 // SQLDataSource :
 type SQLDataSource struct {
-	Config *SQLConfig
+	Config *config.SQLConfig
 	Schema schema.Schema
 }
 
-// NewJSONSQLConfig :
-func NewJSONSQLConfig(jsonPath string, dbName string, tableName string) (*SQLConfig, error) {
-	var sv *schema.Server
-	r, err := os.Open(jsonPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := json.NewDecoder(r).Decode(&sv); err != nil {
-		return nil, err
-	}
-	config := &SQLConfig{
-		Server:       sv,
-		DatabaseName: dbName,
-		TableName:    tableName,
-	}
-	return config, nil
-}
-
 // NewSQLDataSource :
-func NewSQLDataSource(sc schema.Schema, config *SQLConfig) (*SQLDataSource, error) {
+func NewSQLDataSource(sc schema.Schema, config *config.SQLConfig) (*SQLDataSource, error) {
 	ds := &SQLDataSource{
 		Config: config,
 		Schema: sc,
@@ -149,7 +122,11 @@ func (ds *SQLDataSource) SetRows(rows *Rows) error {
 	valuesText := strings.Join(values, ",")
 
 	// Insert data
-	_, err = cnn.Query("INSERT INTO " + ds.Config.TableName + " (" + columnsText + ") VALUES " + valuesText)
+	sc, err := ds.GetSchema()
+	if err != nil {
+		return err
+	}
+	_, err = cnn.Query("INSERT INTO " + sc.GetTableName() + " (" + columnsText + ") VALUES " + valuesText)
 	if err != nil {
 		return err
 	}

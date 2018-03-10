@@ -13,6 +13,16 @@ type SpreadSheetsConfig struct {
 	Range          string `json:"range"`
 }
 
+// NewSpreadSheetsConfig :
+func NewSpreadSheetsConfig(sheetsID string, sheetName string, targetRange string) *SpreadSheetsConfig {
+	config := &SpreadSheetsConfig{
+		SpreadSheetsID: sheetsID,
+		SheetName:      sheetName,
+		Range:          targetRange,
+	}
+	return config
+}
+
 // NewJSONSpreadSheetsConfig :
 func NewJSONSpreadSheetsConfig(jsonPath string) (*SpreadSheetsConfig, error) {
 	var config *SpreadSheetsConfig

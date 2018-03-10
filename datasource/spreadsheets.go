@@ -14,37 +14,21 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/Mitu217/tamate/config"
 	"github.com/Mitu217/tamate/schema"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	sheets "google.golang.org/api/sheets/v4"
 )
 
-// SpreadSheetsConfig :
-type SpreadSheetsConfig struct {
-	SpreadSheetsID string
-	SheetName      string
-	Range          string
-}
-
 // SpreadSheetsDataSource :
 type SpreadSheetsDataSource struct {
-	Config *SpreadSheetsConfig
+	Config *config.SpreadSheetsConfig
 	Schema schema.Schema
 }
 
-// NewSpreadSheetsConfig :
-func NewSpreadSheetsConfig(sheetsID string, sheetName string, targetRange string) *SpreadSheetsConfig {
-	config := &SpreadSheetsConfig{
-		SpreadSheetsID: sheetsID,
-		SheetName:      sheetName,
-		Range:          targetRange,
-	}
-	return config
-}
-
 // NewSpreadSheetsDataSource :
-func NewSpreadSheetsDataSource(sc schema.Schema, config *SpreadSheetsConfig) (*SpreadSheetsDataSource, error) {
+func NewSpreadSheetsDataSource(sc schema.Schema, config *config.SpreadSheetsConfig) (*SpreadSheetsDataSource, error) {
 	ds := &SpreadSheetsDataSource{
 		Config: config,
 		Schema: sc,

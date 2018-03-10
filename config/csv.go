@@ -5,11 +5,34 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"io/ioutil"
+	"os"
 )
 
 // CSVConfig :
 type CSVConfig struct {
 	Path string
+}
+
+// NewCSVConfig :
+func NewCSVConfig(path string) *CSVConfig {
+	config := &CSVConfig{
+		Path: path,
+	}
+	return config
+}
+
+// NewJSONCSVConfig :
+func NewJSONCSVConfig(jsonPath string) (*CSVConfig, error) {
+	var config *CSVConfig
+	r, err := os.Open(jsonPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := json.NewDecoder(r).Decode(&config); err != nil {
+		return nil, err
+	}
+	return config, nil
 }
 
 // Output :
