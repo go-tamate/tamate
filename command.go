@@ -7,6 +7,7 @@ import (
 	"os"
 	"syscall"
 
+	"github.com/Mitu217/tamate/differ"
 	"github.com/Mitu217/tamate/dumper"
 
 	"github.com/Mitu217/tamate/config"
@@ -83,6 +84,20 @@ func main() {
 			Name:   "diff",
 			Usage:  "Diff between 2 schema.",
 			Action: diffAction,
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "schema, s",
+					Usage: "schema file path.",
+				},
+				cli.StringFlag{
+					Name:  "left, l",
+					Usage: "left DataSource type.",
+				},
+				cli.StringFlag{
+					Name:  "right, r",
+					Usage: "right DataSource type.",
+				},
+			},
 		},
 	}
 
@@ -192,6 +207,57 @@ func dumpAction(c *cli.Context) {
 }
 
 func diffAction(c *cli.Context) {
+	schemaFilePath := c.String("schema")
+	leftDatasourceType := c.String("left")
+	rightDatasourceType := c.String("right")
+
+	// read schema
+	sc, err := schema.NewJSONFileSchema(schemaFilePath)
+	if err != nil {
+		log.Fatalf("Unable to read schema file: %v", err)
+	}
+
+	// left datasource
+	if len(c.Args()) < 1 || leftDatasourceType == "" {
+		log.Fatalf("Please specify the left type and datasource config path.")
+	}
+	leftConfigPath := c.Args()[0]
+	leftDatasource, err := getDatasource(sc, leftDatasourceType, leftConfigPath)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	// right datasource
+	if len(c.Args()) < 2 || rightDatasourceType == "" {
+		log.Fatalf("Please specify the right type and datasource config path.")
+	}
+	rightConfigPath := c.Args()[1]
+	rightDatasource, err := getDatasource(sc, rightDatasourceType, rightConfigPath)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	d, err := differ.NewSchemaDiffer(sc, leftDatasource, rightDatasource)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	diff, err := d.DiffRows()
+
+	fmt.Println("[Add]")
+	fmt.Println(diff.Add.Columns)
+	for _, add := range diff.Add.Values {
+		fmt.Println(add)
+	}
+	fmt.Println("[Delete]")
+	fmt.Println(diff.Delete.Columns)
+	for _, delete := range diff.Delete.Values {
+		fmt.Println(delete)
+	}
+	fmt.Println("[Modify]")
+	fmt.Println(diff.Modify.Columns)
+	for _, modify := range diff.Modify.Values {
+		fmt.Println(modify)
+	}
 }
 
 func generateConfig(configType string, outputPath string) (string, error) {
