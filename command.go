@@ -169,15 +169,15 @@ func diffAction(c *cli.Context) {
 	diff, err := d.DiffRows()
 
 	fmt.Println("[Add]")
-	for _, add := range diff.Add.Values {
+	for _, add := range diff.Add {
 		fmt.Println(add)
 	}
 	fmt.Println("[Delete]")
-	for _, delete := range diff.Delete.Values {
+	for _, delete := range diff.Delete {
 		fmt.Println(delete)
 	}
 	fmt.Println("[Modify]")
-	for _, modify := range diff.Modify.Values {
+	for _, modify := range diff.Modify {
 		fmt.Println(modify)
 	}
 }

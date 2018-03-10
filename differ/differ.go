@@ -7,13 +7,6 @@ import (
 	"github.com/Mitu217/tamate/schema"
 )
 
-// Diff :
-type Diff struct {
-	Add    datasource.Rows
-	Modify datasource.Rows
-	Delete datasource.Rows
-}
-
 // Differ :
 type Differ struct {
 	Schema      schema.Schema
@@ -97,7 +90,7 @@ func (d *Differ) DiffRows() (*Diff, error) {
 							}
 						}
 						if modify {
-							diff.Modify.Values = append(diff.Modify.Values, [][]string{modifyValues}...)
+							diff.Modify = append(diff.Modify, [][]string{modifyValues}...)
 						}
 					}
 					break
@@ -106,11 +99,11 @@ func (d *Differ) DiffRows() (*Diff, error) {
 			if !found {
 				if i == 0 {
 					// Add
-					diff.Add.Values = append(diff.Add.Values, [][]string{srcValue}...)
+					diff.Add = append(diff.Add, [][]string{srcValue}...)
 				} else {
 					//TODO schemaが異なるときに不具合がおきるはずなので修正必須
 					// Delete
-					diff.Delete.Values = append(diff.Delete.Values, [][]string{srcValue}...)
+					diff.Delete = append(diff.Delete, [][]string{srcValue}...)
 				}
 			}
 		}
