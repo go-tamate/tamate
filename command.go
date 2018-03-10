@@ -106,27 +106,33 @@ func generateConfigAction(c *cli.Context) {
 func generateConfig(configType string, outputPath string) (string, error) {
 	switch configType {
 	case "SQL":
-		config := config.ServerConfig{}
+		server := config.ServerConfig{}
+		config := config.SQLConfig{}
 		if terminal.IsTerminal(syscall.Stdin) {
 			fmt.Print("DriverName: ")
-			fmt.Scan(&config.DriverName)
+			fmt.Scan(&server.DriverName)
 		}
 		if terminal.IsTerminal(syscall.Stdin) {
 			fmt.Print("Host: ")
-			fmt.Scan(&config.Host)
+			fmt.Scan(&server.Host)
 		}
 		if terminal.IsTerminal(syscall.Stdin) {
 			fmt.Print("Port: ")
-			fmt.Scan(&config.Port)
+			fmt.Scan(&server.Port)
 		}
 		if terminal.IsTerminal(syscall.Stdin) {
 			fmt.Print("User: ")
-			fmt.Scan(&config.User)
+			fmt.Scan(&server.User)
 		}
 		if terminal.IsTerminal(syscall.Stdin) {
 			fmt.Print("Password: ")
-			fmt.Scan(&config.Password)
+			fmt.Scan(&server.Password)
 		}
+		if terminal.IsTerminal(syscall.Stdin) {
+			fmt.Print("DatabaseName: ")
+			fmt.Scan(&config.DatabaseName)
+		}
+		config.Server = &server
 		return config.Output(outputPath)
 	case "SpreadSheets":
 		config := config.SpreadSheetsConfig{}
