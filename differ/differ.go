@@ -139,10 +139,10 @@ func (d *Differ) DiffRows() (*DiffRows, error) {
 					if i == 0 {
 						modifyValues := make([]string, len(d.Schema.GetColumns()))
 						modify := false
-						for _, column := range d.Schema.GetColumns() {
-							srcColumnIndex := contains(srcRows.Columns, column.Name)
+						for _, columnName := range d.Schema.GetColumnNames() {
+							srcColumnIndex := contains(srcRows.Columns, columnName)
 							srcColumnValue := srcValue[srcColumnIndex]
-							dstColumnIndex := contains(dstRows.Columns, column.Name)
+							dstColumnIndex := contains(dstRows.Columns, columnName)
 							dstColumnValue := dstValue[dstColumnIndex]
 							if srcPrimaryIndex == srcColumnIndex {
 								// Skip Primarykey column
