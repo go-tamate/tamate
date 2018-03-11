@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestNewConfigFromJSON(t *testing.T) {
+func TestCSVNewConfigFromJSON(t *testing.T) {
 	j := `{"type": "csv", "path": "/path/to/data.csv"}`
 	jr := strings.NewReader(j)
 

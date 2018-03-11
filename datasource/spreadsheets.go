@@ -14,21 +14,29 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/Mitu217/tamate/config"
 	"github.com/Mitu217/tamate/schema"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	sheets "google.golang.org/api/sheets/v4"
 )
 
+// SpreadSheetsConfig :
+type SpreadSheetsDatasourceConfig struct {
+	Type                string `json:"type"`
+	CredentialsJSONPath string `json:"credentials_json_path"`
+	SpreadSheetsID      string `json:"spreadsheets_id"`
+	SheetName           string `json:"sheet_name"`
+	Range               string `json:"range"`
+}
+
 // SpreadSheetsDataSource :
 type SpreadSheetsDataSource struct {
-	Config *config.SpreadSheetsConfig
+	Config *SpreadSheetsDatasourceConfig
 	Schema *schema.Schema
 }
 
 // NewSpreadSheetsDataSource :
-func NewSpreadSheetsDataSource(config *config.SpreadSheetsConfig) (*SpreadSheetsDataSource, error) {
+func NewSpreadSheetsDataSource(config *SpreadSheetsDatasourceConfig) (*SpreadSheetsDataSource, error) {
 	ds := &SpreadSheetsDataSource{
 		Config: config,
 	}
@@ -50,7 +58,7 @@ func (ds *SpreadSheetsDataSource) GetSchema() (*schema.Schema, error) {
 		return ds.Schema, nil
 	}
 
-	srv := getService()
+	srv := getService(ds.Config.CredentialsJSONPath)
 
 	// Get data
 	readRange := ds.Config.SheetName + "!" + ds.Config.Range
@@ -105,7 +113,7 @@ func (ds *SpreadSheetsDataSource) SetSchema(sc *schema.Schema) error {
 
 // GetRows :
 func (ds *SpreadSheetsDataSource) GetRows() (*Rows, error) {
-	srv := getService()
+	srv := getService(ds.Config.CredentialsJSONPath)
 
 	// Get data
 	readRange := ds.Config.SheetName + "!" + ds.Config.Range
@@ -190,7 +198,7 @@ func (ds *SpreadSheetsDataSource) GetRows() (*Rows, error) {
 
 // SetRows :
 func (ds *SpreadSheetsDataSource) SetRows(rows *Rows) error {
-	srv := getService()
+	srv := getService(ds.Config.CredentialsJSONPath)
 
 	outputValues := make([][]interface{}, 0)
 	for _, value := range rows.Values {
@@ -200,6 +208,7 @@ func (ds *SpreadSheetsDataSource) SetRows(rows *Rows) error {
 		}
 	}
 
+	// TODO: can specify spreadsheet id and range
 	// https://docs.google.com/spreadsheets/d/1_Um82wSffMiMVqvRISAo348Ti8u51CLdV_kGN7TYDko/edit#gid=0
 	spreadsheetID := "1_Um82wSffMiMVqvRISAo348Ti8u51CLdV_kGN7TYDko"
 	rangeData := "sheet1!A1:XX"
@@ -217,10 +226,10 @@ func (ds *SpreadSheetsDataSource) SetRows(rows *Rows) error {
 	return nil
 }
 
-func getService() *sheets.Service {
+func getService(jsonPath string) *sheets.Service {
 	ctx := context.Background()
 
-	b, err := ioutil.ReadFile("resources/spreadsheets/client_secret.json")
+	b, err := ioutil.ReadFile(jsonPath)
 	if err != nil {
 		log.Fatalf("Unable to read client secret file: %v", err)
 	}

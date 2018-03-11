@@ -3,24 +3,28 @@ package datasource
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"strings"
 
-	"github.com/Mitu217/tamate/config"
 	"github.com/Mitu217/tamate/schema"
-
-	// MySQL Driver
-	_ "github.com/go-sql-driver/mysql"
 )
+
+// SQLConfig :
+type SQLDatasourceConfig struct {
+	Type         string `json:"type"`
+	DriverName   string `json:"driver_name"`
+	DSN          string `json:"dsn"`
+	DatabaseName string `json:"database_name"`
+	TableName    string `json:"table_name"`
+}
 
 // SQLDataSource :
 type SQLDataSource struct {
-	Config *config.SQLConfig
+	Config *SQLDatasourceConfig
 	Schema *schema.Schema
 }
 
 // NewSQLDataSource :
-func NewSQLDataSource(config *config.SQLConfig) (*SQLDataSource, error) {
+func NewSQLDataSource(config *SQLDatasourceConfig) (*SQLDataSource, error) {
 	ds := &SQLDataSource{
 		Config: config,
 	}
@@ -28,13 +32,7 @@ func NewSQLDataSource(config *config.SQLConfig) (*SQLDataSource, error) {
 }
 
 func (ds *SQLDataSource) open() (*sql.DB, error) {
-	user := ds.Config.Server.User
-	pw := ds.Config.Server.Password
-	host := ds.Config.Server.Host
-	port := ds.Config.Server.Port
-	dbName := ds.Config.DatabaseName
-	dataSourceName := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", user, pw, host, port, dbName)
-	return sql.Open(ds.Config.Server.DriverName, dataSourceName)
+	return sql.Open(ds.Config.DriverName, ds.Config.DSN)
 }
 
 // GetSchema :

@@ -122,11 +122,11 @@ func generateSchemaAction(c *cli.Context) {
 			}
 			configPath = path
 		}
-		config, err := config.NewJSONSQLConfig(configPath)
-		if err != nil {
+		conf := &datasource.SQLDatasourceConfig{}
+		if err := datasource.NewConfigFromJSONFile(configPath, conf); err != nil {
 			log.Fatalf("Unable to read config file: %v", err)
 		}
-		ds, err := datasource.NewSQLDataSource(config)
+		ds, err := datasource.NewSQLDataSource(conf)
 		if err != nil {
 			log.Fatalln(err)
 		}
