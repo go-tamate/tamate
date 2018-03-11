@@ -30,7 +30,7 @@ e.g. tamate generate:schema -t SQL -o sql_schema.json
 ```
 tamate dump -i <input datasource type> [-o <output datasource path>] <input datasource config path> [<output datasource config path>]
 
-e.g. tamate dump -i SQL sql_schema.json
+e.g. tamate dump -i SQL sql_config.json
 e.g. tamate dump -i SQL -o SpreadSheets sql_config.json spreadsheets_config.json 
 ```
 
