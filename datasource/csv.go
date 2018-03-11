@@ -53,7 +53,7 @@ func (ds *CSVDataSource) GetRows() (*Rows, error) {
 		}
 	}
 	if len(columns) == 0 {
-		return nil, errors.New("No columns in SpreadSheets. Path: " + ds.Config.SoursePath)
+		return nil, errors.New("No columns in SpreadSheets. Path: " + ds.Config.Path)
 	}
 
 	values := append(records[:0], records[1:]...)
