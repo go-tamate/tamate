@@ -26,10 +26,6 @@
 
 
 [[constraint]]
-  name = "github.com/codegangsta/cli"
-  version = "1.20.0"
-
-[[constraint]]
   branch = "master"
   name = "golang.org/x/oauth2"
 
@@ -40,3 +36,7 @@
 [prune]
   go-tests = true
   unused-packages = true
+
+[[constraint]]
+  branch = "master"
+  name = "golang.org/x/crypto"

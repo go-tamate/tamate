@@ -8,18 +8,22 @@ import (
 	"io/ioutil"
 	"strings"
 
+	"github.com/Mitu217/tamate/config"
+
+	// MySQL driver
 	_ "github.com/go-sql-driver/mysql"
 )
 
-func (sc *SQLSchema) NewServerSchema(tableName string) error {
-	dataSourceName := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", sc.Server.User, sc.Server.Password, sc.Server.Host, sc.Server.Port, sc.DatabaseName)
-	cnn, err := sql.Open(sc.Server.DriverName, dataSourceName)
+// NewServerSchema :
+func (sc *SQLSchema) NewServerSchema(c *config.ServerConfig) error {
+	dataSourceName := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", c.User, c.Password, c.Host, c.Port, sc.DatabaseName)
+	cnn, err := sql.Open(c.DriverName, dataSourceName)
 	if err != nil {
 		return err
 	}
 
 	// Get data
-	rows, err := cnn.Query("SHOW COLUMNS FROM " + tableName)
+	rows, err := cnn.Query("SHOW COLUMNS FROM " + sc.Table.Name)
 	if err != nil {
 		return err
 	}
@@ -31,7 +35,7 @@ func (sc *SQLSchema) NewServerSchema(tableName string) error {
 		return err
 	}
 	if len(sqlColumns) == 0 {
-		return errors.New("No columns in table " + tableName + ".")
+		return errors.New("No columns in table " + sc.Table.Name + ".")
 	}
 
 	// Read data
@@ -63,7 +67,10 @@ func (sc *SQLSchema) NewServerSchema(tableName string) error {
 						column.NotNull = true
 					}
 				case "Key":
-					//property.Key = value.String
+					if strings.Index(value.String, "PRI") != -1 {
+						// FIXME: column.nameが空になる場合の対応
+						sc.Table.PrimaryKey = column.Name
+					}
 				case "Default":
 					//property.Default = value.String
 				case "Extra":
@@ -79,15 +86,28 @@ func (sc *SQLSchema) NewServerSchema(tableName string) error {
 	return nil
 }
 
+// GetColumns :
 func (sc *SQLSchema) GetColumns() []Column {
 	return sc.Columns
 }
 
+// GetDatabaseName :
+func (sc *SQLSchema) GetDatabaseName() string {
+	return sc.DatabaseName
+}
+
+// GetTableName :
 func (sc *SQLSchema) GetTableName() string {
 	return sc.Table.Name
 }
 
+// Output :
 func (sc *SQLSchema) Output(path string) error {
+	// Set default path and default file name.
+	if path == "" {
+		path = "resources/schema/" + sc.DatabaseName + "_" + sc.Table.Name + ".json"
+	}
+
 	// Output with indentation
 	jsonBytes, err := json.MarshalIndent(sc, "", "  ")
 	if err != nil {
@@ -98,7 +118,6 @@ func (sc *SQLSchema) Output(path string) error {
 
 // SQLSchema :
 type SQLSchema struct {
-	Server       *Server  `json:"server"`
 	DatabaseName string   `json:"database"`
 	Description  string   `json:"description"`
 	Table        Table    `json:"table"`

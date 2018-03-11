@@ -8,9 +8,10 @@ import (
 
 // JSONSchema :
 type JSONSchema struct {
-	Description string   `json:"description"`
-	Table       Table    `json:"table"`
-	Columns     []Column `json:"properties"`
+	DatabaseName string   `json:"database"`
+	Description  string   `json:"description"`
+	Table        Table    `json:"table"`
+	Columns      []Column `json:"properties"`
 }
 
 // NewJSONSchema :
@@ -39,6 +40,11 @@ func (sc *JSONSchema) GetPrimaryKey() string {
 // GetColumns :
 func (sc *JSONSchema) GetColumns() []Column {
 	return sc.Columns
+}
+
+// GetDatabaseName :
+func (sc *JSONSchema) GetDatabaseName() string {
+	return sc.DatabaseName
 }
 
 // GetTableName :
