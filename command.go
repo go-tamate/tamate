@@ -59,6 +59,10 @@ func main() {
 					Name:  "config, c",
 					Usage: "",
 				},
+				cli.StringFlag{
+					Name:  "output, o",
+					Usage: "",
+				},
 			},
 		},
 		{
@@ -137,20 +141,22 @@ func generateSchemaAction(c *cli.Context) {
 			}
 			configPath = path
 		}
-		serverConfig, err := config.NewJSONServerConfig(configPath)
+		sqlConfig, err := config.NewJSONSQLConfig(configPath)
 		if err != nil {
 			log.Fatalf("Unable to read config file: %v", err)
 		}
-		// TODO: dbNameとtableNameは任意の引数にしたい
-		dbName := c.Args()[0]
-		tableName := c.Args()[1]
+		var tableName string
+		if terminal.IsTerminal(syscall.Stdin) {
+			fmt.Print("TableName: ")
+			fmt.Scan(&tableName)
+		}
 		sc := &schema.SQLSchema{
-			DatabaseName: dbName,
+			DatabaseName: sqlConfig.DatabaseName,
 			Table: schema.Table{
 				Name: tableName,
 			},
 		}
-		sc.NewServerSchema(serverConfig)
+		sc.NewSQLSchema(sqlConfig)
 		if err := sc.Output(outputPath); err != nil {
 			log.Fatalln(err)
 		}
@@ -357,7 +363,7 @@ func getCSVDataSource(sc schema.Schema, configPath string) (*datasource.CSVDataS
 }
 
 func getSQLDataSource(sc schema.Schema, configPath string) (*datasource.SQLDataSource, error) {
-	config, err := config.NewJSONSQLConfig(configPath, sc.GetDatabaseName())
+	config, err := config.NewJSONSQLConfig(configPath)
 	if err != nil {
 		return nil, err
 	}

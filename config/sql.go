@@ -13,7 +13,7 @@ type SQLConfig struct {
 }
 
 // NewJSONSQLConfig :
-func NewJSONSQLConfig(jsonPath string, dbName string) (*SQLConfig, error) {
+func NewJSONSQLConfig(jsonPath string) (*SQLConfig, error) {
 	var config *SQLConfig
 	r, err := os.Open(jsonPath)
 	if err != nil {

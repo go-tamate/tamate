@@ -15,9 +15,9 @@ import (
 )
 
 // NewServerSchema :
-func (sc *SQLSchema) NewServerSchema(c *config.ServerConfig) error {
-	dataSourceName := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", c.User, c.Password, c.Host, c.Port, sc.DatabaseName)
-	cnn, err := sql.Open(c.DriverName, dataSourceName)
+func (sc *SQLSchema) NewSQLSchema(c *config.SQLConfig) error {
+	dataSourceName := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", c.Server.User, c.Server.Password, c.Server.Host, c.Server.Port, sc.DatabaseName)
+	cnn, err := sql.Open(c.Server.DriverName, dataSourceName)
 	if err != nil {
 		return err
 	}
