@@ -5,18 +5,23 @@ import (
 	"errors"
 	"os"
 
-	"github.com/Mitu217/tamate/config"
 	"github.com/Mitu217/tamate/schema"
 )
 
+// CSVDatasourceConfig :
+type CSVDatasourceConfig struct {
+	Type string `json:"type"`
+	Path string `json:"path"`
+}
+
 // CSVDataSource :
 type CSVDataSource struct {
-	Config *config.CSVConfig
+	Config *CSVDatasourceConfig
 	Schema *schema.Schema
 }
 
 // NewCSVDataSource :
-func NewCSVDataSource(config *config.CSVConfig) (*CSVDataSource, error) {
+func NewCSVDataSource(config *CSVDatasourceConfig) (*CSVDataSource, error) {
 	ds := &CSVDataSource{
 		Config: config,
 	}

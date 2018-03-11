@@ -47,11 +47,11 @@ func getSpreadSheetsDataSource(configPath string) (*datasource.SpreadSheetsDataS
 }
 
 func getCSVDataSource(configPath string) (*datasource.CSVDataSource, error) {
-	config, err := config.NewJSONCSVConfig(configPath)
-	if err != nil {
+	conf := &datasource.CSVDatasourceConfig{}
+	if err := datasource.NewConfigFromJSONFile(configPath, conf); err != nil {
 		return nil, err
 	}
-	ds, err := datasource.NewCSVDataSource(config)
+	ds, err := datasource.NewCSVDataSource(conf)
 	if err != nil {
 		return nil, err
 	}
