@@ -216,7 +216,7 @@ func (ds *SpreadSheetsDataSource) SetRows(rows *Rows) error {
 func getService() *sheets.Service {
 	ctx := context.Background()
 
-	b, err := ioutil.ReadFile("client_secret.json")
+	b, err := ioutil.ReadFile("resources/spreadsheets/client_secret.json")
 	if err != nil {
 		log.Fatalf("Unable to read client secret file: %v", err)
 	}
