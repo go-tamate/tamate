@@ -10,7 +10,7 @@ import (
 
 // CSVConfig :
 type CSVConfig struct {
-	Path string
+	Path string `json:"path"`
 }
 
 // NewCSVConfig :

@@ -10,6 +10,7 @@ import (
 type SQLConfig struct {
 	Server       *ServerConfig `json:"server"`
 	DatabaseName string        `json:"database_name"`
+	TableName    string        `json:"table_name"`
 }
 
 // NewJSONSQLConfig :
