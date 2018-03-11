@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"text/tabwriter"
 
 	"github.com/Mitu217/tamate/util"
 
@@ -160,7 +161,8 @@ func dumpAction(c *cli.Context) {
 		if err != nil {
 			log.Fatalln(err)
 		}
-		fmt.Println(rows)
+		fmt.Println("[Input DataSource]")
+		printRows(rows)
 	} else {
 		// Get OutputDataSource
 		outputConfigPath := c.Args()[1]
@@ -245,20 +247,11 @@ func diffAction(c *cli.Context) {
 	}
 	diff, err := d.DiffRows()
 	fmt.Println("[Add]")
-	fmt.Println(diff.Add.Columns)
-	for _, add := range diff.Add.Values {
-		fmt.Println(add)
-	}
+	printRows(diff.Add)
 	fmt.Println("[Delete]")
-	fmt.Println(diff.Delete.Columns)
-	for _, delete := range diff.Delete.Values {
-		fmt.Println(delete)
-	}
+	printRows(diff.Delete)
 	fmt.Println("[Modify]")
-	fmt.Println(diff.Modify.Columns)
-	for _, modify := range diff.Modify.Values {
-		fmt.Println(modify)
-	}
+	printRows(diff.Modify)
 }
 
 func generateConfig(configType string, outputPath string) (string, error) {
@@ -324,4 +317,16 @@ func generateConfig(configType string, outputPath string) (string, error) {
 	default:
 		return "", errors.New("Not defined input type. type:" + configType)
 	}
+}
+
+func printRows(rows *datasource.Rows) {
+	w := new(tabwriter.Writer)
+	w.Init(os.Stdout, 0, 8, 0, '\t', tabwriter.TabIndent)
+	// Columns
+	w.Write([]byte(strings.Join(rows.Columns, "\t") + "\n"))
+	// Values
+	for i := range rows.Values {
+		w.Write([]byte(strings.Join(rows.Values[i], "\t") + "\n"))
+	}
+	w.Flush()
 }
