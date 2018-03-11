@@ -8,7 +8,7 @@ import (
 
 // SpreadSheetsConfig :
 type SpreadSheetsConfig struct {
-	SpreadSheetsID string `json:"driver_name"`
+	SpreadSheetsID string `json:"spreadsheets_id"`
 	SheetName      string `json:"sheet_name"`
 	Range          string `json:"range"`
 }
