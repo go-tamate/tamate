@@ -35,7 +35,7 @@ func NewRowsDiffer(leftSrc datasource.DataSource, rightSrc datasource.DataSource
 	if err != nil {
 		return nil, err
 	}
-	if !diffColumns.IsDiff() {
+	if diffColumns.IsDiff() {
 		return nil, errors.New("Schema between two data does not match")
 	}
 

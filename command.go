@@ -214,9 +214,13 @@ func diffAction(c *cli.Context) {
 	rightDatasourceType := c.String("right")
 
 	// read schema
-	sc, err := schema.NewJSONFileSchema(schemaFilePath)
-	if err != nil {
-		log.Fatalf("Unable to read schema file: %v", err)
+	var diffSchema *schema.Schema
+	if schemaFilePath != "" {
+		sc, err := schema.NewJSONFileSchema(schemaFilePath)
+		if err != nil {
+			log.Fatalf("Unable to read schema file: %v", err)
+		}
+		diffSchema = sc
 	}
 
 	// left datasource
@@ -228,7 +232,7 @@ func diffAction(c *cli.Context) {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	if err := leftDatasource.SetSchema(sc); err != nil {
+	if err := leftDatasource.SetSchema(diffSchema); err != nil {
 		log.Fatalln(err)
 	}
 
@@ -241,16 +245,28 @@ func diffAction(c *cli.Context) {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	if err := rightDatasource.SetSchema(sc); err != nil {
+	if err := rightDatasource.SetSchema(diffSchema); err != nil {
 		log.Fatalln(err)
 	}
 
-	d, err := differ.NewSchemaDiffer(sc, leftDatasource, rightDatasource)
+	var d *differ.Differ
+	if diffSchema == nil {
+		rowsDiffer, err := differ.NewRowsDiffer(leftDatasource, rightDatasource)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		d = rowsDiffer
+	} else {
+		schemaDiffer, err := differ.NewSchemaDiffer(diffSchema, leftDatasource, rightDatasource)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		d = schemaDiffer
+	}
 	if err != nil {
 		log.Fatalln(err)
 	}
 	diff, err := d.DiffRows()
-
 	fmt.Println("[Add]")
 	fmt.Println(diff.Add.Columns)
 	for _, add := range diff.Add.Values {
