@@ -12,7 +12,6 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
-	"time"
 
 	"github.com/Mitu217/tamate/config"
 	"github.com/Mitu217/tamate/schema"
@@ -24,14 +23,13 @@ import (
 // SpreadSheetsDataSource :
 type SpreadSheetsDataSource struct {
 	Config *config.SpreadSheetsConfig
-	Schema schema.Schema
+	Schema *schema.Schema
 }
 
 // NewSpreadSheetsDataSource :
-func NewSpreadSheetsDataSource(sc schema.Schema, config *config.SpreadSheetsConfig) (*SpreadSheetsDataSource, error) {
+func NewSpreadSheetsDataSource(config *config.SpreadSheetsConfig) (*SpreadSheetsDataSource, error) {
 	ds := &SpreadSheetsDataSource{
 		Config: config,
-		Schema: sc,
 	}
 	return ds, nil
 }
@@ -46,8 +44,50 @@ func contains(s []string, e string) int {
 }
 
 // GetSchema :
-func (ds *SpreadSheetsDataSource) GetSchema() (schema.Schema, error) {
-	return ds.Schema, nil
+func (ds *SpreadSheetsDataSource) GetSchema() (*schema.Schema, error) {
+	if ds.Schema != nil {
+		return ds.Schema, nil
+	}
+
+	srv := getService()
+
+	// Get data
+	readRange := ds.Config.SheetName + "!" + ds.Config.Range
+	resp, err := srv.Spreadsheets.Values.Get(ds.Config.SpreadSheetsID, readRange).Do()
+	if err != nil {
+		return nil, err
+	}
+	if len(resp.Values) == 0 {
+		return nil, errors.New("No data found")
+	}
+	sheetRows := resp.Values
+
+	// Get Schema
+	return getSchema(sheetRows)
+}
+
+func getSchema(rows [][]interface{}) (*schema.Schema, error) {
+	sc := &schema.Schema{} //FIXME: Schemaを統合した後に修正
+	for _, row := range rows {
+		tagField := row[0]
+		if tagField == "COLUMN" {
+			columns := make([]schema.Column, 0)
+			spreadsheetsColumns := append(row[:0], row[1:]...)
+			for _, spreadsheetsColumn := range spreadsheetsColumns {
+				columns = append(columns, schema.Column{
+					Name: spreadsheetsColumn.(string),
+					Type: "text",
+				})
+			}
+			sc.Columns = columns
+			break
+		}
+	}
+	if len(sc.Columns) == 0 {
+		return nil, errors.New("No columns in SpreadSheets")
+	}
+
+	return sc, nil
 }
 
 // GetRows :
@@ -65,19 +105,10 @@ func (ds *SpreadSheetsDataSource) GetRows() (*Rows, error) {
 	}
 	sheetRows := resp.Values
 
-	// Get columns
-	spreadsheetsColumnNames := make([]string, 0)
-	for _, row := range sheetRows {
-		tagField := row[0]
-		if tagField == "COLUMN" {
-			spreadsheetsColumns := append(row[:0], row[1:]...)
-			for _, spreadsheetsColumn := range spreadsheetsColumns {
-				spreadsheetsColumnNames = append(spreadsheetsColumnNames, spreadsheetsColumn.(string))
-			}
-		}
-	}
-	if len(spreadsheetsColumnNames) == 0 {
-		return nil, errors.New("No columns in SpreadSheets. ID: " + ds.Config.SpreadSheetsID)
+	// Get Schema
+	sc, err := getSchema(sheetRows)
+	if err != nil {
+		return nil, err
 	}
 
 	// Get data
@@ -90,21 +121,7 @@ func (ds *SpreadSheetsDataSource) GetRows() (*Rows, error) {
 		case "":
 			// Get Data
 			value := make([]string, 0)
-			for _, column := range ds.Schema.GetColumns() {
-				index := contains(spreadsheetsColumnNames, column.Name)
-				if index == -1 {
-					if column.NotNull {
-						// typeに応じて綺麗に対応する方法を考える（デフォルト値対応も）
-						if column.Type == "datetime" {
-							value = append(value, time.Now().Format("2006-01-02 15:04:05"))
-						} else {
-							value = append(value, "")
-						}
-					} else {
-						value = append(value, "NULL")
-					}
-					continue
-				}
+			for index := range sc.Columns {
 				value = append(value, row[index+1].(string))
 			}
 			values = append(values, value)
@@ -116,7 +133,7 @@ func (ds *SpreadSheetsDataSource) GetRows() (*Rows, error) {
 
 	// Create output data
 	columns := make([]string, 0)
-	for _, column := range ds.Schema.GetColumns() {
+	for _, column := range sc.Columns {
 		columns = append(columns, column.Name)
 	}
 	//values = append([][]string{columns}, values...) // TODO: 遅いので修正する（https://mattn.kaoriya.net/software/lang/go/20150928144704.htm）

@@ -150,7 +150,7 @@ func generateSchemaAction(c *cli.Context) {
 			fmt.Print("TableName: ")
 			fmt.Scan(&tableName)
 		}
-		sc := &schema.SQLSchema{
+		sc := &schema.Schema{
 			DatabaseName: sqlConfig.DatabaseName,
 			Table: schema.Table{
 				Name: tableName,
@@ -325,49 +325,49 @@ func generateConfig(configType string, outputPath string) (string, error) {
 	}
 }
 
-func getDatasource(sc schema.Schema, sourceType string, configPath string) (datasource.DataSource, error) {
+func getDatasource(sc *schema.Schema, sourceType string, configPath string) (datasource.DataSource, error) {
 	switch sourceType {
 	case "SpreadSheets":
-		return getSpreadSheetsDataSource(sc, configPath)
+		return getSpreadSheetsDataSource(configPath)
 	case "CSV":
-		return getCSVDataSource(sc, configPath)
+		return getCSVDataSource(configPath)
 	case "SQL":
-		return getSQLDataSource(sc, configPath)
+		return getSQLDataSource(configPath)
 	default:
 		return nil, errors.New("Not defined source type. type:" + sourceType)
 	}
 }
 
-func getSpreadSheetsDataSource(sc schema.Schema, configPath string) (*datasource.SpreadSheetsDataSource, error) {
+func getSpreadSheetsDataSource(configPath string) (*datasource.SpreadSheetsDataSource, error) {
 	config, err := config.NewJSONSpreadSheetsConfig(configPath)
 	if err != nil {
 		return nil, err
 	}
-	ds, err := datasource.NewSpreadSheetsDataSource(sc, config)
+	ds, err := datasource.NewSpreadSheetsDataSource(config)
 	if err != nil {
 		return nil, err
 	}
 	return ds, nil
 }
 
-func getCSVDataSource(sc schema.Schema, configPath string) (*datasource.CSVDataSource, error) {
+func getCSVDataSource(configPath string) (*datasource.CSVDataSource, error) {
 	config, err := config.NewJSONCSVConfig(configPath)
 	if err != nil {
 		return nil, err
 	}
-	ds, err := datasource.NewCSVDataSource(sc, config)
+	ds, err := datasource.NewCSVDataSource(config)
 	if err != nil {
 		return nil, err
 	}
 	return ds, nil
 }
 
-func getSQLDataSource(sc schema.Schema, configPath string) (*datasource.SQLDataSource, error) {
+func getSQLDataSource(configPath string) (*datasource.SQLDataSource, error) {
 	config, err := config.NewJSONSQLConfig(configPath)
 	if err != nil {
 		return nil, err
 	}
-	ds, err := datasource.NewSQLDataSource(sc, config)
+	ds, err := datasource.NewSQLDataSource(config)
 	if err != nil {
 		return nil, err
 	}

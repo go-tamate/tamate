@@ -12,20 +12,19 @@ import (
 // CSVDataSource :
 type CSVDataSource struct {
 	Config *config.CSVConfig
-	Schema schema.Schema
+	Schema *schema.Schema
 }
 
 // NewCSVDataSource :
-func NewCSVDataSource(sc schema.Schema, config *config.CSVConfig) (*CSVDataSource, error) {
+func NewCSVDataSource(config *config.CSVConfig) (*CSVDataSource, error) {
 	ds := &CSVDataSource{
 		Config: config,
-		Schema: sc,
 	}
 	return ds, nil
 }
 
 // GetSchema :
-func (ds *CSVDataSource) GetSchema() (schema.Schema, error) {
+func (ds *CSVDataSource) GetSchema() (*schema.Schema, error) {
 	return ds.Schema, nil
 }
 

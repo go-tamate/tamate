@@ -9,13 +9,13 @@ import (
 
 // Differ :
 type Differ struct {
-	Schema      schema.Schema
+	Schema      *schema.Schema
 	LeftSource  datasource.DataSource
 	RightSource datasource.DataSource
 }
 
 // NewSchemaDiffer :
-func NewSchemaDiffer(sc schema.Schema, leftSrc datasource.DataSource, rightSrc datasource.DataSource) (*Differ, error) {
+func NewSchemaDiffer(sc *schema.Schema, leftSrc datasource.DataSource, rightSrc datasource.DataSource) (*Differ, error) {
 	d := &Differ{
 		Schema:      sc,
 		LeftSource:  leftSrc,
@@ -62,9 +62,9 @@ func (d *Differ) diffColumns() (*DiffColumns, error) {
 	// Get diff
 	diff := &DiffColumns{}
 	for i := 0; i < 2; i++ {
-		for _, srcColumn := range srcSchemas.GetColumns() {
+		for _, srcColumn := range srcSchemas.Columns {
 			found := false
-			for _, dstColumn := range dstSchemas.GetColumns() {
+			for _, dstColumn := range dstSchemas.Columns {
 				if srcColumn.Name == dstColumn.Name {
 					found = true
 
@@ -128,19 +128,18 @@ func (d *Differ) DiffRows() (*DiffRows, error) {
 	}
 
 	// Get Primary
-	primaryKey := d.Schema.GetPrimaryKey()
-	srcPrimaryIndex := contains(srcRows.Columns, primaryKey)
+	srcPrimaryIndex := contains(srcRows.Columns, d.Schema.Table.PrimaryKey)
 	if srcPrimaryIndex == -1 {
-		return nil, errors.New("Not defineded PrimaryKey in `" + d.Schema.GetTableName() + "` Schema")
+		return nil, errors.New("Not defineded PrimaryKey in `" + d.Schema.Table.Name + "` Schema")
 	}
-	dstPrimaryIndex := contains(dstRows.Columns, primaryKey)
+	dstPrimaryIndex := contains(dstRows.Columns, d.Schema.Table.PrimaryKey)
 	if dstPrimaryIndex == -1 {
-		return nil, errors.New("Not defineded PrimaryKey in `" + d.Schema.GetTableName() + "` Schema")
+		return nil, errors.New("Not defineded PrimaryKey in `" + d.Schema.Table.Name + "` Schema")
 	}
 
 	// Get diff
-	columnNames := make([]string, len(d.Schema.GetColumns()))
-	for i, column := range d.Schema.GetColumns() {
+	columnNames := make([]string, len(d.Schema.Columns))
+	for i, column := range d.Schema.Columns {
 		columnNames[i] = column.Name
 	}
 	diff := &DiffRows{
