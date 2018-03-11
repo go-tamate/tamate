@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"syscall"
 
 	"github.com/Mitu217/tamate/util"
@@ -109,7 +110,7 @@ func generateSchemaAction(c *cli.Context) {
 		outputPath = c.String("output")
 	}
 
-	inputType := c.String("type")
+	inputType := strings.ToLower(c.String("type"))
 	configPath := c.String("config")
 
 	switch inputType {

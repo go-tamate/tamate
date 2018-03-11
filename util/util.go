@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"strings"
 
 	"github.com/Mitu217/tamate/config"
 	"github.com/Mitu217/tamate/datasource"
@@ -20,7 +21,8 @@ func GetConfigDataSource(configPath string) (datasource.DataSource, error) {
 		return nil, err
 	}
 
-	switch config.Type {
+	t := strings.ToLower(config.Type)
+	switch t {
 	case "spreadsheets":
 		return getSpreadSheetsDataSource(configPath)
 	case "csv":
