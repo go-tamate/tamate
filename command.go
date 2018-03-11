@@ -262,12 +262,11 @@ func diffAction(c *cli.Context) {
 }
 
 func generateConfig(configType string, outputPath string) (string, error) {
-	switch configType {
-	case "SQL":
+	t := strings.ToLower(configType)
+	switch t {
+	case "sql":
 		server := config.ServerConfig{}
-		config := config.SQLConfig{
-			Type: "sql",
-		}
+		config := config.SQLConfig{Type: t}
 		if terminal.IsTerminal(syscall.Stdin) {
 			fmt.Print("DriverName: ")
 			fmt.Scan(&server.DriverName)
@@ -298,10 +297,8 @@ func generateConfig(configType string, outputPath string) (string, error) {
 		}
 		config.Server = &server
 		return config.Output(outputPath)
-	case "SpreadSheets":
-		config := config.SpreadSheetsConfig{
-			Type: "spreadsheets",
-		}
+	case "spreadsheets":
+		config := config.SpreadSheetsConfig{Type: t}
 		if terminal.IsTerminal(syscall.Stdin) {
 			fmt.Print("SpreadSheetsID: ")
 			fmt.Scan(&config.SpreadSheetsID)
@@ -316,10 +313,8 @@ func generateConfig(configType string, outputPath string) (string, error) {
 			fmt.Scan(&config.Range)
 		}
 		return config.Output(outputPath)
-	case "CSV":
-		config := config.CSVConfig{
-			Type: "csv",
-		}
+	case "csv":
+		config := config.CSVConfig{Type: t}
 		if terminal.IsTerminal(syscall.Stdin) {
 			fmt.Print("FilePath: ")
 			fmt.Scan(&config.Path)
