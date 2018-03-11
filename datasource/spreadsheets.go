@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"time"
 
 	"github.com/Mitu217/tamate/config"
 	"github.com/Mitu217/tamate/schema"
@@ -63,10 +64,14 @@ func (ds *SpreadSheetsDataSource) GetSchema() (*schema.Schema, error) {
 	sheetRows := resp.Values
 
 	// Get Schema
-	return getSchema(sheetRows)
+	return ds.getSchema(sheetRows)
 }
 
-func getSchema(rows [][]interface{}) (*schema.Schema, error) {
+func (ds *SpreadSheetsDataSource) getSchema(rows [][]interface{}) (*schema.Schema, error) {
+	if ds.Schema != nil {
+		return ds.Schema, nil
+	}
+
 	sc := &schema.Schema{} //FIXME: Schemaを統合した後に修正
 	for _, row := range rows {
 		tagField := row[0]
@@ -90,6 +95,12 @@ func getSchema(rows [][]interface{}) (*schema.Schema, error) {
 	return sc, nil
 }
 
+// SetSchema :
+func (ds *SpreadSheetsDataSource) SetSchema(sc *schema.Schema) error {
+	ds.Schema = sc
+	return nil
+}
+
 // GetRows :
 func (ds *SpreadSheetsDataSource) GetRows() (*Rows, error) {
 	srv := getService()
@@ -106,9 +117,23 @@ func (ds *SpreadSheetsDataSource) GetRows() (*Rows, error) {
 	sheetRows := resp.Values
 
 	// Get Schema
-	sc, err := getSchema(sheetRows)
+	sc, err := ds.getSchema(sheetRows)
 	if err != nil {
 		return nil, err
+	}
+
+	// Get Columns
+	columnNames := make([]string, 0)
+	for _, row := range sheetRows {
+		tagField := row[0]
+		if tagField == "COLUMN" {
+			for _, field := range append(row[:0], row[1:]...) {
+				columnNames = append(columnNames, field.(string))
+			}
+		}
+	}
+	if len(columnNames) == 0 {
+		return nil, errors.New("No columns in SpreadSheets. SheetID: " + ds.Config.SpreadSheetsID)
 	}
 
 	// Get data
@@ -121,7 +146,21 @@ func (ds *SpreadSheetsDataSource) GetRows() (*Rows, error) {
 		case "":
 			// Get Data
 			value := make([]string, 0)
-			for index := range sc.Columns {
+			for _, column := range sc.Columns {
+				index := contains(columnNames, column.Name)
+				if index == -1 {
+					if column.NotNull {
+						// typeに応じて綺麗に対応する方法を考える（デフォルト値対応も）
+						if column.Type == "datetime" {
+							value = append(value, time.Now().Format("2006-01-02 15:04:05"))
+						} else {
+							value = append(value, "")
+						}
+					} else {
+						value = append(value, "NULL")
+					}
+					continue
+				}
 				value = append(value, row[index+1].(string))
 			}
 			values = append(values, value)

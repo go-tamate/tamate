@@ -168,10 +168,8 @@ func (d *Differ) DiffRows() (*DiffRows, error) {
 						modify := false
 						for _, columnName := range columnNames {
 							srcColumnIndex := contains(srcRows.Columns, columnName)
-							srcColumnValue := srcValue[srcColumnIndex]
 							dstColumnIndex := contains(dstRows.Columns, columnName)
-							dstColumnValue := dstValue[dstColumnIndex]
-							if srcPrimaryIndex == srcColumnIndex {
+							if srcPrimaryIndex == srcColumnIndex || srcColumnIndex == -1 {
 								// Skip Primarykey column
 								continue
 							}
@@ -181,9 +179,9 @@ func (d *Differ) DiffRows() (*DiffRows, error) {
 								modify = true
 								break
 							}
-							if srcColumnValue != dstColumnValue {
+							if srcValue[srcColumnIndex] != dstValue[dstColumnIndex] {
 								// Modify column
-								modifyValues[srcColumnIndex] = dstColumnValue
+								modifyValues[srcColumnIndex] = dstValue[dstColumnIndex]
 								modify = true
 								break
 							}

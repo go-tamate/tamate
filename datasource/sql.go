@@ -116,6 +116,12 @@ func (ds *SQLDataSource) GetSchema() (*schema.Schema, error) {
 	return sc, nil
 }
 
+// SetSchema :
+func (ds *SQLDataSource) SetSchema(sc *schema.Schema) error {
+	ds.Schema = sc
+	return nil
+}
+
 // GetRows :
 func (ds *SQLDataSource) GetRows() (*Rows, error) {
 	cnn, err := ds.open()
@@ -176,6 +182,9 @@ func (ds *SQLDataSource) GetRows() (*Rows, error) {
 
 // SetRows :
 func (ds *SQLDataSource) SetRows(rows *Rows) error {
+	// Reset Table
+	ds.resetSQLTable()
+
 	cnn, err := ds.open()
 	if err != nil {
 		return err
@@ -213,14 +222,14 @@ func (ds *SQLDataSource) SetRows(rows *Rows) error {
 	return nil
 }
 
-func (ds *SQLDataSource) resetSQLTable(sc schema.Schema) error {
+func (ds *SQLDataSource) resetSQLTable() error {
 	cnn, err := ds.open()
 	if err != nil {
 		return err
 	}
 
 	// Truncate data
-	cnn.Query("TRUNCATE TABLE " + sc.Table.Name)
+	cnn.Query("TRUNCATE TABLE " + ds.Config.TableName)
 
 	return nil
 }

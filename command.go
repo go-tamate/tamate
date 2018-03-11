@@ -193,6 +193,13 @@ func dumpAction(c *cli.Context) {
 		if err != nil {
 			log.Fatalln(err)
 		}
+		sc, err := outputDatasource.GetSchema()
+		if err != nil {
+			log.Fatalln(err)
+		}
+		if err := inputDatasource.SetSchema(sc); err != nil {
+			log.Fatalln(err)
+		}
 
 		d := dumper.NewDumper()
 		if err := d.Dump(inputDatasource, outputDatasource); err != nil {
@@ -221,6 +228,9 @@ func diffAction(c *cli.Context) {
 	if err != nil {
 		log.Fatalln(err)
 	}
+	if err := leftDatasource.SetSchema(sc); err != nil {
+		log.Fatalln(err)
+	}
 
 	// right datasource
 	if len(c.Args()) < 2 || rightDatasourceType == "" {
@@ -229,6 +239,9 @@ func diffAction(c *cli.Context) {
 	rightConfigPath := c.Args()[1]
 	rightDatasource, err := getDatasource(rightDatasourceType, rightConfigPath)
 	if err != nil {
+		log.Fatalln(err)
+	}
+	if err := rightDatasource.SetSchema(sc); err != nil {
 		log.Fatalln(err)
 	}
 

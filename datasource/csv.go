@@ -28,6 +28,12 @@ func (ds *CSVDataSource) GetSchema() (*schema.Schema, error) {
 	return ds.Schema, nil
 }
 
+// SetSchema :
+func (ds *CSVDataSource) SetSchema(sc *schema.Schema) error {
+	ds.Schema = sc
+	return nil
+}
+
 // GetRows :
 func (ds *CSVDataSource) GetRows() (*Rows, error) {
 	r, err := os.Open(ds.Config.Path)
