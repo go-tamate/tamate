@@ -77,10 +77,12 @@ func (ds *SpreadSheetsDataSource) getSchema(rows [][]interface{}) (*schema.Schem
 		tagField := row[0]
 		if tagField == "COLUMN" {
 			columns := make([]schema.Column, 0)
-			spreadsheetsColumns := append(row[:0], row[1:]...)
-			for _, spreadsheetsColumn := range spreadsheetsColumns {
+			for i, columnsName := range row {
+				if i == 0 {
+					continue
+				}
 				columns = append(columns, schema.Column{
-					Name: spreadsheetsColumn.(string),
+					Name: columnsName.(string),
 					Type: "text",
 				})
 			}
@@ -115,7 +117,6 @@ func (ds *SpreadSheetsDataSource) GetRows() (*Rows, error) {
 		return nil, errors.New("No data found")
 	}
 	sheetRows := resp.Values
-
 	// Get Schema
 	sc, err := ds.getSchema(sheetRows)
 	if err != nil {
@@ -127,7 +128,10 @@ func (ds *SpreadSheetsDataSource) GetRows() (*Rows, error) {
 	for _, row := range sheetRows {
 		tagField := row[0]
 		if tagField == "COLUMN" {
-			for _, field := range append(row[:0], row[1:]...) {
+			for i, field := range row {
+				if i == 0 {
+					continue
+				}
 				columnNames = append(columnNames, field.(string))
 			}
 		}
