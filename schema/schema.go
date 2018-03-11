@@ -26,7 +26,9 @@ type Column struct {
 
 // Schema :
 type Schema interface {
+	GetPrimaryKey() string
 	GetColumns() []Column
+	GetDatabaseName() string
 	GetTableName() string
 	Output() error
 }
