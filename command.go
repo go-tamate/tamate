@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 	"strings"
-	"syscall"
 
 	"github.com/Mitu217/tamate/util"
 
@@ -263,35 +262,36 @@ func diffAction(c *cli.Context) {
 
 func generateConfig(configType string, outputPath string) (string, error) {
 	t := strings.ToLower(configType)
+	isStdinTerm := terminal.IsTerminal(0) // fd0: stdin
 	switch t {
 	case "sql":
 		server := config.ServerConfig{}
 		config := config.SQLConfig{Type: t}
-		if terminal.IsTerminal(syscall.Stdin) {
+		if isStdinTerm {
 			fmt.Print("DriverName: ")
 			fmt.Scan(&server.DriverName)
 		}
-		if terminal.IsTerminal(syscall.Stdin) {
+		if isStdinTerm {
 			fmt.Print("Host: ")
 			fmt.Scan(&server.Host)
 		}
-		if terminal.IsTerminal(syscall.Stdin) {
+		if isStdinTerm {
 			fmt.Print("Port: ")
 			fmt.Scan(&server.Port)
 		}
-		if terminal.IsTerminal(syscall.Stdin) {
+		if isStdinTerm {
 			fmt.Print("User: ")
 			fmt.Scan(&server.User)
 		}
-		if terminal.IsTerminal(syscall.Stdin) {
+		if isStdinTerm {
 			fmt.Print("Password: ")
 			fmt.Scan(&server.Password)
 		}
-		if terminal.IsTerminal(syscall.Stdin) {
+		if isStdinTerm {
 			fmt.Print("DatabaseName: ")
 			fmt.Scan(&config.DatabaseName)
 		}
-		if terminal.IsTerminal(syscall.Stdin) {
+		if isStdinTerm {
 			fmt.Print("TableName: ")
 			fmt.Scan(&config.TableName)
 		}
@@ -299,23 +299,23 @@ func generateConfig(configType string, outputPath string) (string, error) {
 		return config.Output(outputPath)
 	case "spreadsheets":
 		config := config.SpreadSheetsConfig{Type: t}
-		if terminal.IsTerminal(syscall.Stdin) {
+		if isStdinTerm {
 			fmt.Print("SpreadSheetsID: ")
 			fmt.Scan(&config.SpreadSheetsID)
 		}
 		// TODO: スペース入りの文字列が対応不可
-		if terminal.IsTerminal(syscall.Stdin) {
+		if isStdinTerm {
 			fmt.Print("SheetName: ")
 			fmt.Scan(&config.SheetName)
 		}
-		if terminal.IsTerminal(syscall.Stdin) {
+		if isStdinTerm {
 			fmt.Print("Range: ")
 			fmt.Scan(&config.Range)
 		}
 		return config.Output(outputPath)
 	case "csv":
 		config := config.CSVConfig{Type: t}
-		if terminal.IsTerminal(syscall.Stdin) {
+		if isStdinTerm {
 			fmt.Print("FilePath: ")
 			fmt.Scan(&config.Path)
 		}
