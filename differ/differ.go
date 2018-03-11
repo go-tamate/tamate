@@ -49,12 +49,12 @@ func NewRowsDiffer(leftSrc datasource.DataSource, rightSrc datasource.DataSource
 
 // DiffColumns :
 func (d *Differ) diffColumns() (*DiffColumns, error) {
-	// Get Rows
-	srcRows, err := d.LeftSource.GetRows()
+	// Get Schemas
+	srcSchemas, err := d.LeftSource.GetSchema()
 	if err != nil {
 		return nil, err
 	}
-	dstRows, err := d.RightSource.GetRows()
+	dstSchemas, err := d.RightSource.GetSchema()
 	if err != nil {
 		return nil, err
 	}
@@ -62,11 +62,36 @@ func (d *Differ) diffColumns() (*DiffColumns, error) {
 	// Get diff
 	diff := &DiffColumns{}
 	for i := 0; i < 2; i++ {
-		for _, srcColumn := range srcRows.Columns {
+		for _, srcColumn := range srcSchemas.GetColumns() {
 			found := false
-			for _, dstColumn := range dstRows.Columns {
-				if srcColumn == dstColumn {
+			for _, dstColumn := range dstSchemas.GetColumns() {
+				if srcColumn.Name == dstColumn.Name {
 					found = true
+
+					// Modify
+					if i == 0 {
+						modifyColumn := schema.Column{
+							Name: srcColumn.Name,
+						}
+						modify := false
+						if srcColumn.Type != dstColumn.Type {
+							modify = true
+							modifyColumn.Type = dstColumn.Type
+						}
+						if srcColumn.NotNull != dstColumn.NotNull {
+							modify = true
+							modifyColumn.NotNull = dstColumn.NotNull
+						}
+						if srcColumn.AutoIncrement != dstColumn.AutoIncrement {
+							modify = true
+							modifyColumn.AutoIncrement = dstColumn.AutoIncrement
+						}
+
+						if modify {
+							diff.Modify = append(diff.Modify, modifyColumn)
+						}
+					}
+
 					break
 				}
 			}
@@ -83,7 +108,7 @@ func (d *Differ) diffColumns() (*DiffColumns, error) {
 
 		// Swap
 		if i == 0 {
-			srcRows, dstRows = dstRows, srcRows
+			srcSchemas, dstSchemas = dstSchemas, srcSchemas
 		}
 	}
 

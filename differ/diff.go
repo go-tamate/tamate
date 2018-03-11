@@ -2,12 +2,14 @@ package differ
 
 import (
 	"github.com/Mitu217/tamate/datasource"
+	"github.com/Mitu217/tamate/schema"
 )
 
 // DiffColumns :
 type DiffColumns struct {
-	Add    []string
-	Delete []string
+	Add    []schema.Column
+	Modify []schema.Column
+	Delete []schema.Column
 }
 
 // DiffRows :
@@ -23,6 +25,9 @@ func (dc *DiffColumns) IsDiff() bool {
 		return true
 	}
 	if len(dc.Delete) != 0 {
+		return true
+	}
+	if len(dc.Modify) != 0 {
 		return true
 	}
 	return false

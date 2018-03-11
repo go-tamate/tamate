@@ -2,6 +2,7 @@ package datasource
 
 import (
 	"encoding/csv"
+	"errors"
 	"os"
 
 	"github.com/Mitu217/tamate/schema"
@@ -54,8 +55,21 @@ func (ds *CSVDataSource) GetRows() (*Rows, error) {
 		return nil, err
 	}
 
-	// FIXME: columnsはSchemaを正とするようにデータを生成する
-	columns := records[0]
+	// Get Columns
+	columns := make([]string, 0)
+	for _, record := range records {
+		tagField := record[0]
+		if tagField == "COLUMN" {
+			sheetColumns := append(record[:0], record[1:]...)
+			for _, sheetColumn := range sheetColumns {
+				columns = append(columns, sheetColumn)
+			}
+		}
+	}
+	if len(columns) == 0 {
+		return nil, errors.New("No columns in SpreadSheets. Path: " + ds.Config.SoursePath)
+	}
+
 	values := append(records[:0], records[1:]...)
 	rows := &Rows{
 		Columns: columns,
