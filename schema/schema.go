@@ -1,6 +1,8 @@
 package schema
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"io"
 	"io/ioutil"
@@ -57,17 +59,18 @@ func NewJSONFileSchema(path string) (*Schema, error) {
 	return NewJSONSchema(r)
 }
 
-// Output :
-func (sc *Schema) Output(path string) error {
+// OutputJSON :
+func (sc *Schema) OutputJSON(jsonPath string) (string, error) {
 	// Set default path and default file name.
-	if path == "" {
-		path = "resources/schema/" + sc.DatabaseName + "_" + sc.Table.Name + ".json"
+	if jsonPath == "" {
+		hashedFileNameBytes := sha256.Sum256([]byte(jsonPath))
+		jsonPath = hex.EncodeToString(hashedFileNameBytes[:]) + ".json"
 	}
 
 	// Output with indentation
 	jsonBytes, err := json.MarshalIndent(sc, "", "  ")
 	if err != nil {
-		return err
+		return "", err
 	}
-	return ioutil.WriteFile(path, jsonBytes, 0644)
+	return jsonPath, ioutil.WriteFile(jsonPath, jsonBytes, 0644)
 }

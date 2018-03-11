@@ -21,7 +21,7 @@ func GetConfigDataSource(configPath string) (datasource.DataSource, error) {
 		return nil, err
 	}
 
-	t := strings.ToLower(config.Type)
+	t := strings.ToLower(config.ConfigType)
 	switch t {
 	case "spreadsheets":
 		return getSpreadSheetsDataSource(configPath)
@@ -30,7 +30,7 @@ func GetConfigDataSource(configPath string) (datasource.DataSource, error) {
 	case "sql":
 		return getSQLDataSource(configPath)
 	default:
-		return nil, errors.New("Not defined source type. type:" + config.Type)
+		return nil, errors.New("Not defined source type. type:" + config.ConfigType)
 	}
 }
 

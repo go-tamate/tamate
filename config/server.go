@@ -8,6 +8,7 @@ import (
 
 // ServerConfig :
 type ServerConfig struct {
+	ConfigType string `json:"config_type"`
 	DriverName string `json:"driver_name"`
 	Host       string `json:"host"`
 	Port       int    `json:"port"`

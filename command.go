@@ -113,7 +113,7 @@ func generateSchemaAction(c *cli.Context) {
 	configPath := c.String("config")
 
 	switch inputType {
-	case "SQL":
+	case "sql":
 		if configPath == "" {
 			path, err := generateConfig(inputType, outputPath)
 			if err != nil {
@@ -133,7 +133,8 @@ func generateSchemaAction(c *cli.Context) {
 		if err != nil {
 			log.Fatalln(err)
 		}
-		if err := sc.Output(outputPath); err != nil {
+		_, err = sc.OutputJSON(outputPath)
+		if err != nil {
 			log.Fatalln(err)
 		}
 		break
@@ -266,7 +267,7 @@ func generateConfig(configType string, outputPath string) (string, error) {
 	switch t {
 	case "sql":
 		server := config.ServerConfig{}
-		config := config.SQLConfig{Type: t}
+		c := config.SQLConfig{ConfigType: t}
 		if isStdinTerm {
 			fmt.Print("DriverName: ")
 			fmt.Scan(&server.DriverName)
@@ -289,37 +290,37 @@ func generateConfig(configType string, outputPath string) (string, error) {
 		}
 		if isStdinTerm {
 			fmt.Print("DatabaseName: ")
-			fmt.Scan(&config.DatabaseName)
+			fmt.Scan(&c.DatabaseName)
 		}
 		if isStdinTerm {
 			fmt.Print("TableName: ")
-			fmt.Scan(&config.TableName)
+			fmt.Scan(&c.TableName)
 		}
-		config.Server = &server
-		return config.Output(outputPath)
+		c.Server = &server
+		return config.OutputJSON(c, outputPath)
 	case "spreadsheets":
-		config := config.SpreadSheetsConfig{Type: t}
+		c := config.SpreadSheetsConfig{ConfigType: t}
 		if isStdinTerm {
 			fmt.Print("SpreadSheetsID: ")
-			fmt.Scan(&config.SpreadSheetsID)
+			fmt.Scan(&c.SpreadSheetsID)
 		}
 		// TODO: スペース入りの文字列が対応不可
 		if isStdinTerm {
 			fmt.Print("SheetName: ")
-			fmt.Scan(&config.SheetName)
+			fmt.Scan(&c.SheetName)
 		}
 		if isStdinTerm {
 			fmt.Print("Range: ")
-			fmt.Scan(&config.Range)
+			fmt.Scan(&c.Range)
 		}
-		return config.Output(outputPath)
+		return config.OutputJSON(c, outputPath)
 	case "csv":
-		config := config.CSVConfig{Type: t}
+		c := config.CSVConfig{ConfigType: t}
 		if isStdinTerm {
 			fmt.Print("FilePath: ")
-			fmt.Scan(&config.Path)
+			fmt.Scan(&c.Path)
 		}
-		return config.Output(outputPath)
+		return config.OutputJSON(c, outputPath)
 	default:
 		return "", errors.New("Not defined input type. type:" + configType)
 	}
