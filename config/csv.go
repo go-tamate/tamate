@@ -10,15 +10,8 @@ import (
 
 // CSVConfig :
 type CSVConfig struct {
+	Type string `json:"type"`
 	Path string `json:"path"`
-}
-
-// NewCSVConfig :
-func NewCSVConfig(path string) *CSVConfig {
-	config := &CSVConfig{
-		Path: path,
-	}
-	return config
 }
 
 // NewJSONCSVConfig :

@@ -7,6 +7,8 @@ import (
 	"os"
 	"syscall"
 
+	"github.com/Mitu217/tamate/util"
+
 	"github.com/Mitu217/tamate/differ"
 	"github.com/Mitu217/tamate/dumper"
 
@@ -69,20 +71,6 @@ func main() {
 			Name:   "dump",
 			Usage:  "Dump Command.",
 			Action: dumpAction,
-			Flags: []cli.Flag{
-				cli.StringFlag{
-					Name:  "schema, s",
-					Usage: "schema file path.",
-				},
-				cli.StringFlag{
-					Name:  "input, i",
-					Usage: "input DataSource type.",
-				},
-				cli.StringFlag{
-					Name:  "output, o",
-					Usage: "input DataSource type. If not specified, standard output",
-				},
-			},
 		},
 		{
 			Name:   "diff",
@@ -92,14 +80,6 @@ func main() {
 				cli.StringFlag{
 					Name:  "schema, s",
 					Usage: "schema file path.",
-				},
-				cli.StringFlag{
-					Name:  "left, l",
-					Usage: "left DataSource type.",
-				},
-				cli.StringFlag{
-					Name:  "right, r",
-					Usage: "right DataSource type.",
 				},
 			},
 		},
@@ -163,46 +143,44 @@ func generateSchemaAction(c *cli.Context) {
 }
 
 func dumpAction(c *cli.Context) {
-	inputDatasourceType := c.String("input")
-	outputDatasourceType := c.String("output")
-
-	// input datasource
-	if len(c.Args()) < 1 || inputDatasourceType == "" {
+	// Get InputDataSource
+	if len(c.Args()) < 1 {
 		log.Fatalf("Please specify the input type and datasource config path.")
 	}
 	inputConfigPath := c.Args()[0]
-	inputDatasource, err := getDatasource(inputDatasourceType, inputConfigPath)
+	inputDatasource, err := util.GetConfigDataSource(inputConfigPath)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	// output datasource
-	if outputDatasourceType == "" {
-		// standard output
+	if len(c.Args()) < 2 {
+		// Standard Output
 		rows, err := inputDatasource.GetRows()
 		if err != nil {
 			log.Fatalln(err)
 		}
 		fmt.Println(rows)
 	} else {
-		if len(c.Args()) < 2 {
-			log.Fatalf("Please specify the output datasource config path.")
-		}
+		// Get OutputDataSource
 		outputConfigPath := c.Args()[1]
-		outputDatasource, err := getDatasource(outputDatasourceType, outputConfigPath)
+		outputDatasource, err := util.GetConfigDataSource(outputConfigPath)
 		if err != nil {
-			log.Fatalln(err)
-		}
-		sc, err := outputDatasource.GetSchema()
-		if err != nil {
-			log.Fatalln(err)
-		}
-		if err := inputDatasource.SetSchema(sc); err != nil {
 			log.Fatalln(err)
 		}
 
+		// Dump
+		sc, err := outputDatasource.GetSchema()
+		if err != nil {
+			// Schemaの取得に失敗
+			log.Fatalln(err)
+		}
+		if err := inputDatasource.SetSchema(sc); err != nil {
+			// dump元のSchema設定に失敗
+			log.Fatalln(err)
+		}
 		d := dumper.NewDumper()
 		if err := d.Dump(inputDatasource, outputDatasource); err != nil {
+			// Dumpに失敗
 			log.Fatalln(err)
 		}
 	}
@@ -210,8 +188,6 @@ func dumpAction(c *cli.Context) {
 
 func diffAction(c *cli.Context) {
 	schemaFilePath := c.String("schema")
-	leftDatasourceType := c.String("left")
-	rightDatasourceType := c.String("right")
 
 	// read schema
 	var diffSchema *schema.Schema
@@ -224,11 +200,11 @@ func diffAction(c *cli.Context) {
 	}
 
 	// left datasource
-	if len(c.Args()) < 1 || leftDatasourceType == "" {
+	if len(c.Args()) < 1 {
 		log.Fatalf("Please specify the left type and datasource config path.")
 	}
 	leftConfigPath := c.Args()[0]
-	leftDatasource, err := getDatasource(leftDatasourceType, leftConfigPath)
+	leftDatasource, err := util.GetConfigDataSource(leftConfigPath)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -237,11 +213,11 @@ func diffAction(c *cli.Context) {
 	}
 
 	// right datasource
-	if len(c.Args()) < 2 || rightDatasourceType == "" {
+	if len(c.Args()) < 2 {
 		log.Fatalf("Please specify the right type and datasource config path.")
 	}
 	rightConfigPath := c.Args()[1]
-	rightDatasource, err := getDatasource(rightDatasourceType, rightConfigPath)
+	rightDatasource, err := util.GetConfigDataSource(rightConfigPath)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -288,7 +264,9 @@ func generateConfig(configType string, outputPath string) (string, error) {
 	switch configType {
 	case "SQL":
 		server := config.ServerConfig{}
-		config := config.SQLConfig{}
+		config := config.SQLConfig{
+			Type: "sql",
+		}
 		if terminal.IsTerminal(syscall.Stdin) {
 			fmt.Print("DriverName: ")
 			fmt.Scan(&server.DriverName)
@@ -320,7 +298,9 @@ func generateConfig(configType string, outputPath string) (string, error) {
 		config.Server = &server
 		return config.Output(outputPath)
 	case "SpreadSheets":
-		config := config.SpreadSheetsConfig{}
+		config := config.SpreadSheetsConfig{
+			Type: "spreadsheets",
+		}
 		if terminal.IsTerminal(syscall.Stdin) {
 			fmt.Print("SpreadSheetsID: ")
 			fmt.Scan(&config.SpreadSheetsID)
@@ -336,7 +316,9 @@ func generateConfig(configType string, outputPath string) (string, error) {
 		}
 		return config.Output(outputPath)
 	case "CSV":
-		config := config.CSVConfig{}
+		config := config.CSVConfig{
+			Type: "csv",
+		}
 		if terminal.IsTerminal(syscall.Stdin) {
 			fmt.Print("FilePath: ")
 			fmt.Scan(&config.Path)
@@ -345,53 +327,4 @@ func generateConfig(configType string, outputPath string) (string, error) {
 	default:
 		return "", errors.New("Not defined input type. type:" + configType)
 	}
-}
-
-func getDatasource(sourceType string, configPath string) (datasource.DataSource, error) {
-	switch sourceType {
-	case "SpreadSheets":
-		return getSpreadSheetsDataSource(configPath)
-	case "CSV":
-		return getCSVDataSource(configPath)
-	case "SQL":
-		return getSQLDataSource(configPath)
-	default:
-		return nil, errors.New("Not defined source type. type:" + sourceType)
-	}
-}
-
-func getSpreadSheetsDataSource(configPath string) (*datasource.SpreadSheetsDataSource, error) {
-	config, err := config.NewJSONSpreadSheetsConfig(configPath)
-	if err != nil {
-		return nil, err
-	}
-	ds, err := datasource.NewSpreadSheetsDataSource(config)
-	if err != nil {
-		return nil, err
-	}
-	return ds, nil
-}
-
-func getCSVDataSource(configPath string) (*datasource.CSVDataSource, error) {
-	config, err := config.NewJSONCSVConfig(configPath)
-	if err != nil {
-		return nil, err
-	}
-	ds, err := datasource.NewCSVDataSource(config)
-	if err != nil {
-		return nil, err
-	}
-	return ds, nil
-}
-
-func getSQLDataSource(configPath string) (*datasource.SQLDataSource, error) {
-	config, err := config.NewJSONSQLConfig(configPath)
-	if err != nil {
-		return nil, err
-	}
-	ds, err := datasource.NewSQLDataSource(config)
-	if err != nil {
-		return nil, err
-	}
-	return ds, nil
 }

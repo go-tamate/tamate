@@ -8,19 +8,10 @@ import (
 
 // SpreadSheetsConfig :
 type SpreadSheetsConfig struct {
+	Type           string `json:"type"`
 	SpreadSheetsID string `json:"spreadsheets_id"`
 	SheetName      string `json:"sheet_name"`
 	Range          string `json:"range"`
-}
-
-// NewSpreadSheetsConfig :
-func NewSpreadSheetsConfig(sheetsID string, sheetName string, targetRange string) *SpreadSheetsConfig {
-	config := &SpreadSheetsConfig{
-		SpreadSheetsID: sheetsID,
-		SheetName:      sheetName,
-		Range:          targetRange,
-	}
-	return config
 }
 
 // NewJSONSpreadSheetsConfig :

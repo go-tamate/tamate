@@ -28,16 +28,16 @@ e.g. tamate generate:schema -t SQL -o sql_schema.json
 
 ### Dump.
 ```
-tamate dump -i <input datasource type> [-o <output datasource path>] <input datasource config path> [<output datasource config path>]
+tamate dump <input datasource config path> [<output datasource config path>]
 
-e.g. tamate dump -i SQL sql_config.json
-e.g. tamate dump -i SQL -o SpreadSheets sql_config.json spreadsheets_config.json 
+e.g. tamate dump sql_config.json  // SQL -> STDOUT
+e.g. tamate dump sql_config.json spreadsheets_config.json  // SQL -> SpreadSheets
 ```
 
 ### Diff
 ```
-tamate diff -l <input datasource type> -r <output datasource path> [-s <schema path>] <left datasource config path> <right datasource config path>
+tamate diff [-s <schema path>] <left datasource config path> <right datasource config path>
 
-e.g. tamate dump -l SQL -r SQL sql_config1.json sql_config2.json
-e.g. tamate dump -s sql_schema.json -l SQL -r SQL sql_config1.json sql_config2.json
+e.g. tamate dump sql_config1.json sql_config2.json
+e.g. tamate dump -s sql_schema.json sql_config1.json sql_config2.json
 ```
