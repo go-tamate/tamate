@@ -141,22 +141,18 @@ func generateSchemaAction(c *cli.Context) {
 			}
 			configPath = path
 		}
-		sqlConfig, err := config.NewJSONSQLConfig(configPath)
+		config, err := config.NewJSONSQLConfig(configPath)
 		if err != nil {
 			log.Fatalf("Unable to read config file: %v", err)
 		}
-		var tableName string
-		if terminal.IsTerminal(syscall.Stdin) {
-			fmt.Print("TableName: ")
-			fmt.Scan(&tableName)
+		ds, err := datasource.NewSQLDataSource(config)
+		if err != nil {
+			log.Fatalln(err)
 		}
-		sc := &schema.SQLSchema{
-			DatabaseName: sqlConfig.DatabaseName,
-			Table: schema.Table{
-				Name: tableName,
-			},
+		sc, err := ds.GetSchema()
+		if err != nil {
+			log.Fatalln(err)
 		}
-		sc.NewSQLSchema(sqlConfig)
 		if err := sc.Output(outputPath); err != nil {
 			log.Fatalln(err)
 		}
@@ -167,22 +163,15 @@ func generateSchemaAction(c *cli.Context) {
 }
 
 func dumpAction(c *cli.Context) {
-	schemaFilePath := c.String("schema")
 	inputDatasourceType := c.String("input")
 	outputDatasourceType := c.String("output")
-
-	// read schema
-	sc, err := schema.NewJSONFileSchema(schemaFilePath)
-	if err != nil {
-		log.Fatalf("Unable to read schema file: %v", err)
-	}
 
 	// input datasource
 	if len(c.Args()) < 1 || inputDatasourceType == "" {
 		log.Fatalf("Please specify the input type and datasource config path.")
 	}
 	inputConfigPath := c.Args()[0]
-	inputDatasource, err := getDatasource(sc, inputDatasourceType, inputConfigPath)
+	inputDatasource, err := getDatasource(inputDatasourceType, inputConfigPath)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -200,8 +189,15 @@ func dumpAction(c *cli.Context) {
 			log.Fatalf("Please specify the output datasource config path.")
 		}
 		outputConfigPath := c.Args()[1]
-		outputDatasource, err := getDatasource(sc, outputDatasourceType, outputConfigPath)
+		outputDatasource, err := getDatasource(outputDatasourceType, outputConfigPath)
 		if err != nil {
+			log.Fatalln(err)
+		}
+		sc, err := outputDatasource.GetSchema()
+		if err != nil {
+			log.Fatalln(err)
+		}
+		if err := inputDatasource.SetSchema(sc); err != nil {
 			log.Fatalln(err)
 		}
 
@@ -228,8 +224,11 @@ func diffAction(c *cli.Context) {
 		log.Fatalf("Please specify the left type and datasource config path.")
 	}
 	leftConfigPath := c.Args()[0]
-	leftDatasource, err := getDatasource(sc, leftDatasourceType, leftConfigPath)
+	leftDatasource, err := getDatasource(leftDatasourceType, leftConfigPath)
 	if err != nil {
+		log.Fatalln(err)
+	}
+	if err := leftDatasource.SetSchema(sc); err != nil {
 		log.Fatalln(err)
 	}
 
@@ -238,8 +237,11 @@ func diffAction(c *cli.Context) {
 		log.Fatalf("Please specify the right type and datasource config path.")
 	}
 	rightConfigPath := c.Args()[1]
-	rightDatasource, err := getDatasource(sc, rightDatasourceType, rightConfigPath)
+	rightDatasource, err := getDatasource(rightDatasourceType, rightConfigPath)
 	if err != nil {
+		log.Fatalln(err)
+	}
+	if err := rightDatasource.SetSchema(sc); err != nil {
 		log.Fatalln(err)
 	}
 
@@ -295,6 +297,10 @@ func generateConfig(configType string, outputPath string) (string, error) {
 			fmt.Print("DatabaseName: ")
 			fmt.Scan(&config.DatabaseName)
 		}
+		if terminal.IsTerminal(syscall.Stdin) {
+			fmt.Print("TableName: ")
+			fmt.Scan(&config.TableName)
+		}
 		config.Server = &server
 		return config.Output(outputPath)
 	case "SpreadSheets":
@@ -325,49 +331,49 @@ func generateConfig(configType string, outputPath string) (string, error) {
 	}
 }
 
-func getDatasource(sc schema.Schema, sourceType string, configPath string) (datasource.DataSource, error) {
+func getDatasource(sourceType string, configPath string) (datasource.DataSource, error) {
 	switch sourceType {
 	case "SpreadSheets":
-		return getSpreadSheetsDataSource(sc, configPath)
+		return getSpreadSheetsDataSource(configPath)
 	case "CSV":
-		return getCSVDataSource(sc, configPath)
+		return getCSVDataSource(configPath)
 	case "SQL":
-		return getSQLDataSource(sc, configPath)
+		return getSQLDataSource(configPath)
 	default:
 		return nil, errors.New("Not defined source type. type:" + sourceType)
 	}
 }
 
-func getSpreadSheetsDataSource(sc schema.Schema, configPath string) (*datasource.SpreadSheetsDataSource, error) {
+func getSpreadSheetsDataSource(configPath string) (*datasource.SpreadSheetsDataSource, error) {
 	config, err := config.NewJSONSpreadSheetsConfig(configPath)
 	if err != nil {
 		return nil, err
 	}
-	ds, err := datasource.NewSpreadSheetsDataSource(sc, config)
+	ds, err := datasource.NewSpreadSheetsDataSource(config)
 	if err != nil {
 		return nil, err
 	}
 	return ds, nil
 }
 
-func getCSVDataSource(sc schema.Schema, configPath string) (*datasource.CSVDataSource, error) {
+func getCSVDataSource(configPath string) (*datasource.CSVDataSource, error) {
 	config, err := config.NewJSONCSVConfig(configPath)
 	if err != nil {
 		return nil, err
 	}
-	ds, err := datasource.NewCSVDataSource(sc, config)
+	ds, err := datasource.NewCSVDataSource(config)
 	if err != nil {
 		return nil, err
 	}
 	return ds, nil
 }
 
-func getSQLDataSource(sc schema.Schema, configPath string) (*datasource.SQLDataSource, error) {
+func getSQLDataSource(configPath string) (*datasource.SQLDataSource, error) {
 	config, err := config.NewJSONSQLConfig(configPath)
 	if err != nil {
 		return nil, err
 	}
-	ds, err := datasource.NewSQLDataSource(sc, config)
+	ds, err := datasource.NewSQLDataSource(config)
 	if err != nil {
 		return nil, err
 	}
