@@ -250,6 +250,9 @@ func diffAction(c *cli.Context) {
 		log.Fatalln(err)
 	}
 	diff, err := d.DiffRows()
+	if err != nil {
+		log.Fatalln(err)
+	}
 	fmt.Println("[Add]")
 	fmt.Println(diff.Add.Columns)
 	for _, add := range diff.Add.Values {

@@ -56,14 +56,14 @@ func (ds *CSVDataSource) GetRows() (*Rows, error) {
 	for _, record := range records {
 		tagField := record[0]
 		if tagField == "COLUMN" {
-			sheetColumns := append(record[:0], record[1:]...)
+			sheetColumns := record[1:]
 			for _, sheetColumn := range sheetColumns {
 				columns = append(columns, sheetColumn)
 			}
 		}
 	}
 	if len(columns) == 0 {
-		return nil, errors.New("No columns in SpreadSheets. Path: " + ds.Config.Path)
+		return nil, errors.New("No columns in CSV. Path: " + ds.Config.Path)
 	}
 
 	values := append(records[:0], records[1:]...)
