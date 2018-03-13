@@ -85,7 +85,7 @@ func (ds *SpreadSheetsDataSource) getSchema(rows [][]interface{}) (*schema.Schem
 		tagField := row[0]
 		if tagField == "COLUMN" {
 			var columns []schema.Column
-			for _, col := range row {
+			for _, col := range row[1:] {
 				columns = append(columns, schema.Column{
 					Name: col.(string),
 					Type: "text",
