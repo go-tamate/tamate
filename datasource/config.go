@@ -18,3 +18,16 @@ func NewConfigFromJSONFile(path string, v interface{}) error {
 	}
 	return NewConfigFromJSON(r, v)
 }
+
+func ConfigToJSONFile(path string, conf interface{}) error {
+	w, err := os.OpenFile(path, os.O_CREATE, 0644)
+	defer w.Close()
+	if err != nil {
+		return err
+	}
+	return ConfigToJSON(w, conf)
+}
+
+func ConfigToJSON(w io.Writer, conf interface{}) error {
+	return json.NewEncoder(w).Encode(conf)
+}

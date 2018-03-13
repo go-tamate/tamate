@@ -3,6 +3,7 @@ package datasource
 import (
 	"strings"
 	"testing"
+	"bytes"
 )
 
 func TestCSVNewConfigFromJSON(t *testing.T) {
@@ -18,5 +19,19 @@ func TestCSVNewConfigFromJSON(t *testing.T) {
 	}
 	if conf.Path != "/path/to/data.csv" {
 		t.Fatalf("path must be /path/to/data.csv, but %s", conf.Path)
+	}
+}
+
+func TestCSVConfigToJSON(t *testing.T) {
+	conf := &CSVDatasourceConfig{Type: "csv", Path: "/path/to/data.csv"}
+	var b bytes.Buffer
+	if err := ConfigToJSON(&b, conf); err != nil {
+		t.Fatal(err)
+	}
+
+	expected := `{"type":"csv","path":"/path/to/data.csv"}` + "\n"
+	actual := b.String()
+	if actual != expected {
+		t.Fatalf("expected %s, but actual %s", expected, actual)
 	}
 }

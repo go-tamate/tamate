@@ -6,14 +6,11 @@ import (
 	"log"
 	"os"
 	"strings"
-	"text/tabwriter"
 
 	"github.com/Mitu217/tamate/util"
 
 	"github.com/Mitu217/tamate/differ"
 	"github.com/Mitu217/tamate/dumper"
-
-	"github.com/Mitu217/tamate/config"
 
 	"golang.org/x/crypto/ssh/terminal"
 
@@ -21,10 +18,8 @@ import (
 	"github.com/Mitu217/tamate/schema"
 
 	"github.com/urfave/cli"
+	"bytes"
 )
-
-var leftSource string
-var rightSource string
 
 func main() {
 	app := cli.NewApp()
@@ -114,7 +109,7 @@ func generateSchemaAction(c *cli.Context) {
 	configPath := c.String("config")
 
 	switch inputType {
-	case "sql":
+	case "SQL":
 		if configPath == "" {
 			path, err := generateConfig(inputType, outputPath)
 			if err != nil {
@@ -134,8 +129,7 @@ func generateSchemaAction(c *cli.Context) {
 		if err != nil {
 			log.Fatalln(err)
 		}
-		_, err = sc.OutputJSON(outputPath)
-		if err != nil {
+		if err := sc.Output(outputPath); err != nil {
 			log.Fatalln(err)
 		}
 		break
@@ -161,8 +155,7 @@ func dumpAction(c *cli.Context) {
 		if err != nil {
 			log.Fatalln(err)
 		}
-		fmt.Println("[Input DataSource]")
-		printRows(rows)
+		fmt.Println(rows)
 	} else {
 		// Get OutputDataSource
 		outputConfigPath := c.Args()[1]
@@ -247,86 +240,80 @@ func diffAction(c *cli.Context) {
 	}
 	diff, err := d.DiffRows()
 	fmt.Println("[Add]")
-	printRows(diff.Add)
+	fmt.Println(diff.Add.Columns)
+	for _, add := range diff.Add.Values {
+		fmt.Println(add)
+	}
 	fmt.Println("[Delete]")
-	printRows(diff.Delete)
+	fmt.Println(diff.Delete.Columns)
+	for _, delete := range diff.Delete.Values {
+		fmt.Println(delete)
+	}
 	fmt.Println("[Modify]")
-	printRows(diff.Modify)
+	fmt.Println(diff.Modify.Columns)
+	for _, modify := range diff.Modify.Values {
+		fmt.Println(modify)
+	}
 }
 
 func generateConfig(configType string, outputPath string) (string, error) {
+	var b bytes.Buffer
 	t := strings.ToLower(configType)
 	isStdinTerm := terminal.IsTerminal(0) // fd0: stdin
 	switch t {
 	case "sql":
-		server := config.ServerConfig{}
-		c := config.SQLConfig{ConfigType: t}
+		conf := &datasource.SQLDatasourceConfig{Type: t}
 		if isStdinTerm {
 			fmt.Print("DriverName: ")
-			fmt.Scan(&server.DriverName)
+			fmt.Scan(&conf.DriverName)
 		}
 		if isStdinTerm {
-			fmt.Print("Host: ")
-			fmt.Scan(&server.Host)
-		}
-		if isStdinTerm {
-			fmt.Print("Port: ")
-			fmt.Scan(&server.Port)
-		}
-		if isStdinTerm {
-			fmt.Print("User: ")
-			fmt.Scan(&server.User)
-		}
-		if isStdinTerm {
-			fmt.Print("Password: ")
-			fmt.Scan(&server.Password)
+			fmt.Print("DSN: ")
+			fmt.Scan(&conf.DSN)
 		}
 		if isStdinTerm {
 			fmt.Print("DatabaseName: ")
-			fmt.Scan(&c.DatabaseName)
+			fmt.Scan(&conf.DatabaseName)
 		}
 		if isStdinTerm {
 			fmt.Print("TableName: ")
-			fmt.Scan(&c.TableName)
+			fmt.Scan(&conf.TableName)
 		}
-		c.Server = &server
-		return config.OutputJSON(c, outputPath)
+
+		if err := datasource.ConfigToJSON(&b, conf); err != nil {
+			return "", err
+		}
+		return b.String(), nil
 	case "spreadsheets":
-		c := config.SpreadSheetsConfig{ConfigType: t}
+		conf := &datasource.SpreadSheetsDatasourceConfig{Type: t}
 		if isStdinTerm {
 			fmt.Print("SpreadSheetsID: ")
-			fmt.Scan(&c.SpreadSheetsID)
+			fmt.Scan(&conf.SpreadSheetsID)
 		}
 		// TODO: スペース入りの文字列が対応不可
 		if isStdinTerm {
 			fmt.Print("SheetName: ")
-			fmt.Scan(&c.SheetName)
+			fmt.Scan(&conf.SheetName)
 		}
 		if isStdinTerm {
 			fmt.Print("Range: ")
-			fmt.Scan(&c.Range)
+			fmt.Scan(&conf.Range)
 		}
-		return config.OutputJSON(c, outputPath)
+		if err := datasource.ConfigToJSON(&b, conf); err != nil {
+			return "", err
+		}
+		return b.String(), nil
 	case "csv":
-		c := config.CSVConfig{ConfigType: t}
+		conf := &datasource.CSVDatasourceConfig{Type: t}
 		if isStdinTerm {
 			fmt.Print("FilePath: ")
-			fmt.Scan(&c.Path)
+			fmt.Scan(&conf.Path)
 		}
-		return config.OutputJSON(c, outputPath)
+		if err := datasource.ConfigToJSON(&b, conf); err != nil {
+			return "", err
+		}
+		return b.String(), nil
 	default:
 		return "", errors.New("Not defined input type. type:" + configType)
 	}
-}
-
-func printRows(rows *datasource.Rows) {
-	w := new(tabwriter.Writer)
-	w.Init(os.Stdout, 0, 8, 0, '\t', tabwriter.TabIndent)
-	// Columns
-	w.Write([]byte(strings.Join(rows.Columns, "\t") + "\n"))
-	// Values
-	for i := range rows.Values {
-		w.Write([]byte(strings.Join(rows.Values[i], "\t") + "\n"))
-	}
-	w.Flush()
 }
