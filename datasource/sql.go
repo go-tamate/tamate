@@ -5,6 +5,9 @@ import (
 	"errors"
 	"strings"
 
+	// TODO: fix depends on mysql https://github.com/Mitu217/tamate/issues/44
+	_ "github.com/go-sql-driver/mysql"
+
 	"github.com/Mitu217/tamate/schema"
 )
 

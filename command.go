@@ -18,7 +18,7 @@ import (
 	"github.com/Mitu217/tamate/schema"
 
 	"github.com/urfave/cli"
-	"bytes"
+	"io"
 )
 
 func main() {
@@ -87,39 +87,48 @@ func main() {
 
 func generateConfigAction(c *cli.Context) {
 	// Override output path
-	outputPath := ""
+	var w io.Writer
 	if c.String("output") != "" {
-		outputPath = c.String("output")
+		f, err := os.OpenFile(c.String("output"), os.O_CREATE, 0644)
+		defer f.Close()
+		if err != nil {
+			log.Fatalln(err)
+		}
+		w = f
+	} else {
+		w = os.Stdout
 	}
 
-	_, err := generateConfig(c.String("type"), outputPath)
-	if err != nil {
+	if err := generateConfig(w, c.String("type")); err != nil {
 		log.Fatalln(err)
 	}
 }
 
 func generateSchemaAction(c *cli.Context) {
 	// Override output path
-	outputPath := ""
+	var w io.Writer
+	inputType := strings.ToLower(c.String("type"))
+	configPath := ""
+	if c.String("config") == "" {
+		log.Fatalln("must specify -c (--config) option")
+	}
+	configPath = c.String("config")
 	if c.String("output") != "" {
-		outputPath = c.String("output")
+		f, err := os.OpenFile(c.String("output"), os.O_CREATE, 0644)
+		defer f.Close()
+		if err != nil {
+			log.Fatalln(err)
+		}
+		w = f
+	} else {
+		w = os.Stdout
 	}
 
-	inputType := strings.ToLower(c.String("type"))
-	configPath := c.String("config")
-
 	switch inputType {
-	case "SQL":
-		if configPath == "" {
-			path, err := generateConfig(inputType, outputPath)
-			if err != nil {
-				log.Fatalln(err)
-			}
-			configPath = path
-		}
+	case "sql":
 		conf := &datasource.SQLDatasourceConfig{}
 		if err := datasource.NewConfigFromJSONFile(configPath, conf); err != nil {
-			log.Fatalf("Unable to read config file: %v", err)
+			log.Fatalf("Unable to read config file: %s\n%v", configPath, err)
 		}
 		ds, err := datasource.NewSQLDataSource(conf)
 		if err != nil {
@@ -129,7 +138,7 @@ func generateSchemaAction(c *cli.Context) {
 		if err != nil {
 			log.Fatalln(err)
 		}
-		if err := sc.Output(outputPath); err != nil {
+		if err := sc.ToJSON(w); err != nil {
 			log.Fatalln(err)
 		}
 		break
@@ -256,8 +265,7 @@ func diffAction(c *cli.Context) {
 	}
 }
 
-func generateConfig(configType string, outputPath string) (string, error) {
-	var b bytes.Buffer
+func generateConfig(w io.Writer, configType string) error {
 	t := strings.ToLower(configType)
 	isStdinTerm := terminal.IsTerminal(0) // fd0: stdin
 	switch t {
@@ -280,10 +288,10 @@ func generateConfig(configType string, outputPath string) (string, error) {
 			fmt.Scan(&conf.TableName)
 		}
 
-		if err := datasource.ConfigToJSON(&b, conf); err != nil {
-			return "", err
+		if err := datasource.ConfigToJSON(w, conf); err != nil {
+			return err
 		}
-		return b.String(), nil
+		return nil
 	case "spreadsheets":
 		conf := &datasource.SpreadSheetsDatasourceConfig{Type: t}
 		if isStdinTerm {
@@ -299,21 +307,21 @@ func generateConfig(configType string, outputPath string) (string, error) {
 			fmt.Print("Range: ")
 			fmt.Scan(&conf.Range)
 		}
-		if err := datasource.ConfigToJSON(&b, conf); err != nil {
-			return "", err
+		if err := datasource.ConfigToJSON(w, conf); err != nil {
+			return err
 		}
-		return b.String(), nil
+		return nil
 	case "csv":
 		conf := &datasource.CSVDatasourceConfig{Type: t}
 		if isStdinTerm {
 			fmt.Print("FilePath: ")
 			fmt.Scan(&conf.Path)
 		}
-		if err := datasource.ConfigToJSON(&b, conf); err != nil {
-			return "", err
+		if err := datasource.ConfigToJSON(w, conf); err != nil {
+			return err
 		}
-		return b.String(), nil
+		return nil
 	default:
-		return "", errors.New("Not defined input type. type:" + configType)
+		return errors.New("Not defined input type. type:" + configType)
 	}
 }
