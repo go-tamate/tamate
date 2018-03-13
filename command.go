@@ -82,7 +82,9 @@ func main() {
 	}
 
 	// Run Commands
-	app.Run(os.Args)
+	if err := app.Run(os.Args); err != nil {
+		log.Fatalln(err)
+	}
 }
 
 func generateConfigAction(c *cli.Context) {

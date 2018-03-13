@@ -18,15 +18,15 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	sheets "google.golang.org/api/sheets/v4"
+	"runtime"
 )
 
 // SpreadSheetsConfig :
 type SpreadSheetsDatasourceConfig struct {
-	Type                string `json:"type"`
-	CredentialsJSONPath string `json:"credentials_json_path"`
-	SpreadSheetsID      string `json:"spreadsheets_id"`
-	SheetName           string `json:"sheet_name"`
-	Range               string `json:"range"`
+	Type           string `json:"type"`
+	SpreadSheetsID string `json:"spreadsheets_id"`
+	SheetName      string `json:"sheet_name"`
+	Range          string `json:"range"`
 }
 
 // SpreadSheetsDataSource :
@@ -58,7 +58,7 @@ func (ds *SpreadSheetsDataSource) GetSchema() (*schema.Schema, error) {
 		return ds.Schema, nil
 	}
 
-	srv := getService(ds.Config.CredentialsJSONPath)
+	srv := getService()
 
 	// Get data
 	readRange := ds.Config.SheetName + "!" + ds.Config.Range
@@ -84,13 +84,10 @@ func (ds *SpreadSheetsDataSource) getSchema(rows [][]interface{}) (*schema.Schem
 	for _, row := range rows {
 		tagField := row[0]
 		if tagField == "COLUMN" {
-			columns := make([]schema.Column, 0)
-			for i, columnsName := range row {
-				if i == 0 {
-					continue
-				}
+			var columns []schema.Column
+			for _, col := range row {
 				columns = append(columns, schema.Column{
-					Name: columnsName.(string),
+					Name: col.(string),
 					Type: "text",
 				})
 			}
@@ -113,7 +110,7 @@ func (ds *SpreadSheetsDataSource) SetSchema(sc *schema.Schema) error {
 
 // GetRows :
 func (ds *SpreadSheetsDataSource) GetRows() (*Rows, error) {
-	srv := getService(ds.Config.CredentialsJSONPath)
+	srv := getService()
 
 	// Get data
 	readRange := ds.Config.SheetName + "!" + ds.Config.Range
@@ -125,6 +122,7 @@ func (ds *SpreadSheetsDataSource) GetRows() (*Rows, error) {
 		return nil, errors.New("No data found")
 	}
 	sheetRows := resp.Values
+
 	// Get Schema
 	sc, err := ds.getSchema(sheetRows)
 	if err != nil {
@@ -132,14 +130,11 @@ func (ds *SpreadSheetsDataSource) GetRows() (*Rows, error) {
 	}
 
 	// Get Columns
-	columnNames := make([]string, 0)
+	var columnNames []string
 	for _, row := range sheetRows {
 		tagField := row[0]
 		if tagField == "COLUMN" {
-			for i, field := range row {
-				if i == 0 {
-					continue
-				}
+			for _, field := range row[1:] {
 				columnNames = append(columnNames, field.(string))
 			}
 		}
@@ -198,7 +193,7 @@ func (ds *SpreadSheetsDataSource) GetRows() (*Rows, error) {
 
 // SetRows :
 func (ds *SpreadSheetsDataSource) SetRows(rows *Rows) error {
-	srv := getService(ds.Config.CredentialsJSONPath)
+	srv := getService()
 
 	outputValues := make([][]interface{}, 0)
 	for _, value := range rows.Values {
@@ -226,9 +221,21 @@ func (ds *SpreadSheetsDataSource) SetRows(rows *Rows) error {
 	return nil
 }
 
-func getService(jsonPath string) *sheets.Service {
+func getClientSecretJSONPath() (string, error) {
+	_, filename, _, ok := runtime.Caller(0)
+	if !ok {
+		return "", errors.New("no caller information")
+	}
+	return filepath.Dir(filename) + "/../resources/spreadsheets/client_secret.json", nil
+}
+
+func getService() *sheets.Service {
 	ctx := context.Background()
 
+	jsonPath, err := getClientSecretJSONPath()
+	if err != nil {
+		log.Fatalln(err)
+	}
 	b, err := ioutil.ReadFile(jsonPath)
 	if err != nil {
 		log.Fatalf("Unable to read client secret file: %v", err)
