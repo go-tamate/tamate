@@ -14,21 +14,29 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/Mitu217/tamate/config"
 	"github.com/Mitu217/tamate/schema"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	sheets "google.golang.org/api/sheets/v4"
+	"runtime"
 )
+
+// SpreadSheetsConfig :
+type SpreadSheetsDatasourceConfig struct {
+	Type           string `json:"type"`
+	SpreadSheetsID string `json:"spreadsheets_id"`
+	SheetName      string `json:"sheet_name"`
+	Range          string `json:"range"`
+}
 
 // SpreadSheetsDataSource :
 type SpreadSheetsDataSource struct {
-	Config *config.SpreadSheetsConfig
+	Config *SpreadSheetsDatasourceConfig
 	Schema *schema.Schema
 }
 
 // NewSpreadSheetsDataSource :
-func NewSpreadSheetsDataSource(config *config.SpreadSheetsConfig) (*SpreadSheetsDataSource, error) {
+func NewSpreadSheetsDataSource(config *SpreadSheetsDatasourceConfig) (*SpreadSheetsDataSource, error) {
 	ds := &SpreadSheetsDataSource{
 		Config: config,
 	}
@@ -76,13 +84,10 @@ func (ds *SpreadSheetsDataSource) getSchema(rows [][]interface{}) (*schema.Schem
 	for _, row := range rows {
 		tagField := row[0]
 		if tagField == "COLUMN" {
-			columns := make([]schema.Column, 0)
-			for i, columnsName := range row {
-				if i == 0 {
-					continue
-				}
+			var columns []schema.Column
+			for _, col := range row[1:] {
 				columns = append(columns, schema.Column{
-					Name: columnsName.(string),
+					Name: col.(string),
 					Type: "text",
 				})
 			}
@@ -117,6 +122,7 @@ func (ds *SpreadSheetsDataSource) GetRows() (*Rows, error) {
 		return nil, errors.New("No data found")
 	}
 	sheetRows := resp.Values
+
 	// Get Schema
 	sc, err := ds.getSchema(sheetRows)
 	if err != nil {
@@ -124,14 +130,11 @@ func (ds *SpreadSheetsDataSource) GetRows() (*Rows, error) {
 	}
 
 	// Get Columns
-	columnNames := make([]string, 0)
+	var columnNames []string
 	for _, row := range sheetRows {
 		tagField := row[0]
 		if tagField == "COLUMN" {
-			for i, field := range row {
-				if i == 0 {
-					continue
-				}
+			for _, field := range row[1:] {
 				columnNames = append(columnNames, field.(string))
 			}
 		}
@@ -200,6 +203,7 @@ func (ds *SpreadSheetsDataSource) SetRows(rows *Rows) error {
 		}
 	}
 
+	// TODO: can specify spreadsheet id and range
 	// https://docs.google.com/spreadsheets/d/1_Um82wSffMiMVqvRISAo348Ti8u51CLdV_kGN7TYDko/edit#gid=0
 	spreadsheetID := "1_Um82wSffMiMVqvRISAo348Ti8u51CLdV_kGN7TYDko"
 	rangeData := "sheet1!A1:XX"
@@ -217,10 +221,22 @@ func (ds *SpreadSheetsDataSource) SetRows(rows *Rows) error {
 	return nil
 }
 
+func getClientSecretJSONPath() (string, error) {
+	_, filename, _, ok := runtime.Caller(0)
+	if !ok {
+		return "", errors.New("no caller information")
+	}
+	return filepath.Dir(filename) + "/../resources/spreadsheets/client_secret.json", nil
+}
+
 func getService() *sheets.Service {
 	ctx := context.Background()
 
-	b, err := ioutil.ReadFile("resources/spreadsheets/client_secret.json")
+	jsonPath, err := getClientSecretJSONPath()
+	if err != nil {
+		log.Fatalln(err)
+	}
+	b, err := ioutil.ReadFile(jsonPath)
 	if err != nil {
 		log.Fatalf("Unable to read client secret file: %v", err)
 	}

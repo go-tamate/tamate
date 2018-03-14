@@ -6,14 +6,11 @@ import (
 	"log"
 	"os"
 	"strings"
-	"text/tabwriter"
 
 	"github.com/Mitu217/tamate/util"
 
 	"github.com/Mitu217/tamate/differ"
 	"github.com/Mitu217/tamate/dumper"
-
-	"github.com/Mitu217/tamate/config"
 
 	"golang.org/x/crypto/ssh/terminal"
 
@@ -21,10 +18,9 @@ import (
 	"github.com/Mitu217/tamate/schema"
 
 	"github.com/urfave/cli"
+	"io"
+	"text/tabwriter"
 )
-
-var leftSource string
-var rightSource string
 
 func main() {
 	app := cli.NewApp()
@@ -87,46 +83,57 @@ func main() {
 	}
 
 	// Run Commands
-	app.Run(os.Args)
+	if err := app.Run(os.Args); err != nil {
+		log.Fatalln(err)
+	}
 }
 
 func generateConfigAction(c *cli.Context) {
 	// Override output path
-	outputPath := ""
+	var w io.Writer
 	if c.String("output") != "" {
-		outputPath = c.String("output")
+		f, err := os.OpenFile(c.String("output"), os.O_CREATE, 0644)
+		defer f.Close()
+		if err != nil {
+			log.Fatalln(err)
+		}
+		w = f
+	} else {
+		w = os.Stdout
 	}
 
-	_, err := generateConfig(c.String("type"), outputPath)
-	if err != nil {
+	if err := generateConfig(w, c.String("type")); err != nil {
 		log.Fatalln(err)
 	}
 }
 
 func generateSchemaAction(c *cli.Context) {
 	// Override output path
-	outputPath := ""
-	if c.String("output") != "" {
-		outputPath = c.String("output")
-	}
-
+	var w io.Writer
 	inputType := strings.ToLower(c.String("type"))
-	configPath := c.String("config")
+	configPath := ""
+	if c.String("config") == "" {
+		log.Fatalln("must specify -c (--config) option")
+	}
+	configPath = c.String("config")
+	if c.String("output") != "" {
+		f, err := os.OpenFile(c.String("output"), os.O_CREATE, 0644)
+		defer f.Close()
+		if err != nil {
+			log.Fatalln(err)
+		}
+		w = f
+	} else {
+		w = os.Stdout
+	}
 
 	switch inputType {
 	case "sql":
-		if configPath == "" {
-			path, err := generateConfig(inputType, outputPath)
-			if err != nil {
-				log.Fatalln(err)
-			}
-			configPath = path
+		conf := &datasource.SQLDatasourceConfig{}
+		if err := datasource.NewConfigFromJSONFile(configPath, conf); err != nil {
+			log.Fatalf("Unable to read config file: %s\n%v", configPath, err)
 		}
-		config, err := config.NewJSONSQLConfig(configPath)
-		if err != nil {
-			log.Fatalf("Unable to read config file: %v", err)
-		}
-		ds, err := datasource.NewSQLDataSource(config)
+		ds, err := datasource.NewSQLDataSource(conf)
 		if err != nil {
 			log.Fatalln(err)
 		}
@@ -134,8 +141,7 @@ func generateSchemaAction(c *cli.Context) {
 		if err != nil {
 			log.Fatalln(err)
 		}
-		_, err = sc.OutputJSON(outputPath)
-		if err != nil {
+		if err := sc.ToJSON(w); err != nil {
 			log.Fatalln(err)
 		}
 		break
@@ -246,6 +252,9 @@ func diffAction(c *cli.Context) {
 		log.Fatalln(err)
 	}
 	diff, err := d.DiffRows()
+	if err != nil {
+		log.Fatalln(err)
+	}
 	fmt.Println("[Add]")
 	printRows(diff.Add)
 	fmt.Println("[Delete]")
@@ -254,68 +263,64 @@ func diffAction(c *cli.Context) {
 	printRows(diff.Modify)
 }
 
-func generateConfig(configType string, outputPath string) (string, error) {
+func generateConfig(w io.Writer, configType string) error {
 	t := strings.ToLower(configType)
 	isStdinTerm := terminal.IsTerminal(0) // fd0: stdin
 	switch t {
 	case "sql":
-		server := config.ServerConfig{}
-		c := config.SQLConfig{ConfigType: t}
+		conf := &datasource.SQLDatasourceConfig{Type: t}
 		if isStdinTerm {
 			fmt.Print("DriverName: ")
-			fmt.Scan(&server.DriverName)
+			fmt.Scan(&conf.DriverName)
 		}
 		if isStdinTerm {
-			fmt.Print("Host: ")
-			fmt.Scan(&server.Host)
-		}
-		if isStdinTerm {
-			fmt.Print("Port: ")
-			fmt.Scan(&server.Port)
-		}
-		if isStdinTerm {
-			fmt.Print("User: ")
-			fmt.Scan(&server.User)
-		}
-		if isStdinTerm {
-			fmt.Print("Password: ")
-			fmt.Scan(&server.Password)
+			fmt.Print("DSN: ")
+			fmt.Scan(&conf.DSN)
 		}
 		if isStdinTerm {
 			fmt.Print("DatabaseName: ")
-			fmt.Scan(&c.DatabaseName)
+			fmt.Scan(&conf.DatabaseName)
 		}
 		if isStdinTerm {
 			fmt.Print("TableName: ")
-			fmt.Scan(&c.TableName)
+			fmt.Scan(&conf.TableName)
 		}
-		c.Server = &server
-		return config.OutputJSON(c, outputPath)
+
+		if err := datasource.ConfigToJSON(w, conf); err != nil {
+			return err
+		}
+		return nil
 	case "spreadsheets":
-		c := config.SpreadSheetsConfig{ConfigType: t}
+		conf := &datasource.SpreadSheetsDatasourceConfig{Type: t}
 		if isStdinTerm {
 			fmt.Print("SpreadSheetsID: ")
-			fmt.Scan(&c.SpreadSheetsID)
+			fmt.Scan(&conf.SpreadSheetsID)
 		}
 		// TODO: スペース入りの文字列が対応不可
 		if isStdinTerm {
 			fmt.Print("SheetName: ")
-			fmt.Scan(&c.SheetName)
+			fmt.Scan(&conf.SheetName)
 		}
 		if isStdinTerm {
 			fmt.Print("Range: ")
-			fmt.Scan(&c.Range)
+			fmt.Scan(&conf.Range)
 		}
-		return config.OutputJSON(c, outputPath)
+		if err := datasource.ConfigToJSON(w, conf); err != nil {
+			return err
+		}
+		return nil
 	case "csv":
-		c := config.CSVConfig{ConfigType: t}
+		conf := &datasource.CSVDatasourceConfig{Type: t}
 		if isStdinTerm {
 			fmt.Print("FilePath: ")
-			fmt.Scan(&c.Path)
+			fmt.Scan(&conf.Path)
 		}
-		return config.OutputJSON(c, outputPath)
+		if err := datasource.ConfigToJSON(w, conf); err != nil {
+			return err
+		}
+		return nil
 	default:
-		return "", errors.New("Not defined input type. type:" + configType)
+		return errors.New("Not defined input type. type:" + configType)
 	}
 }
 
