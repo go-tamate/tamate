@@ -7,59 +7,15 @@ import (
 	"github.com/Mitu217/tamate/schema"
 )
 
-// Differ :
-type Differ struct {
-	Schema      *schema.Schema
-	LeftSource  datasource.DataSource
-	RightSource datasource.DataSource
+type SchemaDiffer struct {
+	LeftSchema  *schema.Schema
+	RightSchema *schema.Schema
 }
 
-// NewSchemaDiffer :
-func NewSchemaDiffer(sc *schema.Schema, leftSrc datasource.DataSource, rightSrc datasource.DataSource) (*Differ, error) {
-	d := &Differ{
-		Schema:      sc,
-		LeftSource:  leftSrc,
-		RightSource: rightSrc,
-	}
-	return d, nil
-}
-
-// NewRowsDiffer :
-func NewRowsDiffer(leftSrc datasource.DataSource, rightSrc datasource.DataSource) (*Differ, error) {
-	d := &Differ{
-		LeftSource:  leftSrc,
-		RightSource: rightSrc,
-	}
-
-	diffColumns, err := d.diffColumns()
-	if err != nil {
-		return nil, err
-	}
-	if diffColumns.IsDiff() {
-		return nil, errors.New("Schema between two data does not match")
-	}
-
-	sc, err := leftSrc.GetSchema()
-	if err != nil {
-		return nil, err
-	}
-	d.Schema = sc
-	return d, err
-}
-
-// DiffColumns :
-func (d *Differ) diffColumns() (*DiffColumns, error) {
-	// Get Schemas
-	srcSchemas, err := d.LeftSource.GetSchema()
-	if err != nil {
-		return nil, err
-	}
-	dstSchemas, err := d.RightSource.GetSchema()
-	if err != nil {
-		return nil, err
-	}
-
+func (d *SchemaDiffer) Diff() (*DiffColumns, error) {
 	// Get diff
+	srcSchemas := d.LeftSchema
+	dstSchemas := d.RightSchema
 	diff := &DiffColumns{}
 	for i := 0; i < 2; i++ {
 		for _, srcColumn := range srcSchemas.Columns {
@@ -113,6 +69,51 @@ func (d *Differ) diffColumns() (*DiffColumns, error) {
 	}
 
 	return diff, nil
+}
+
+// Differ :
+type Differ struct {
+	Schema      *schema.Schema
+	LeftSource  datasource.DataSource
+	RightSource datasource.DataSource
+}
+
+// NewSchemaDiffer :
+func NewSchemaDiffer(sc *schema.Schema, leftSrc datasource.DataSource, rightSrc datasource.DataSource) (*Differ, error) {
+	d := &Differ{
+		Schema:      sc,
+		LeftSource:  leftSrc,
+		RightSource: rightSrc,
+	}
+	return d, nil
+}
+
+// NewRowsDiffer :
+func NewRowsDiffer(leftSrc datasource.DataSource, rightSrc datasource.DataSource) (*Differ, error) {
+	d := &Differ{
+		LeftSource:  leftSrc,
+		RightSource: rightSrc,
+	}
+
+	diffColumns, err := d.diffColumns()
+	if err != nil {
+		return nil, err
+	}
+	if diffColumns.IsDiff() {
+		return nil, errors.New("Schema between two data does not match")
+	}
+
+	sc, err := leftSrc.GetSchema()
+	if err != nil {
+		return nil, err
+	}
+	d.Schema = sc
+	return d, err
+}
+
+// DiffColumns :
+func (d *Differ) diffColumns() (*DiffColumns, error) {
+
 }
 
 // DiffRows :
