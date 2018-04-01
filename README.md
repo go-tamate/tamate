@@ -1,16 +1,8 @@
-# tamate
+tamate
+============
+Reading rows, schema and Getting diffs between them on Table based data sources (CSV, SQL, Google Spreadsheets, etc...)
 
-## Requirements
-
-- [dep](https://github.com/golang/dep)
-
-## Install
-
-```
-dep ensure
-```
-
-## Commands
+## Usage
 
 ### Generate DataSource Config.
 ```
@@ -40,4 +32,10 @@ tamate diff [-s <schema path>] <left datasource config path> <right datasource c
 
 e.g. tamate diff sql_config1.json sql_config2.json
 e.g. tamate diff -s sql_schema.json sql_config1.json sql_config2.json
+```
+
+## Testing
+
+```
+go test ./...
 ```
