@@ -22,20 +22,32 @@ type SQLDatasourceConfig struct {
 
 // SQLDataSource :
 type SQLDataSource struct {
+	db     *sql.DB
 	Config *SQLDatasourceConfig
 	Schema *schema.Schema
 }
 
 // NewSQLDataSource :
 func NewSQLDataSource(config *SQLDatasourceConfig) (*SQLDataSource, error) {
+	db, err := sql.Open(config.DriverName, config.DSN)
+	if err != nil {
+		return nil, err
+	}
+	if err := db.Ping(); err != nil {
+		return nil, err
+	}
 	ds := &SQLDataSource{
+		db:     db,
 		Config: config,
 	}
 	return ds, nil
 }
 
-func (ds *SQLDataSource) open() (*sql.DB, error) {
-	return sql.Open(ds.Config.DriverName, ds.Config.DSN)
+func (ds *SQLDataSource) Close() error {
+	if ds.db != nil {
+		return ds.db.Close()
+	}
+	return nil
 }
 
 // GetSchema :
@@ -44,13 +56,8 @@ func (ds *SQLDataSource) GetSchema() (*schema.Schema, error) {
 		return ds.Schema, nil
 	}
 
-	cnn, err := ds.open()
-	if err != nil {
-		return nil, err
-	}
-
 	// Get data
-	rows, err := cnn.Query("SHOW COLUMNS FROM " + ds.Config.TableName)
+	rows, err := ds.db.Query("SHOW COLUMNS FROM " + ds.Config.TableName)
 	if err != nil {
 		return nil, err
 	}
@@ -125,16 +132,12 @@ func (ds *SQLDataSource) SetSchema(sc *schema.Schema) error {
 
 // GetRows :
 func (ds *SQLDataSource) GetRows() (*Rows, error) {
-	cnn, err := ds.open()
-	if err != nil {
-		return nil, err
-	}
 	sc, err := ds.GetSchema()
 	if err != nil {
 		return nil, err
 	}
 	// Get data
-	sqlRows, err := cnn.Query("SELECT * FROM " + sc.Table.Name)
+	sqlRows, err := ds.db.Query("SELECT * FROM " + sc.Table.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -185,11 +188,6 @@ func (ds *SQLDataSource) GetRows() (*Rows, error) {
 func (ds *SQLDataSource) SetRows(rows *Rows) error {
 	// Reset Table
 	ds.resetSQLTable()
-
-	cnn, err := ds.open()
-	if err != nil {
-		return err
-	}
 	sc, err := ds.GetSchema()
 	if err != nil {
 		return err
@@ -216,7 +214,7 @@ func (ds *SQLDataSource) SetRows(rows *Rows) error {
 	valuesText := strings.Join(values, ",")
 
 	// Insert data
-	_, err = cnn.Query("INSERT INTO " + sc.Table.Name + " (" + columnsText + ") VALUES " + valuesText)
+	_, err = ds.db.Query("INSERT INTO " + sc.Table.Name + " (" + columnsText + ") VALUES " + valuesText)
 	if err != nil {
 		return err
 	}
@@ -224,13 +222,9 @@ func (ds *SQLDataSource) SetRows(rows *Rows) error {
 }
 
 func (ds *SQLDataSource) resetSQLTable() error {
-	cnn, err := ds.open()
-	if err != nil {
+	// Truncate data
+	if _, err := ds.db.Query("TRUNCATE TABLE " + ds.Config.TableName); err != nil {
 		return err
 	}
-
-	// Truncate data
-	cnn.Query("TRUNCATE TABLE " + ds.Config.TableName)
-
 	return nil
 }
