@@ -6,15 +6,6 @@ import (
 	"os"
 )
 
-// Server :
-type Server struct {
-	DriverName string `json:"driver_name"`
-	Host       string `json:"host"`
-	Port       int    `json:"port"`
-	User       string `json:"user"`
-	Password   string `json:"password"`
-}
-
 // Table :
 type Table struct {
 	Name       string   `json:"name"`

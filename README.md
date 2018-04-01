@@ -2,6 +2,12 @@ tamate
 ============
 Reading rows, schema and Getting diffs between them on Table based data sources (CSV, SQL, Google Spreadsheets, etc...)
 
+## Install
+
+```sh
+go get github.com/Mitu217/tamate
+```
+
 ## Usage
 
 ### Generate DataSource Config.
@@ -34,8 +40,20 @@ e.g. tamate diff sql_config1.json sql_config2.json
 e.g. tamate diff -s sql_schema.json sql_config1.json sql_config2.json
 ```
 
-## Testing
+## Contribution
 
-```
+### Requirements for development
+
+- [docker](https://www.docker.com/) (For MySQL tests)
+- [dep](https://github.com/golang/dep)
+
+### Getting started
+
+```sh
+go get github.com/Mitu217/tamate
+cd $GOPATH/src/github.com/Mitu217/tamate
+dep ensure
+
+# Run unit tests
 go test ./...
 ```
