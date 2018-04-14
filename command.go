@@ -7,13 +7,11 @@ import (
 	"os"
 	"strings"
 
-	"github.com/Mitu217/tamate/util"
-
 	"github.com/Mitu217/tamate/differ"
 	"golang.org/x/crypto/ssh/terminal"
 
-	"github.com/Mitu217/tamate/datasource"
-	"github.com/Mitu217/tamate/schema"
+	"github.com/Mitu217/tamate/table"
+	"github.com/Mitu217/tamate/table/schema"
 
 	"github.com/urfave/cli"
 	"io"
@@ -71,12 +69,6 @@ func main() {
 			Name:   "diff",
 			Usage:  "Diff between 2 schema.",
 			Action: diffAction,
-			Flags: []cli.Flag{
-				cli.StringFlag{
-					Name:  "schema, s",
-					Usage: "schema file path.",
-				},
-			},
 		},
 	}
 
@@ -127,11 +119,11 @@ func generateSchemaAction(c *cli.Context) {
 
 	switch inputType {
 	case "sql":
-		conf := &datasource.SQLDatasourceConfig{}
-		if err := datasource.NewConfigFromJSONFile(configPath, conf); err != nil {
+		conf := &table.SQLDatasourceConfig{}
+		if err := table.NewConfigFromJSONFile(configPath, conf); err != nil {
 			log.Fatalf("Unable to read config file: %s\n%v", configPath, err)
 		}
-		ds, err := datasource.NewSQLDataSource(conf)
+		ds, err := table.NewSQLDataSource(conf)
 		if err != nil {
 			log.Fatalln(err)
 		}
@@ -169,7 +161,11 @@ func dumpAction(c *cli.Context) {
 }
 
 func diffAction(c *cli.Context) {
-	schemaFilePath := c.String("schema")
+	if len(c.Args()) < 3 {
+		log.Fatalf("Please specify the left type and datasource config path.")
+	}
+
+	schemaFilePath := c.Args()[0]
 
 	// read schema
 	var diffSchema *schema.Schema
@@ -182,10 +178,7 @@ func diffAction(c *cli.Context) {
 	}
 
 	// left datasource
-	if len(c.Args()) < 1 {
-		log.Fatalf("Please specify the left type and datasource config path.")
-	}
-	leftConfigPath := c.Args()[0]
+	leftConfigPath := c.Args()[1]
 	leftDatasource, err := util.GetConfigDataSource(leftConfigPath)
 	if err != nil {
 		log.Fatalln(err)
@@ -198,7 +191,7 @@ func diffAction(c *cli.Context) {
 	if len(c.Args()) < 2 {
 		log.Fatalf("Please specify the right type and datasource config path.")
 	}
-	rightConfigPath := c.Args()[1]
+	rightConfigPath := c.Args()[2]
 	rightDatasource, err := util.GetConfigDataSource(rightConfigPath)
 	if err != nil {
 		log.Fatalln(err)
@@ -241,7 +234,7 @@ func generateConfig(w io.Writer, configType string) error {
 	isStdinTerm := terminal.IsTerminal(0) // fd0: stdin
 	switch t {
 	case "sql":
-		conf := &datasource.SQLDatasourceConfig{Type: t}
+		conf := &table.SQLDatasourceConfig{Type: t}
 		if isStdinTerm {
 			fmt.Print("DriverName: ")
 			fmt.Scan(&conf.DriverName)
@@ -259,12 +252,12 @@ func generateConfig(w io.Writer, configType string) error {
 			fmt.Scan(&conf.TableName)
 		}
 
-		if err := datasource.ConfigToJSON(w, conf); err != nil {
+		if err := table.ConfigToJSON(w, conf); err != nil {
 			return err
 		}
 		return nil
 	case "spreadsheets":
-		conf := &datasource.SpreadSheetsDatasourceConfig{Type: t}
+		conf := &table.SpreadsheetTableConfig{Type: t}
 		if isStdinTerm {
 			fmt.Print("SpreadSheetsID: ")
 			fmt.Scan(&conf.SpreadSheetsID)
@@ -278,17 +271,17 @@ func generateConfig(w io.Writer, configType string) error {
 			fmt.Print("Range: ")
 			fmt.Scan(&conf.Range)
 		}
-		if err := datasource.ConfigToJSON(w, conf); err != nil {
+		if err := table.ConfigToJSON(w, conf); err != nil {
 			return err
 		}
 		return nil
 	case "csv":
-		conf := &datasource.CSVDatasourceConfig{Type: t}
+		conf := &table.CSVDatasourceConfig{Type: t}
 		if isStdinTerm {
 			fmt.Print("FilePath: ")
 			fmt.Scan(&conf.Path)
 		}
-		if err := datasource.ConfigToJSON(w, conf); err != nil {
+		if err := table.ConfigToJSON(w, conf); err != nil {
 			return err
 		}
 		return nil
@@ -297,7 +290,7 @@ func generateConfig(w io.Writer, configType string) error {
 	}
 }
 
-func printRows(rows *datasource.Rows) {
+func printRows(rows *table.Rows) {
 	w := new(tabwriter.Writer)
 	w.Init(os.Stdout, 0, 8, 0, '\t', tabwriter.TabIndent)
 	// Columns

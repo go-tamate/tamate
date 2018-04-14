@@ -1,8 +1,8 @@
 package differ
 
 import (
-	"github.com/Mitu217/tamate/datasource"
-	"github.com/Mitu217/tamate/schema"
+	"github.com/Mitu217/tamate/table"
+	"github.com/Mitu217/tamate/table/schema"
 )
 
 // DiffColumns :
@@ -14,9 +14,9 @@ type DiffColumns struct {
 
 // DiffRows :
 type DiffRows struct {
-	Add    *datasource.Rows
-	Modify *datasource.Rows
-	Delete *datasource.Rows
+	Add    *table.Rows
+	Modify *table.Rows
+	Delete *table.Rows
 }
 
 // IsDiff :

@@ -1,4 +1,4 @@
-package datasource
+package table
 
 import (
 	"database/sql"
@@ -8,7 +8,7 @@ import (
 	// TODO: fix depends on mysql https://github.com/Mitu217/tamate/issues/44
 	_ "github.com/go-sql-driver/mysql"
 
-	"github.com/Mitu217/tamate/schema"
+	"github.com/Mitu217/tamate/table/schema"
 )
 
 // SQLConfig :
@@ -74,10 +74,7 @@ func (ds *SQLDataSource) GetSchema() (*schema.Schema, error) {
 
 	// Read data
 	sc := &schema.Schema{
-		DatabaseName: ds.Config.DatabaseName,
-		Table: schema.Table{
-			Name: ds.Config.TableName,
-		},
+		Name: ds.Config.TableName,
 	}
 	for rows.Next() {
 		data := make([]*sql.NullString, len(sqlColumns))
@@ -107,7 +104,7 @@ func (ds *SQLDataSource) GetSchema() (*schema.Schema, error) {
 					}
 				case "Key":
 					if strings.Index(value.String, "PRI") != -1 {
-						sc.Table.PrimaryKey = column.Name
+						sc.PrimaryKey = column.Name
 					}
 				case "Default":
 					//property.Default = value.String
@@ -137,7 +134,7 @@ func (ds *SQLDataSource) GetRows() (*Rows, error) {
 		return nil, err
 	}
 	// Get data
-	sqlRows, err := ds.db.Query("SELECT * FROM " + sc.Table.Name)
+	sqlRows, err := ds.db.Query("SELECT * FROM " + sc.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -149,7 +146,7 @@ func (ds *SQLDataSource) GetRows() (*Rows, error) {
 		return nil, err
 	}
 	if len(columns) == 0 {
-		return nil, errors.New("No columns in table " + sc.Table.Name + ".")
+		return nil, errors.New("No columns in table " + sc.Name + ".")
 	}
 
 	// Read data
@@ -178,8 +175,7 @@ func (ds *SQLDataSource) GetRows() (*Rows, error) {
 	}
 
 	rows := &Rows{
-		Columns: columns,
-		Values:  records,
+		Values: records,
 	}
 	return rows, nil
 }

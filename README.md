@@ -1,6 +1,6 @@
 tamate
 ============
-Reading rows, schema and Getting diffs between them on Table based data sources (CSV, SQL, Google Spreadsheets, etc...)
+Reading and Getting diffs between table-based data (CSV, SQL, Google Spreadsheets, etc...)
 
 ## Install
 
@@ -34,10 +34,9 @@ e.g. tamate dump sql_config.json spreadsheets_config.json  // SQL -> SpreadSheet
 
 ### Diff
 ```
-tamate diff [-s <schema path>] <left datasource config path> <right datasource config path>
+tamate diff <schema> <left table> <right table>
 
-e.g. tamate diff sql_config1.json sql_config2.json
-e.g. tamate diff -s sql_schema.json sql_config1.json sql_config2.json
+e.g. tamate diff schema.json table1.json table2.json
 ```
 
 ## Contribution

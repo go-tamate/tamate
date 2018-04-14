@@ -3,19 +3,19 @@ package differ
 import (
 	"errors"
 
-	"github.com/Mitu217/tamate/datasource"
-	"github.com/Mitu217/tamate/schema"
+	"github.com/Mitu217/tamate/table"
+	"github.com/Mitu217/tamate/table/schema"
 )
 
 // Differ :
 type Differ struct {
 	Schema      *schema.Schema
-	LeftSource  datasource.DataSource
-	RightSource datasource.DataSource
+	LeftSource  table.Table
+	RightSource table.Table
 }
 
 // NewSchemaDiffer :
-func NewSchemaDiffer(sc *schema.Schema, leftSrc datasource.DataSource, rightSrc datasource.DataSource) (*Differ, error) {
+func NewSchemaDiffer(sc *schema.Schema, leftSrc table.Table, rightSrc table.Table) (*Differ, error) {
 	d := &Differ{
 		Schema:      sc,
 		LeftSource:  leftSrc,
@@ -25,7 +25,7 @@ func NewSchemaDiffer(sc *schema.Schema, leftSrc datasource.DataSource, rightSrc 
 }
 
 // NewRowsDiffer :
-func NewRowsDiffer(leftSrc datasource.DataSource, rightSrc datasource.DataSource) (*Differ, error) {
+func NewRowsDiffer(leftSrc table.Table, rightSrc table.Table) (*Differ, error) {
 	d := &Differ{
 		LeftSource:  leftSrc,
 		RightSource: rightSrc,
@@ -36,7 +36,7 @@ func NewRowsDiffer(leftSrc datasource.DataSource, rightSrc datasource.DataSource
 		return nil, err
 	}
 	if diffColumns.IsDiff() {
-		return nil, errors.New("Schema between two data does not match")
+		return nil, errors.New("schema between two data does not match")
 	}
 
 	sc, err := leftSrc.GetSchema()
@@ -130,11 +130,11 @@ func (d *Differ) DiffRows() (*DiffRows, error) {
 	// Get Primary
 	srcPrimaryIndex := contains(srcRows.Columns, d.Schema.Table.PrimaryKey)
 	if srcPrimaryIndex == -1 {
-		return nil, errors.New("Not defineded PrimaryKey in `" + d.Schema.Table.Name + "` Schema")
+		return nil, errors.New("Not defineded PrimaryKey in `" + d.Schema.Table.Name + "` schema")
 	}
 	dstPrimaryIndex := contains(dstRows.Columns, d.Schema.Table.PrimaryKey)
 	if dstPrimaryIndex == -1 {
-		return nil, errors.New("Not defineded PrimaryKey in `" + d.Schema.Table.Name + "` Schema")
+		return nil, errors.New("Not defineded PrimaryKey in `" + d.Schema.Table.Name + "` schema")
 	}
 
 	// Get diff
@@ -143,13 +143,13 @@ func (d *Differ) DiffRows() (*DiffRows, error) {
 		columnNames[i] = column.Name
 	}
 	diff := &DiffRows{
-		Add: &datasource.Rows{
+		Add: &table.Rows{
 			Columns: columnNames,
 		},
-		Delete: &datasource.Rows{
+		Delete: &table.Rows{
 			Columns: columnNames,
 		},
-		Modify: &datasource.Rows{
+		Modify: &table.Rows{
 			Columns: columnNames,
 		},
 	}
