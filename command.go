@@ -8,11 +8,11 @@ import (
 	"strings"
 
 	"github.com/Mitu217/tamate/differ"
-	"golang.org/x/crypto/ssh/terminal"
 
 	"github.com/Mitu217/tamate/table"
-	"github.com/Mitu217/tamate/table/schema"
 
+	"encoding/json"
+	"github.com/Mitu217/tamate/table/schema"
 	"github.com/urfave/cli"
 	"io"
 	"text/tabwriter"
@@ -27,36 +27,13 @@ func main() {
 	// Commands
 	app.Commands = []cli.Command{
 		{
-			Name:   "generate:config",
-			Usage:  "Generate config file.",
-			Action: generateConfigAction,
+			Name:   "generate:table",
+			Usage:  "Generate table config file.",
+			Action: generateTableAction,
 			Flags: []cli.Flag{
 				cli.StringFlag{
 					Name:  "type, t",
-					Usage: "",
-				},
-				cli.StringFlag{
-					Name:  "output, o",
-					Usage: "",
-				},
-			},
-		},
-		{
-			Name:   "generate:schema",
-			Usage:  "Generate schema file.",
-			Action: generateSchemaAction,
-			Flags: []cli.Flag{
-				cli.StringFlag{
-					Name:  "type, t",
-					Usage: "",
-				},
-				cli.StringFlag{
-					Name:  "config, c",
-					Usage: "",
-				},
-				cli.StringFlag{
-					Name:  "output, o",
-					Usage: "",
+					Usage: "csv, sql or spreadsheet",
 				},
 			},
 		},
@@ -78,65 +55,10 @@ func main() {
 	}
 }
 
-func generateConfigAction(c *cli.Context) {
+func generateTableAction(c *cli.Context) {
 	// Override output path
-	var w io.Writer
-	if c.String("output") != "" {
-		f, err := os.OpenFile(c.String("output"), os.O_CREATE, 0644)
-		defer f.Close()
-		if err != nil {
-			log.Fatalln(err)
-		}
-		w = f
-	} else {
-		w = os.Stdout
-	}
-
-	if err := generateConfig(w, c.String("type")); err != nil {
+	if err := generateTable(os.Stdout, c.String("type")); err != nil {
 		log.Fatalln(err)
-	}
-}
-
-func generateSchemaAction(c *cli.Context) {
-	// Override output path
-	var w io.Writer
-	inputType := strings.ToLower(c.String("type"))
-	configPath := ""
-	if c.String("config") == "" {
-		log.Fatalln("must specify -c (--config) option")
-	}
-	configPath = c.String("config")
-	if c.String("output") != "" {
-		f, err := os.OpenFile(c.String("output"), os.O_CREATE, 0644)
-		defer f.Close()
-		if err != nil {
-			log.Fatalln(err)
-		}
-		w = f
-	} else {
-		w = os.Stdout
-	}
-
-	switch inputType {
-	case "sql":
-		conf := &table.SQLDatasourceConfig{}
-		if err := table.NewConfigFromJSONFile(configPath, conf); err != nil {
-			log.Fatalf("Unable to read config file: %s\n%v", configPath, err)
-		}
-		ds, err := table.NewSQLDataSource(conf)
-		if err != nil {
-			log.Fatalln(err)
-		}
-		sc, err := ds.GetSchema()
-		if err != nil {
-			log.Fatalln(err)
-		}
-		if err := sc.ToJSON(w); err != nil {
-			log.Fatalln(err)
-		}
-		break
-	default:
-		log.Fatalln("Not defined input type. type:" + inputType)
 	}
 }
 
@@ -145,75 +67,65 @@ func dumpAction(c *cli.Context) {
 	if len(c.Args()) < 1 {
 		log.Fatalf("Please specify the input type and datasource config path.")
 	}
-	inputConfigPath := c.Args()[0]
-	inputDatasource, err := util.GetConfigDataSource(inputConfigPath)
+	tablePath := c.Args()[0]
+	r, err := os.Open(tablePath)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	defer r.Close()
+	tbl, err := table.FromJSON(r)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	// Standard Output
-	rows, err := inputDatasource.GetRows()
+	rows, err := tbl.GetRows()
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	sc, err := tbl.GetSchema()
 	if err != nil {
 		log.Fatalln(err)
 	}
 	fmt.Println("[Input DataSource]")
-	printRows(rows)
+	printRows(sc, rows)
 }
 
 func diffAction(c *cli.Context) {
 	if len(c.Args()) < 3 {
-		log.Fatalf("Please specify the left type and datasource config path.")
+		log.Fatalf("Please specify the two tables")
 	}
 
-	schemaFilePath := c.Args()[0]
-
-	// read schema
-	var diffSchema *schema.Schema
-	if schemaFilePath != "" {
-		sc, err := schema.NewJSONFileSchema(schemaFilePath)
-		if err != nil {
-			log.Fatalf("Unable to read schema file: %v", err)
-		}
-		diffSchema = sc
-	}
-
-	// left datasource
-	leftConfigPath := c.Args()[1]
-	leftDatasource, err := util.GetConfigDataSource(leftConfigPath)
+	leftTablePath := c.Args()[0]
+	fl, err := os.Open(leftTablePath)
 	if err != nil {
 		log.Fatalln(err)
 	}
-	if err := leftDatasource.SetSchema(diffSchema); err != nil {
-		log.Fatalln(err)
-	}
+	defer fl.Close()
 
-	// right datasource
-	if len(c.Args()) < 2 {
-		log.Fatalf("Please specify the right type and datasource config path.")
-	}
-	rightConfigPath := c.Args()[2]
-	rightDatasource, err := util.GetConfigDataSource(rightConfigPath)
+	leftTable, err := table.FromJSON(fl)
 	if err != nil {
 		log.Fatalln(err)
 	}
-	if err := rightDatasource.SetSchema(diffSchema); err != nil {
+
+	rightTablePath := c.Args()[1]
+	fr, err := os.Open(rightTablePath)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	defer fr.Close()
+
+	rightTable, err := table.FromJSON(fr)
+	if err != nil {
 		log.Fatalln(err)
 	}
 
 	var d *differ.Differ
-	if diffSchema == nil {
-		rowsDiffer, err := differ.NewRowsDiffer(leftDatasource, rightDatasource)
-		if err != nil {
-			log.Fatalln(err)
-		}
-		d = rowsDiffer
-	} else {
-		schemaDiffer, err := differ.NewSchemaDiffer(diffSchema, leftDatasource, rightDatasource)
-		if err != nil {
-			log.Fatalln(err)
-		}
-		d = schemaDiffer
+	rowsDiffer, err := differ.NewRowsDiffer(leftTable, rightTable)
+	if err != nil {
+		log.Fatalln(err)
 	}
+	d = rowsDiffer
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -221,81 +133,44 @@ func diffAction(c *cli.Context) {
 	if err != nil {
 		log.Fatalln(err)
 	}
+
+	sc, err := leftTable.GetSchema()
+	if err != nil {
+		log.Fatalln(err)
+	}
+
 	fmt.Println("[Add]")
-	printRows(diff.Add)
+	printRows(sc, diff.Add)
 	fmt.Println("[Delete]")
-	printRows(diff.Delete)
+	printRows(sc, diff.Delete)
 	fmt.Println("[Modify]")
-	printRows(diff.Modify)
+	printRows(sc, diff.Modify)
 }
 
-func generateConfig(w io.Writer, configType string) error {
+func generateTable(w io.Writer, configType string) error {
 	t := strings.ToLower(configType)
-	isStdinTerm := terminal.IsTerminal(0) // fd0: stdin
+	enc := json.NewEncoder(w)
+
 	switch t {
 	case "sql":
-		conf := &table.SQLDatasourceConfig{Type: t}
-		if isStdinTerm {
-			fmt.Print("DriverName: ")
-			fmt.Scan(&conf.DriverName)
-		}
-		if isStdinTerm {
-			fmt.Print("DSN: ")
-			fmt.Scan(&conf.DSN)
-		}
-		if isStdinTerm {
-			fmt.Print("DatabaseName: ")
-			fmt.Scan(&conf.DatabaseName)
-		}
-		if isStdinTerm {
-			fmt.Print("TableName: ")
-			fmt.Scan(&conf.TableName)
-		}
-
-		if err := table.ConfigToJSON(w, conf); err != nil {
-			return err
-		}
-		return nil
-	case "spreadsheets":
-		conf := &table.SpreadsheetTableConfig{Type: t}
-		if isStdinTerm {
-			fmt.Print("SpreadSheetsID: ")
-			fmt.Scan(&conf.SpreadSheetsID)
-		}
-		// TODO: スペース入りの文字列が対応不可
-		if isStdinTerm {
-			fmt.Print("SheetName: ")
-			fmt.Scan(&conf.SheetName)
-		}
-		if isStdinTerm {
-			fmt.Print("Range: ")
-			fmt.Scan(&conf.Range)
-		}
-		if err := table.ConfigToJSON(w, conf); err != nil {
-			return err
-		}
-		return nil
+		conf := &table.SQLTable{Schema: &schema.Schema{}, Config: &table.SQLTableConfig{}}
+		return enc.Encode(conf)
+	case "spreadsheet":
+		conf := &table.SpreadsheetTable{Schema: &schema.Schema{}, Config: &table.SpreadsheetTableConfig{}}
+		return enc.Encode(conf)
 	case "csv":
-		conf := &table.CSVDatasourceConfig{Type: t}
-		if isStdinTerm {
-			fmt.Print("FilePath: ")
-			fmt.Scan(&conf.Path)
-		}
-		if err := table.ConfigToJSON(w, conf); err != nil {
-			return err
-		}
-		return nil
+		conf := &table.CSVTable{Schema: &schema.Schema{}, Config: &table.CSVConfig{}}
+		return enc.Encode(conf)
 	default:
 		return errors.New("Not defined input type. type:" + configType)
 	}
 }
 
-func printRows(rows *table.Rows) {
+func printRows(sc *schema.Schema, rows *table.Rows) {
 	w := new(tabwriter.Writer)
 	w.Init(os.Stdout, 0, 8, 0, '\t', tabwriter.TabIndent)
-	// Columns
-	w.Write([]byte(strings.Join(rows.Columns, "\t") + "\n"))
-	// Values
+	w.Write([]byte(strings.Join(sc.ColumnNames(), "\t") + "\n"))
+
 	for i := range rows.Values {
 		w.Write([]byte(strings.Join(rows.Values[i], "\t") + "\n"))
 	}

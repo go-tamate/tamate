@@ -30,15 +30,15 @@ type SpreadsheetTableConfig struct {
 
 // SpreadsheetTable :
 type SpreadsheetTable struct {
-	schema *schema.Schema
-	config *SpreadsheetTableConfig
+	Schema *schema.Schema          `json:"schema"`
+	Config *SpreadsheetTableConfig `json:"config"`
 }
 
 // NewSpreadsheet :
 func NewSpreadsheet(sc *schema.Schema, conf *SpreadsheetTableConfig) (*SpreadsheetTable, error) {
 	ds := &SpreadsheetTable{
-		schema: sc,
-		config: conf,
+		Schema: sc,
+		Config: conf,
 	}
 	return ds, nil
 }
@@ -54,12 +54,12 @@ func contains(s []string, e string) int {
 
 // GetSchema :
 func (tbl *SpreadsheetTable) GetSchema() (*schema.Schema, error) {
-	return tbl.schema, nil
+	return tbl.Schema, nil
 }
 
 // SetSchema :
 func (ds *SpreadsheetTable) SetSchema(sc *schema.Schema) error {
-	ds.schema = sc
+	ds.Schema = sc
 	return nil
 }
 
@@ -68,8 +68,8 @@ func (tbl *SpreadsheetTable) GetRows() (*Rows, error) {
 	srv := getService()
 
 	// Get data
-	readRange := tbl.config.SheetName + "!" + tbl.config.Range
-	resp, err := srv.Spreadsheets.Values.Get(tbl.config.SpreadSheetsID, readRange).Do()
+	readRange := tbl.Config.SheetName + "!" + tbl.Config.Range
+	resp, err := srv.Spreadsheets.Values.Get(tbl.Config.SpreadSheetsID, readRange).Do()
 	if err != nil {
 		return nil, err
 	}
@@ -80,11 +80,11 @@ func (tbl *SpreadsheetTable) GetRows() (*Rows, error) {
 
 	values := make([][]string, 0)
 	for _, row := range sheetRows {
-		if len(row) != len(tbl.schema.Columns) {
+		if len(row) != len(tbl.Schema.Columns) {
 			return nil, fmt.Errorf("len(row) != len(columns) on %+v", row)
 		}
 		value := make([]string, 0)
-		for i, _ := range tbl.schema.Columns {
+		for i, _ := range tbl.Schema.Columns {
 			value = append(value, row[i].(string))
 		}
 		values = append(values, value)

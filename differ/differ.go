@@ -127,14 +127,9 @@ func (d *Differ) DiffRows() (*DiffRows, error) {
 		return nil, err
 	}
 
-	// Get Primary
-	srcPrimaryIndex := contains(srcRows.Columns, d.Schema.Table.PrimaryKey)
-	if srcPrimaryIndex == -1 {
-		return nil, errors.New("Not defineded PrimaryKey in `" + d.Schema.Table.Name + "` schema")
-	}
-	dstPrimaryIndex := contains(dstRows.Columns, d.Schema.Table.PrimaryKey)
-	if dstPrimaryIndex == -1 {
-		return nil, errors.New("Not defineded PrimaryKey in `" + d.Schema.Table.Name + "` schema")
+	pki := d.Schema.ColumnIndex(d.Schema.PrimaryKey)
+	if pki == -1 {
+		return nil, errors.New("Primary key not found in `" + d.Schema.Name + "`")
 	}
 
 	// Get diff
@@ -143,22 +138,16 @@ func (d *Differ) DiffRows() (*DiffRows, error) {
 		columnNames[i] = column.Name
 	}
 	diff := &DiffRows{
-		Add: &table.Rows{
-			Columns: columnNames,
-		},
-		Delete: &table.Rows{
-			Columns: columnNames,
-		},
-		Modify: &table.Rows{
-			Columns: columnNames,
-		},
+		Add:    &table.Rows{},
+		Delete: &table.Rows{},
+		Modify: &table.Rows{},
 	}
 	for i := 0; i < 2; i++ {
 		for _, srcValue := range srcRows.Values {
-			srcPrimaryValue := srcValue[srcPrimaryIndex]
+			srcPrimaryValue := srcValue[pki]
 			found := false
 			for _, dstValue := range dstRows.Values {
-				dstPrimaryValue := dstValue[dstPrimaryIndex]
+				dstPrimaryValue := dstValue[pki]
 				if srcPrimaryValue == dstPrimaryValue {
 					found = true
 
@@ -166,28 +155,16 @@ func (d *Differ) DiffRows() (*DiffRows, error) {
 					if i == 0 {
 						modifyValues := make([]string, len(columnNames))
 						modify := false
-						for _, columnName := range columnNames {
-							srcColumnIndex := contains(srcRows.Columns, columnName)
-							dstColumnIndex := contains(dstRows.Columns, columnName)
-							if srcPrimaryIndex == srcColumnIndex || srcColumnIndex == -1 {
-								// Skip Primarykey column
-								continue
-							}
-							if dstColumnIndex == -1 {
-								// Delete column
-								modifyValues[srcColumnIndex] = ""
-								modify = true
-								break
-							}
-							if srcValue[srcColumnIndex] != dstValue[dstColumnIndex] {
+						for i, _ := range columnNames {
+							if srcValue[i] != dstValue[i] {
 								// Modify column
-								modifyValues[srcColumnIndex] = dstValue[dstColumnIndex]
+								modifyValues[i] = dstValue[i]
 								modify = true
 								break
 							}
 						}
 						if modify {
-							modifyValues[srcPrimaryIndex] = srcPrimaryValue
+							modifyValues[pki] = srcPrimaryValue
 							diff.Modify.Values = append(diff.Modify.Values, [][]string{modifyValues}...)
 						}
 					}
@@ -211,13 +188,4 @@ func (d *Differ) DiffRows() (*DiffRows, error) {
 		}
 	}
 	return diff, nil
-}
-
-func contains(s []string, e string) int {
-	for i, v := range s {
-		if e == v {
-			return i
-		}
-	}
-	return -1
 }

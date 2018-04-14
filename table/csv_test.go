@@ -19,7 +19,7 @@ func TestGetRows(t *testing.T) {
 4,kamuri,15
 `
 	r := strings.NewReader(testData)
-	tbl, err := NewCSV(sc, r)
+	tbl, err := newCSVFromReader(sc, r)
 	if err != nil {
 		t.Fatal(err)
 	}
