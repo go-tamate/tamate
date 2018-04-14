@@ -66,30 +66,15 @@ func (ds *CSVDataSource) GetRows() (*Rows, error) {
 		return nil, errors.New("No columns in CSV. Path: " + ds.Config.Path)
 	}
 
-	values := append(records[:0], records[1:]...)
+	rs := records[1:]
+	rowCount := len(rs)
+	values := make([][]string, rowCount, rowCount)
+	for i, row := range rs {
+		values[i] = row[1:]
+	}
 	rows := &Rows{
 		Columns: columns,
 		Values:  values,
 	}
 	return rows, nil
-}
-
-// SetRows :
-func (ds *CSVDataSource) SetRows(rows *Rows) error {
-	file, err := os.Create(ds.Config.Path)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	writer := csv.NewWriter(file)
-	defer writer.Flush()
-
-	for _, value := range append([][]string{rows.Columns}, rows.Values...) {
-		err := writer.Write(value)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }

@@ -191,36 +191,6 @@ func (ds *SpreadSheetsDataSource) GetRows() (*Rows, error) {
 	return rows, nil
 }
 
-// SetRows :
-func (ds *SpreadSheetsDataSource) SetRows(rows *Rows) error {
-	srv := getService()
-
-	outputValues := make([][]interface{}, 0)
-	for _, value := range rows.Values {
-		outputValue := make([]interface{}, len(value))
-		for i := range value {
-			outputValue[i] = value[i]
-		}
-	}
-
-	// TODO: can specify spreadsheet id and range
-	// https://docs.google.com/spreadsheets/d/1_Um82wSffMiMVqvRISAo348Ti8u51CLdV_kGN7TYDko/edit#gid=0
-	spreadsheetID := "1_Um82wSffMiMVqvRISAo348Ti8u51CLdV_kGN7TYDko"
-	rangeData := "sheet1!A1:XX"
-
-	valueRange := &sheets.ValueRange{
-		Range:  rangeData,
-		Values: outputValues,
-	}
-
-	_, err := srv.Spreadsheets.Values.Update(spreadsheetID, rangeData, valueRange).ValueInputOption("USER_ENTERED").Do()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func getClientSecretJSONPath() (string, error) {
 	_, filename, _, ok := runtime.Caller(0)
 	if !ok {

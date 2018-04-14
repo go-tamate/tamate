@@ -10,8 +10,6 @@ import (
 	"github.com/Mitu217/tamate/util"
 
 	"github.com/Mitu217/tamate/differ"
-	"github.com/Mitu217/tamate/dumper"
-
 	"golang.org/x/crypto/ssh/terminal"
 
 	"github.com/Mitu217/tamate/datasource"
@@ -161,38 +159,13 @@ func dumpAction(c *cli.Context) {
 		log.Fatalln(err)
 	}
 
-	if len(c.Args()) < 2 {
-		// Standard Output
-		rows, err := inputDatasource.GetRows()
-		if err != nil {
-			log.Fatalln(err)
-		}
-		fmt.Println("[Input DataSource]")
-		printRows(rows)
-	} else {
-		// Get OutputDataSource
-		outputConfigPath := c.Args()[1]
-		outputDatasource, err := util.GetConfigDataSource(outputConfigPath)
-		if err != nil {
-			log.Fatalln(err)
-		}
-
-		// Dump
-		sc, err := outputDatasource.GetSchema()
-		if err != nil {
-			// Schemaの取得に失敗
-			log.Fatalln(err)
-		}
-		if err := inputDatasource.SetSchema(sc); err != nil {
-			// dump元のSchema設定に失敗
-			log.Fatalln(err)
-		}
-		d := dumper.NewDumper()
-		if err := d.Dump(inputDatasource, outputDatasource); err != nil {
-			// Dumpに失敗
-			log.Fatalln(err)
-		}
+	// Standard Output
+	rows, err := inputDatasource.GetRows()
+	if err != nil {
+		log.Fatalln(err)
 	}
+	fmt.Println("[Input DataSource]")
+	printRows(rows)
 }
 
 func diffAction(c *cli.Context) {
