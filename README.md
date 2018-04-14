@@ -10,40 +10,31 @@ go get github.com/Mitu217/tamate
 
 ## Usage
 
-### Generate DataSource Config.
-```
-tamate generate:config -t <datasource type> [-o <ouptut path>]
+### Generate table definition json
+Generate template file of table definition
 
-e.g. tamate generate:config -t SQL -o sql_config.json
 ```
-
-### Generate Schema.
-```
-tamate generate:schema -t <datasource type> -c <config path> [-o <output path>]
-
-e.g. tamate generate:schema -t SQL -c sql_config.json -o sql_schema.json
+tamate generate:config <table type>
 ```
 
-### Dump.
-```
-tamate dump <input datasource config path> [<output datasource config path>]
+### Dump
+Dump table data to stdout
 
-e.g. tamate dump sql_config.json  // SQL -> STDOUT
-e.g. tamate dump sql_config.json spreadsheets_config.json  // SQL -> SpreadSheets
+```
+tamate dump <table definition file>
 ```
 
 ### Diff
-```
-tamate diff <schema> <left table> <right table>
+Show diffs between rows on two tables
 
-e.g. tamate diff schema.json table1.json table2.json
+```
+tamate diff <left table definition file> <right table definition file>
 ```
 
 ## Contribution
 
 ### Requirements for development
 
-- [docker](https://www.docker.com/) (For MySQL tests)
 - [dep](https://github.com/golang/dep)
 
 ### Getting started

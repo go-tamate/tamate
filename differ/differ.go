@@ -133,10 +133,7 @@ func (d *Differ) DiffRows() (*DiffRows, error) {
 	}
 
 	// Get diff
-	columnNames := make([]string, len(d.Schema.Columns))
-	for i, column := range d.Schema.Columns {
-		columnNames[i] = column.Name
-	}
+	columnNames := d.Schema.ColumnNames()
 	diff := &DiffRows{
 		Add:    &table.Rows{},
 		Delete: &table.Rows{},
@@ -155,10 +152,10 @@ func (d *Differ) DiffRows() (*DiffRows, error) {
 					if i == 0 {
 						modifyValues := make([]string, len(columnNames))
 						modify := false
-						for i, _ := range columnNames {
-							if srcValue[i] != dstValue[i] {
+						for ci, _ := range columnNames {
+							if srcValue[ci] != dstValue[ci] {
 								// Modify column
-								modifyValues[i] = dstValue[i]
+								modifyValues[ci] = dstValue[ci]
 								modify = true
 								break
 							}

@@ -28,14 +28,8 @@ func main() {
 	app.Commands = []cli.Command{
 		{
 			Name:   "generate:table",
-			Usage:  "Generate table config file.",
+			Usage:  "generate:table <table=(csv|spreadsheet|sql)>",
 			Action: generateTableAction,
-			Flags: []cli.Flag{
-				cli.StringFlag{
-					Name:  "type, t",
-					Usage: "csv, sql or spreadsheet",
-				},
-			},
 		},
 		{
 			Name:   "dump",
@@ -56,8 +50,10 @@ func main() {
 }
 
 func generateTableAction(c *cli.Context) {
-	// Override output path
-	if err := generateTable(os.Stdout, c.String("type")); err != nil {
+	if c.NArg() < 1 {
+		log.Fatalf("please specify table type (csv, spreadsheet or sql)")
+	}
+	if err := generateTable(os.Stdout, c.Args()[0]); err != nil {
 		log.Fatalln(err)
 	}
 }
@@ -92,7 +88,7 @@ func dumpAction(c *cli.Context) {
 }
 
 func diffAction(c *cli.Context) {
-	if len(c.Args()) < 3 {
+	if len(c.Args()) < 2 {
 		log.Fatalf("Please specify the two tables")
 	}
 

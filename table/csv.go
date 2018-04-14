@@ -54,13 +54,8 @@ func readRows(csv *csv.Reader) (*Rows, error) {
 	if err != nil {
 		return nil, err
 	}
-	rowCount := len(rows)
-	values := make([][]string, rowCount, rowCount)
-	for i, row := range rows {
-		values[i] = row[1:]
-	}
 	return &Rows{
-		Values: values,
+		Values: rows,
 	}, nil
 }
 
