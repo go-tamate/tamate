@@ -25,19 +25,26 @@ type SQLTable struct {
 
 // NewSQL :
 func NewSQL(sc *schema.Schema, conf *SQLTableConfig) (*SQLTable, error) {
-	db, err := sql.Open(conf.DriverName, conf.DSN)
-	if err != nil {
-		return nil, err
-	}
-	if err := db.Ping(); err != nil {
-		return nil, err
-	}
 	ds := &SQLTable{
 		Schema: sc,
 		Config: conf,
-		db:     db,
+	}
+	if err := ds.Open(); err != nil {
+		return nil, err
 	}
 	return ds, nil
+}
+
+func (tbl *SQLTable) Open() error {
+	db, err := sql.Open(tbl.Config.DriverName, tbl.Config.DSN)
+	if err != nil {
+		return err
+	}
+	if err := db.Ping(); err != nil {
+		return err
+	}
+	tbl.db = db
+	return nil
 }
 
 func (tbl *SQLTable) Close() error {
@@ -58,12 +65,19 @@ func (tbl *SQLTable) GetRows() (*Rows, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	if err := tbl.Open(); err != nil {
+		return nil, err
+	}
+
 	// Get data
 	sqlRows, err := tbl.db.Query("SELECT * FROM " + sc.Name)
 	if err != nil {
 		return nil, err
 	}
 	defer sqlRows.Close()
+
+	tbl.Close()
 
 	// Get columns
 	columns, err := sqlRows.Columns()
