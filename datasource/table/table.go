@@ -7,7 +7,8 @@ import (
 	"io"
 	"reflect"
 
-	"github.com/Mitu217/tamate/table/schema"
+	"github.com/Mitu217/tamate/datasource"
+	"github.com/Mitu217/tamate/datasource/table/schema"
 )
 
 // Rows :
@@ -54,13 +55,13 @@ func FromJSON(r io.Reader) (Table, error) {
 	dec2 := json.NewDecoder(&b)
 	var tbl Table
 	switch tj.Type {
-	case "CSVTable":
+	case datasource.CSV.String():
 		tbl = &CSVTable{}
 		break
-	case "SpreadsheetTable":
+	case datasource.SpreadSheet.String():
 		tbl = &SpreadsheetTable{}
 		break
-	case "SQLTable":
+	case datasource.SQL.String():
 		tbl = &SQLTable{}
 	default:
 		return nil, fmt.Errorf("invalid type: %s", tj.Type)
