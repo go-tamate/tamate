@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/Mitu217/tamate/table/schema"
 	"io"
 	"reflect"
+
+	"github.com/Mitu217/tamate/table/schema"
 )
 
 // Rows :

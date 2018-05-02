@@ -1,9 +1,10 @@
 package table
 
 import (
-	"github.com/Mitu217/tamate/table/schema"
 	"strings"
 	"testing"
+
+	"github.com/Mitu217/tamate/table/schema"
 )
 
 func TestGetRows(t *testing.T) {

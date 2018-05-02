@@ -1,8 +1,9 @@
 package table
 
 import (
-	"github.com/Mitu217/tamate/table/schema"
 	"testing"
+
+	"github.com/Mitu217/tamate/table/schema"
 )
 
 func TestSpreadsheetGetRows(t *testing.T) {

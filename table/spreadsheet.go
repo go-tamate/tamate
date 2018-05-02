@@ -5,37 +5,32 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/Mitu217/tamate/table/schema"
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google"
-	"google.golang.org/api/sheets/v4"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"os/user"
 	"path/filepath"
+
+	"github.com/Mitu217/tamate/table/config"
+	"github.com/Mitu217/tamate/table/schema"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
+	"google.golang.org/api/sheets/v4"
 )
 
 const (
 	APIKeyJSON = `{"installed":{"client_id":"91207976446-6jhqnhlqitbv60fskj0uulq3hf2iil1t.apps.googleusercontent.com","project_id":"nifty-inkwell-197212","auth_uri":"https://accounts.google.com/o/oauth2/auth","token_uri":"https://accounts.google.com/o/oauth2/token","auth_provider_x509_cert_url":"https://www.googleapis.com/oauth2/v1/certs","client_secret":"Baxr8JY1P5WD1ggkn1aRptzR","redirect_uris":["urn:ietf:wg:oauth:2.0:oob","http://localhost"]}}`
 )
 
-// SpreadSheetsConfig :
-type SpreadsheetTableConfig struct {
-	SpreadSheetsID string `json:"spreadsheets_id"`
-	SheetName      string `json:"sheet_name"`
-	Range          string `json:"range"`
-}
-
 // SpreadsheetTable :
 type SpreadsheetTable struct {
-	Schema *schema.Schema          `json:"schema"`
-	Config *SpreadsheetTableConfig `json:"config"`
+	Schema *schema.Schema                 `json:"schema"`
+	Config *config.SpreadsheetTableConfig `json:"config"`
 }
 
 // NewSpreadsheet :
-func NewSpreadsheet(sc *schema.Schema, conf *SpreadsheetTableConfig) (*SpreadsheetTable, error) {
+func NewSpreadsheet(sc *schema.Schema, conf *config.SpreadsheetTableConfig) (*SpreadsheetTable, error) {
 	ds := &SpreadsheetTable{
 		Schema: sc,
 		Config: conf,
