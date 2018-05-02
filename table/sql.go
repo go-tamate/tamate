@@ -6,25 +6,19 @@ import (
 	// TODO: fix depends on mysql https://github.com/Mitu217/tamate/issues/44
 	_ "github.com/go-sql-driver/mysql"
 
+	"github.com/Mitu217/tamate/table/config"
 	"github.com/Mitu217/tamate/table/schema"
 )
 
-// SQLConfig :
-type SQLTableConfig struct {
-	DriverName string `json:"driver_name"`
-	DSN        string `json:"dsn"`
-	TableName  string `json:"table_name"`
-}
-
 // SQLTable :
 type SQLTable struct {
-	Schema *schema.Schema  `json:"schema"`
-	Config *SQLTableConfig `json:"config"`
+	Schema *schema.Schema         `json:"schema"`
+	Config *config.SQLTableConfig `json:"config"`
 	db     *sql.DB
 }
 
 // NewSQL :
-func NewSQL(sc *schema.Schema, conf *SQLTableConfig) (*SQLTable, error) {
+func NewSQL(sc *schema.Schema, conf *config.SQLTableConfig) (*SQLTable, error) {
 	ds := &SQLTable{
 		Schema: sc,
 		Config: conf,

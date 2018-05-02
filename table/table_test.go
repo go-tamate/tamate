@@ -2,9 +2,10 @@ package table
 
 import (
 	"bytes"
-	"github.com/Mitu217/tamate/table/schema"
 	"reflect"
 	"testing"
+
+	"github.com/Mitu217/tamate/table/schema"
 )
 
 func TestToJSON(t *testing.T) {

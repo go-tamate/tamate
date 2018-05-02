@@ -2,24 +2,23 @@ package table
 
 import (
 	"encoding/csv"
-	"github.com/Mitu217/tamate/table/schema"
-	"github.com/pkg/errors"
 	"io"
 	"os"
+
+	"github.com/Mitu217/tamate/table/config"
+
+	"github.com/Mitu217/tamate/table/schema"
+	"github.com/pkg/errors"
 )
 
-type CSVConfig struct {
-	Path string `json:"path"`
-}
-
-// CSVDataSource :
+// CSVTable :
 type CSVTable struct {
-	Schema *schema.Schema `json:"schema"`
-	Config *CSVConfig     `json:"config"`
+	Schema *schema.Schema         `json:"schema"`
+	Config *config.CSVTableConfig `json:"config"`
 	rows   *Rows
 }
 
-func NewCSV(sc *schema.Schema, conf *CSVConfig) (*CSVTable, error) {
+func NewCSV(sc *schema.Schema, conf *config.CSVTableConfig) (*CSVTable, error) {
 	tbl := &CSVTable{
 		Schema: sc,
 		Config: conf,
