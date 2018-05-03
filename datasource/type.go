@@ -1,24 +1,24 @@
 package datasource
 
-// TableType defines datasource table type
-type TableType int
+// Type defines datasource type
+type Type int
 
 // table types
 const (
-	CSV TableType = iota
+	CSV Type = iota
 	SQL
-	SpreadSheet
+	Spreadsheet
 )
 
-func (tt TableType) String() string {
-	switch tt {
+func (t Type) String() string {
+	switch t {
 	case CSV:
-		return "CSVTable"
+		return "CSV"
 	case SQL:
-		return "SQLtable"
-	case SpreadSheet:
-		return "SpreadSheetTable"
+		return "SQL"
+	case Spreadsheet:
+		return "Spreadsheet"
 	default:
-		return ""
+		return "Unknown"
 	}
 }
