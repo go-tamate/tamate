@@ -16,20 +16,8 @@
 [[projects]]
   name = "github.com/golang/protobuf"
   packages = ["proto"]
-  revision = "925541529c1fa6821df4e44ce2723319eb2be768"
-  version = "v1.0.0"
-
-[[projects]]
-  name = "github.com/pkg/errors"
-  packages = ["."]
-  revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
-  version = "v0.8.0"
-
-[[projects]]
-  name = "github.com/urfave/cli"
-  packages = ["."]
-  revision = "cfb38830724cc34fedffe9a2a29fb54fa9169cd1"
-  version = "v1.20.0"
+  revision = "b4deda0973fb4c70b50d226b1af49f3da59f5265"
+  version = "v1.1.0"
 
 [[projects]]
   branch = "master"
@@ -38,7 +26,7 @@
     "context",
     "context/ctxhttp"
   ]
-  revision = "61147c48b25b599e5b561d2e9c4f3e1ef489ca41"
+  revision = "640f4622ab692b87c2f3a94265e6f579fe38263d"
 
 [[projects]]
   branch = "master"
@@ -50,7 +38,7 @@
     "jws",
     "jwt"
   ]
-  revision = "921ae394b9430ed4fb549668d7b087601bd60a81"
+  revision = "cdc340f7c179dbbfa4afd43b7614e8fcadde4269"
 
 [[projects]]
   branch = "master"
@@ -61,7 +49,7 @@
     "googleapi/internal/uritemplates",
     "sheets/v4"
   ]
-  revision = "fca24fcb41126b846105a93fb9e30f416bdd55ce"
+  revision = "ce90db2c36a2cb8c9c06779ed8bb96f92ea6e3b8"
 
 [[projects]]
   name = "google.golang.org/appengine"
@@ -83,6 +71,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "12d441e5437b06dac7f9022c78c246b79f2db551959b5d72bf7a46d13e366a2a"
+  inputs-digest = "528cac98e16230e4f1343afdc19dff7f801826601b57ae1caa7268896a02caa4"
   solver-name = "gps-cdcl"
   solver-version = 1
