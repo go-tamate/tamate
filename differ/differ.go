@@ -2,35 +2,33 @@ package differ
 
 import (
 	"errors"
-
-	"github.com/Mitu217/tamate/table"
-	"github.com/Mitu217/tamate/table/schema"
+	"github.com/Mitu217/tamate/datasource"
+	"github.com/Mitu217/tamate/datasource/handler"
 )
+
+// TargetSchema is diff target schema struct
+type TargetSchema struct {
+	Datasource datasource.Datasource
+	SchemaName string
+}
 
 // Differ :
 type Differ struct {
-	Schema      *schema.Schema
-	LeftSource  table.Table
-	RightSource table.Table
+	Left  TargetSchema
+	Right TargetSchema
 }
 
 // NewSchemaDiffer :
-func NewSchemaDiffer(sc *schema.Schema, leftSrc table.Table, rightSrc table.Table) (*Differ, error) {
-	d := &Differ{
-		Schema:      sc,
-		LeftSource:  leftSrc,
-		RightSource: rightSrc,
-	}
-	return d, nil
+func NewSchemaDiffer(left TargetSchema, right TargetSchema) (*Differ, error) {
+	return nil, errors.New("not support NewSchemaDiffer()")
 }
 
 // NewRowsDiffer :
-func NewRowsDiffer(leftSrc table.Table, rightSrc table.Table) (*Differ, error) {
+func NewRowsDiffer(left TargetSchema, right TargetSchema) (*Differ, error) {
 	d := &Differ{
-		LeftSource:  leftSrc,
-		RightSource: rightSrc,
+		Left:  left,
+		Right: right,
 	}
-
 	diffColumns, err := d.diffColumns()
 	if err != nil {
 		return nil, err
@@ -38,23 +36,17 @@ func NewRowsDiffer(leftSrc table.Table, rightSrc table.Table) (*Differ, error) {
 	if diffColumns.IsDiff() {
 		return nil, errors.New("schema between two data does not match")
 	}
-
-	sc, err := leftSrc.GetSchema()
-	if err != nil {
-		return nil, err
-	}
-	d.Schema = sc
 	return d, err
 }
 
 // DiffColumns :
 func (d *Differ) diffColumns() (*DiffColumns, error) {
 	// Get Schemas
-	srcSchemas, err := d.LeftSource.GetSchema()
+	srcSchema, err := d.Left.Datasource.GetSchema(d.Left.SchemaName)
 	if err != nil {
 		return nil, err
 	}
-	dstSchemas, err := d.RightSource.GetSchema()
+	dstSchema, err := d.Right.Datasource.GetSchema(d.Right.SchemaName)
 	if err != nil {
 		return nil, err
 	}
@@ -62,15 +54,15 @@ func (d *Differ) diffColumns() (*DiffColumns, error) {
 	// Get diff
 	diff := &DiffColumns{}
 	for i := 0; i < 2; i++ {
-		for _, srcColumn := range srcSchemas.Columns {
+		for _, srcColumn := range srcSchema.Columns {
 			found := false
-			for _, dstColumn := range dstSchemas.Columns {
+			for _, dstColumn := range dstSchema.Columns {
 				if srcColumn.Name == dstColumn.Name {
 					found = true
 
 					// Modify
 					if i == 0 {
-						modifyColumn := schema.Column{
+						modifyColumn := handler.Column{
 							Name: srcColumn.Name,
 						}
 						modify := false
@@ -108,7 +100,7 @@ func (d *Differ) diffColumns() (*DiffColumns, error) {
 
 		// Swap
 		if i == 0 {
-			srcSchemas, dstSchemas = dstSchemas, srcSchemas
+			srcSchema, dstSchema = dstSchema, srcSchema
 		}
 	}
 
@@ -118,27 +110,33 @@ func (d *Differ) diffColumns() (*DiffColumns, error) {
 // DiffRows :
 func (d *Differ) DiffRows() (*DiffRows, error) {
 	// Get Rows
-	srcRows, err := d.LeftSource.GetRows()
+	srcRows, err := d.Left.Datasource.GetRows(d.Left.SchemaName)
 	if err != nil {
 		return nil, err
 	}
-	dstRows, err := d.RightSource.GetRows()
+	dstRows, err := d.Right.Datasource.GetRows(d.Right.SchemaName)
 	if err != nil {
 		return nil, err
 	}
 
-	pki := d.Schema.ColumnIndex(d.Schema.PrimaryKey)
+	diff := &DiffRows{
+		Add:    &handler.Rows{},
+		Delete: &handler.Rows{},
+		Modify: &handler.Rows{},
+	}
+
+	// FIXME
+	pki := 0 //d.Schema.ColumnIndex(d.Schema.PrimaryKey)
 	if pki == -1 {
-		return nil, errors.New("Primary key not found in `" + d.Schema.Name + "`")
+		return nil, errors.New("Primary key not found in `" + d.Left.SchemaName + "`")
 	}
 
 	// Get diff
-	columnNames := d.Schema.ColumnNames()
-	diff := &DiffRows{
-		Add:    &table.Rows{},
-		Delete: &table.Rows{},
-		Modify: &table.Rows{},
+	schema, err := d.Left.Datasource.GetSchema(d.Left.SchemaName)
+	if err != nil {
+		return nil, err
 	}
+	columnNames := schema.ColumnNames()
 	for i := 0; i < 2; i++ {
 		for _, srcValue := range srcRows.Values {
 			srcPrimaryValue := srcValue[pki]
@@ -152,7 +150,7 @@ func (d *Differ) DiffRows() (*DiffRows, error) {
 					if i == 0 {
 						modifyValues := make([]string, len(columnNames))
 						modify := false
-						for ci, _ := range columnNames {
+						for ci := range columnNames {
 							if srcValue[ci] != dstValue[ci] {
 								// Modify column
 								modifyValues[ci] = dstValue[ci]
