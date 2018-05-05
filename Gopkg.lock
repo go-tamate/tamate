@@ -49,7 +49,7 @@
     "googleapi/internal/uritemplates",
     "sheets/v4"
   ]
-  revision = "ce90db2c36a2cb8c9c06779ed8bb96f92ea6e3b8"
+  revision = "bb395b674c9930450ea7243b3e3c8f43150f4c11"
 
 [[projects]]
   name = "google.golang.org/appengine"
