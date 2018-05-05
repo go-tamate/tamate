@@ -13,12 +13,12 @@ type TargetSchema struct {
 
 // Differ is diff between tables struct
 type Differ struct {
-	Left  TargetSchema
-	Right TargetSchema
+	Left  *TargetSchema
+	Right *TargetSchema
 }
 
 // NewDiffer is create differ instance method
-func NewDiffer(left TargetSchema, right TargetSchema) (*Differ, error) {
+func NewDiffer(left *TargetSchema, right *TargetSchema) (*Differ, error) {
 	d := &Differ{
 		Left:  left,
 		Right: right,
