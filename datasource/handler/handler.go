@@ -19,15 +19,6 @@ type Schema struct {
 	Columns []Column `json:"columns"`
 }
 
-// ColumnNames is get column names from schema columns
-func (sc *Schema) ColumnNames() []string {
-	columnNames := make([]string, len(sc.Columns))
-	for i := range sc.Columns {
-		columnNames[i] = sc.Columns[i].Name
-	}
-	return columnNames
-}
-
 // Handler is read and write datasource interface
 type Handler interface {
 	Open() error
