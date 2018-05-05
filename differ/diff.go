@@ -4,44 +4,28 @@ import (
 	"github.com/Mitu217/tamate/datasource/handler"
 )
 
-// DiffColumns :
+// DiffColumns is add, modify and delete columns struct
 type DiffColumns struct {
-	Add    []handler.Column
-	Modify []handler.Column
-	Delete []handler.Column
+	Add    []ModifyColumnValues
+	Modify []ModifyColumnValues
+	Delete []ModifyColumnValues
 }
 
-// DiffRows :
+// ModifyColumnValues is modify column values struct between left and right
+type ModifyColumnValues struct {
+	Left  *handler.Column
+	Right *handler.Column
+}
+
+// DiffRows is add, modify and delete rows struct
 type DiffRows struct {
-	Add    *handler.Rows
-	Modify *handler.Rows
-	Delete *handler.Rows
+	Add    []ModifyRowValues
+	Modify []ModifyRowValues
+	Delete []ModifyRowValues
 }
 
-// IsDiff :
-func (dc *DiffColumns) IsDiff() bool {
-	if len(dc.Add) != 0 {
-		return true
-	}
-	if len(dc.Delete) != 0 {
-		return true
-	}
-	if len(dc.Modify) != 0 {
-		return true
-	}
-	return false
-}
-
-// IsDiff :
-func (dr *DiffRows) IsDiff() bool {
-	if len(dr.Add.Values) != 0 {
-		return true
-	}
-	if len(dr.Delete.Values) != 0 {
-		return true
-	}
-	if len(dr.Modify.Values) != 0 {
-		return true
-	}
-	return false
+// ModifyRowValues is modify row values struct between left and right
+type ModifyRowValues struct {
+	Left  *[]string
+	Right *[]string
 }
