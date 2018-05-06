@@ -38,7 +38,7 @@ func FromJSON(r io.Reader) (*Datasource, error) {
 	var ds struct {
 		Type   string      `json:"type"`
 		Config interface{} `json:"config"`
-		Tables []Table     `json:"table"`
+		Tables []Table     `json:"tables"`
 	}
 	if err := json.NewDecoder(r).Decode(&ds); err != nil {
 		return nil, err
