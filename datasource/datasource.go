@@ -36,16 +36,20 @@ func ToJSON(ds *Datasource, w io.Writer) error {
 func FromJSON(r io.Reader) (*Datasource, error) {
 	// decode JSON
 	var ds struct {
-		Type   string      `json:"type"`
-		Config interface{} `json:"config"`
-		Tables []Table     `json:"tables"`
+		Type   string                 `json:"type"`
+		Config map[string]interface{} `json:"config"`
 	}
 	if err := json.NewDecoder(r).Decode(&ds); err != nil {
 		return nil, err
 	}
+	return NewDatasource(ds.Type, ds.Config)
+}
+
+// NewDatasource is create datasource instance method
+func NewDatasource(t string, config map[string]interface{}) (*Datasource, error) {
 	// decode HandlerConfig
 	var h handler.Handler
-	switch ds.Type {
+	switch t {
 	case CSV.String():
 		h = &handler.CSVHandler{}
 		break
@@ -56,9 +60,9 @@ func FromJSON(r io.Reader) (*Datasource, error) {
 		h = &handler.SQLHandler{}
 		break
 	default:
-		return nil, errors.New("invalid type: " + ds.Type)
+		return nil, errors.New("invalid type: " + t)
 	}
-	configBytes, err := json.Marshal(ds.Config)
+	configBytes, err := json.Marshal(config)
 	if err != nil {
 		return nil, err
 	}
@@ -66,8 +70,7 @@ func FromJSON(r io.Reader) (*Datasource, error) {
 		return nil, err
 	}
 	return &Datasource{
-		Type:    ds.Type,
-		tables:  ds.Tables,
+		Type:    t,
 		handler: h,
 	}, nil
 }
