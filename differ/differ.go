@@ -110,14 +110,18 @@ func getModifyColumnValues(left *handler.Column, right *handler.Column) (*Modify
 // DiffRows is get diff rows method
 func (d *Differ) DiffRows() (*DiffRows, error) {
 	// Get target rows
+	d.Left.Datasource.Open()
 	srcRows, err := d.Left.Datasource.GetRows(d.Left.SchemaName)
 	if err != nil {
 		return nil, err
 	}
+	defer d.Left.Datasource.Close()
+	d.Right.Datasource.Open()
 	dstRows, err := d.Right.Datasource.GetRows(d.Right.SchemaName)
 	if err != nil {
 		return nil, err
 	}
+	defer d.Right.Datasource.Close()
 	// Get diff
 	primaryKeyIndex := -1 //d.Schema.ColumnIndex(d.Schema.PrimaryKey)
 	diff := &DiffRows{}
