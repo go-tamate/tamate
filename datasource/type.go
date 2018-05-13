@@ -13,12 +13,12 @@ const (
 func (t Type) String() string {
 	switch t {
 	case CSV:
-		return "CSV"
+		return "csv"
 	case SQL:
-		return "SQL"
+		return "sql"
 	case Spreadsheet:
-		return "Spreadsheet"
+		return "spreadsheet"
 	default:
-		return "Unknown"
+		return "unknown"
 	}
 }
