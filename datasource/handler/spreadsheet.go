@@ -2,28 +2,27 @@ package handler
 
 import (
 	"context"
-	"encoding/json"
+	"errors"
 	"fmt"
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google"
-	"google.golang.org/api/sheets/v4"
-	"io/ioutil"
-	"log"
 	"net/http"
-	"os"
-	"strings"
+
+	"golang.org/x/oauth2"
+	"google.golang.org/api/sheets/v4"
 )
 
 const (
-	// CredentialJSON is use access spreadsheet
-	CredentialJSON = `{"installed":{"client_id":"91207976446-6jhqnhlqitbv60fskj0uulq3hf2iil1t.apps.googleusercontent.com","project_id":"nifty-inkwell-197212","auth_uri":"https://accounts.google.com/o/oauth2/auth","token_uri":"https://accounts.google.com/o/oauth2/token","auth_provider_x509_cert_url":"https://www.googleapis.com/oauth2/v1/certs","client_secret":"Baxr8JY1P5WD1ggkn1aRptzR","redirect_uris":["urn:ietf:wg:oauth:2.0:oob","http://localhost"]}}`
+	// ClientID is use for authentication
+	ClientID = "1053404748146-rj1p0vpl91q8a1t3hq1ak095nm158bfb.apps.googleusercontent.com"
+	// ClientSecret is use for authentication
+	ClientSecret = "X8nsx4H33ln0dPFDw8wNEzLp"
 )
 
 // SpreadsheetHandler is handler struct of csv
 type SpreadsheetHandler struct {
-	SpreadsheetID  string `json:"spreadsheet_id"`
-	Ranges         string `json:"ranges"`
-	ColumnRowIndex int    `json:"column_row_index"`
+	Token          oauth2.Token `json:"token"`
+	SpreadsheetID  string       `json:"spreadsheet_id"`
+	Ranges         string       `json:"ranges"`
+	ColumnRowIndex int          `json:"column_row_index"`
 	sheetService   *sheets.Service
 }
 
@@ -39,7 +38,7 @@ func NewSpreadsheetHandler(spreadsheetID string, ranges string, columnRowIndex i
 // Open is call by datasource when create instance
 func (h *SpreadsheetHandler) Open() error {
 	if h.sheetService == nil {
-		client, err := httpClient()
+		client, err := h.getHTTPClient()
 		if err != nil {
 			return err
 		}
@@ -182,65 +181,21 @@ func (h *SpreadsheetHandler) SetRows(schema *Schema, rows *Rows) error {
 	return nil
 }
 
-func httpClient() (*http.Client, error) {
-	bytes, err := ioutil.ReadAll(strings.NewReader(CredentialJSON))
-	if err != nil {
-		return nil, err
+func (h *SpreadsheetHandler) getHTTPClient() (*http.Client, error) {
+	if !h.Token.Valid() {
+		return nil, errors.New("not authorization")
 	}
-	config, err := google.ConfigFromJSON(bytes, "https://www.googleapis.com/auth/spreadsheets")
-	if err != nil {
-		return nil, err
-	}
-	return getClient(config), nil
+	return h.getClient(&oauth2.Config{
+		ClientID:     ClientID,
+		ClientSecret: ClientSecret,
+		Scopes:       []string{"https://www.googleapis.com/auth/spreadsheets"},
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  "https://accounts.google.com/o/oauth2/v2/auth",
+			TokenURL: "https://www.googleapis.com/oauth2/v4/token",
+		},
+	})
 }
 
-func getClient(config *oauth2.Config) *http.Client {
-	tokFile := "token.json"
-	tok, err := tokenFromFile(tokFile)
-	if err != nil {
-		tok = getTokenFromWeb(config)
-		saveToken(tokFile, tok)
-	}
-	return config.Client(context.Background(), tok)
-}
-
-// Retrieves a token from a local file.
-func tokenFromFile(file string) (*oauth2.Token, error) {
-	f, err := os.Open(file)
-	defer f.Close()
-	if err != nil {
-		return nil, err
-	}
-	tok := &oauth2.Token{}
-	err = json.NewDecoder(f).Decode(tok)
-	return tok, err
-}
-
-// Saves a token to a file path.
-func saveToken(path string, token *oauth2.Token) {
-	fmt.Printf("Saving credential file to: %s\n", path)
-	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
-	defer f.Close()
-	if err != nil {
-		log.Fatalf("Unable to cache oauth token: %v", err)
-	}
-	json.NewEncoder(f).Encode(token)
-}
-
-// Request a token from the web, then returns the retrieved token.
-func getTokenFromWeb(config *oauth2.Config) *oauth2.Token {
-	authURL := config.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
-	fmt.Printf("Go to the following link in your browser then type the "+
-		"authorization code: \n%v\n", authURL)
-
-	var authCode string
-	if _, err := fmt.Scan(&authCode); err != nil {
-		log.Fatalf("Unable to read authorization code: %v", err)
-	}
-
-	tok, err := config.Exchange(oauth2.NoContext, authCode)
-	if err != nil {
-		log.Fatalf("Unable to retrieve token from web: %v", err)
-	}
-	return tok
+func (h *SpreadsheetHandler) getClient(config *oauth2.Config) (*http.Client, error) {
+	return config.Client(context.Background(), &h.Token), nil
 }
