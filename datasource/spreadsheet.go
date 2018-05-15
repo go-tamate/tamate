@@ -2,19 +2,10 @@ package datasource
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"net/http"
 
 	"golang.org/x/oauth2"
-	"google.golang.org/api/sheets/v4"
-)
-
-const (
-	// ClientID is use for authentication
-	ClientID = "1053404748146-rj1p0vpl91q8a1t3hq1ak095nm158bfb.apps.googleusercontent.com"
-	// ClientSecret is use for authentication
-	ClientSecret = "X8nsx4H33ln0dPFDw8wNEzLp"
+	sheets "google.golang.org/api/sheets/v4"
 )
 
 type SpreadsheetDatasource struct {
@@ -35,10 +26,8 @@ func NewSpreadsheetDatasource(spreadsheetID string, ranges string, columnRowInde
 
 func (h *SpreadsheetDatasource) Open() error {
 	if h.sheetService == nil {
-		client, err := h.getHTTPClient()
-		if err != nil {
-			return err
-		}
+		config := oauth2.Config{}
+		client := config.Client(context.Background(), &h.Token)
 		sheetService, err := sheets.New(client)
 		if err != nil {
 			return err
@@ -177,23 +166,4 @@ func (h *SpreadsheetDatasource) SetRows(schema *Schema, rows *Rows) error {
 		return err
 	}
 	return nil
-}
-
-func (h *SpreadsheetDatasource) getHTTPClient() (*http.Client, error) {
-	if !h.Token.Valid() {
-		return nil, errors.New("not authorization")
-	}
-	return h.getClient(&oauth2.Config{
-		ClientID:     ClientID,
-		ClientSecret: ClientSecret,
-		Scopes:       []string{"https://www.googleapis.com/auth/spreadsheets"},
-		Endpoint: oauth2.Endpoint{
-			AuthURL:  "https://accounts.google.com/o/oauth2/v2/auth",
-			TokenURL: "https://www.googleapis.com/oauth2/v4/token",
-		},
-	})
-}
-
-func (h *SpreadsheetDatasource) getClient(config *oauth2.Config) (*http.Client, error) {
-	return config.Client(context.Background(), &h.Token), nil
 }
