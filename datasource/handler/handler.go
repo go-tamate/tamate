@@ -15,8 +15,9 @@ type Rows struct {
 
 // Schema is column definitions at table
 type Schema struct {
-	Name    string   `json:"name"`
-	Columns []Column `json:"columns"`
+	Name       string   `json:"name"`
+	PrimaryKey string   `json:"primary_key"`
+	Columns    []Column `json:"columns"`
 }
 
 // Handler is read and write datasource interface
