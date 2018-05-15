@@ -13,27 +13,6 @@ go get github.com/Mitu217/tamate
 
 ## Usage
 
-### Generate table definition json
-Generate template file of table definition
-
-```
-tamate generate:config <table type>
-```
-
-### Dump
-Dump table data to stdout
-
-```
-tamate dump <table definition file>
-```
-
-### Diff
-Show diffs between rows on two tables
-
-```
-tamate diff <left table definition file> <right table definition file>
-```
-
 ## Contribution
 
 ### Requirements for development
