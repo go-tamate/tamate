@@ -1,24 +1,42 @@
 package differ
 
 import (
+	"log"
+
 	"github.com/Mitu217/tamate/datasource"
 	"github.com/Mitu217/tamate/datasource/handler"
 )
 
-// TargetSchema is diff target schema struct
-type TargetSchema struct {
+// TargetTable is diff target schema struct
+type TargetTable struct {
 	Datasource datasource.Datasource
 	SchemaName string
 }
 
+// NewTargetTable is create table instance method
+func NewTargetTable(ds datasource.Datasource, scn string) (*TargetTable, error) {
+	return &TargetTable{
+		Datasource: ds,
+		SchemaName: scn,
+	}, nil
+}
+
+func (t *TargetTable) getPrimaryKeyIndex() (int, error) {
+	schema, err := t.Datasource.GetSchema(t.SchemaName)
+	if err != nil {
+		return -1, err
+	}
+	return schema.GetPrimaryKeyIndex(), nil
+}
+
 // Differ is diff between tables struct
 type Differ struct {
-	Left  *TargetSchema
-	Right *TargetSchema
+	Left  *TargetTable
+	Right *TargetTable
 }
 
 // NewDiffer is create differ instance method
-func NewDiffer(left *TargetSchema, right *TargetSchema) (*Differ, error) {
+func NewDiffer(left *TargetTable, right *TargetTable) (*Differ, error) {
 	d := &Differ{
 		Left:  left,
 		Right: right,
@@ -123,18 +141,26 @@ func (d *Differ) DiffRows() (*DiffRows, error) {
 	}
 	defer d.Right.Datasource.Close()
 	// Get diff
-	primaryKeyIndex := -1 //d.Schema.ColumnIndex(d.Schema.PrimaryKey)
+	leftPrimaryKeyIndex, err := d.Left.getPrimaryKeyIndex()
+	if err != nil {
+		return nil, err
+	}
+	rightPrimaryKeyIndex, err := d.Right.getPrimaryKeyIndex()
+	if err != nil {
+		return nil, err
+	}
 	diff := &DiffRows{}
 	for _, pattern := range []string{"Normal", "Reverse"} {
 		for i, srcValue := range srcRows.Values {
 			found := false
-			if primaryKeyIndex != -1 {
+			if leftPrimaryKeyIndex != -1 {
 				// diff by primary key
 				for _, dstValue := range dstRows.Values {
-					if srcValue[primaryKeyIndex] == dstValue[primaryKeyIndex] {
+					if srcValue[leftPrimaryKeyIndex] == dstValue[rightPrimaryKeyIndex] {
 						found = true
 						if pattern == "Normal" {
 							modifyRowValues, err := getModifyRowValues(&srcValue, &dstValue)
+							log.Println(modifyRowValues)
 							if err != nil {
 								return nil, err
 							}
@@ -187,22 +213,25 @@ func (d *Differ) DiffRows() (*DiffRows, error) {
 
 func getModifyRowValues(left *[]string, right *[]string) (*ModifyRowValues, error) {
 	modify := false
-	if left == nil || right == nil {
+	if left == nil && right == nil {
+		modify = false
+	} else if left == nil || right == nil {
 		modify = true
-	}
-	if len(*left) == len(*right) {
-		for i := range *left {
-			if (*left)[i] != (*right)[i] {
-				modify = true
-			}
-		}
 	} else {
-		modify = true
+		if len(*left) == len(*right) {
+			for i := range *left {
+				if (*left)[i] != (*right)[i] {
+					modify = true
+				}
+			}
+		} else {
+			modify = true
+		}
 	}
 	if modify {
 		return &ModifyRowValues{
-			Left:  left,
-			Right: right,
+			Left:  *left,
+			Right: *right,
 		}, nil
 	}
 	return nil, nil

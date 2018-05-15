@@ -55,47 +55,51 @@ func (h *SQLHandler) Close() error {
 // GetSchemas is get all schemas method
 func (h *SQLHandler) GetSchemas() (*[]Schema, error) {
 	// get schemas
-	sqlRows, err := h.db.Query("SELECT TABLE_NAME, COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE, COLUMN_KEY, COLUMN_DEFAULT, EXTRA FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE()")
+	sqlRows, err := h.db.Query("SELECT TABLE_NAME, COLUMN_NAME, ORDINAL_POSITION, COLUMN_TYPE, COLUMN_KEY, IS_NULLABLE, EXTRA FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE()")
 	if err != nil {
 		return nil, err
 	}
 	defer sqlRows.Close()
 
-	columns, err := sqlRows.Columns()
-	if err != nil {
-		return nil, err
-	}
+	// scan results
 	schemaMap := make(map[string]Schema)
 	for sqlRows.Next() {
-		data := make([]*sql.NullString, len(columns))
-		ptrs := make([]interface{}, len(columns))
-		for i := range data {
-			ptrs[i] = &data[i]
-		}
-		// Read data
-		if err := sqlRows.Scan(ptrs...); err != nil {
+		var tableName string
+		var columnName string
+		var ordinalPosition int
+		var columnType string
+		var columnKey string
+		var isNullable string
+		var extra string
+		if err := sqlRows.Scan(&tableName, &columnName, &ordinalPosition, &columnType, &columnKey, &isNullable, &extra); err != nil {
 			return nil, err
 		}
-		tableName := data[0].String
-		columnName := data[1].String
-		columnType := data[2].String
-		isNullable := data[3].String == "true"
-		// init schema struct when first
-		_, ok := schemaMap[tableName]
-		if !ok {
-			schemaMap[tableName] = Schema{
-				Name: tableName,
+		// prepare schema
+		if _, ok := schemaMap[tableName]; !ok {
+			schema, err := NewSchema(tableName)
+			if err != nil {
+				return nil, err
 			}
+			schemaMap[tableName] = *schema
 		}
 		schema := schemaMap[tableName]
+		// set column in schema
+		if strings.Contains(columnKey, "PRI") {
+			schema.PrimaryKey = columnName
+			schema.primaryKeyIndex = ordinalPosition - 1
+		}
 		column := Column{
-			Name:    columnName,
-			Type:    columnType,
-			NotNull: !isNullable,
+			Name:            columnName,
+			OrdinalPosition: ordinalPosition - 1,
+			Type:            columnType,
+			NotNull:         isNullable != "YES",
+			AutoIncrement:   strings.Contains(extra, "auto_increment"),
 		}
 		schema.Columns = append(schema.Columns, column)
 		schemaMap[tableName] = schema
 	}
+
+	// set schemas
 	schemas := []Schema{}
 	for tableName := range schemaMap {
 		schemas = append(schemas, schemaMap[tableName])
