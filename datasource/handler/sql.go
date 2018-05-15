@@ -55,7 +55,7 @@ func (h *SQLHandler) Close() error {
 // GetSchemas is get all schemas method
 func (h *SQLHandler) GetSchemas() (*[]Schema, error) {
 	// get schemas
-	sqlRows, err := h.db.Query("SELECT TABLE_NAME, COLUMN_NAME, COLUMN_TYPE, COLUMN_KEY, IS_NULLABLE, EXTRA FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE()")
+	sqlRows, err := h.db.Query("SELECT TABLE_NAME, COLUMN_NAME, ORDINAL_POSITION, COLUMN_TYPE, COLUMN_KEY, IS_NULLABLE, EXTRA FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE()")
 	if err != nil {
 		return nil, err
 	}
@@ -66,29 +66,34 @@ func (h *SQLHandler) GetSchemas() (*[]Schema, error) {
 	for sqlRows.Next() {
 		var tableName string
 		var columnName string
+		var ordinalPosition int
 		var columnType string
 		var columnKey string
 		var isNullable string
 		var extra string
-		if err := sqlRows.Scan(&tableName, &columnName, &columnType, &columnKey, &isNullable, &extra); err != nil {
+		if err := sqlRows.Scan(&tableName, &columnName, &ordinalPosition, &columnType, &columnKey, &isNullable, &extra); err != nil {
 			return nil, err
 		}
 		// prepare schema
 		if _, ok := schemaMap[tableName]; !ok {
-			schemaMap[tableName] = Schema{
-				Name: tableName,
+			schema, err := NewSchema(tableName)
+			if err != nil {
+				return nil, err
 			}
+			schemaMap[tableName] = *schema
 		}
 		schema := schemaMap[tableName]
 		// set column in schema
 		if strings.Contains(columnKey, "PRI") {
 			schema.PrimaryKey = columnName
+			schema.primaryKeyIndex = ordinalPosition - 1
 		}
 		column := Column{
-			Name:          columnName,
-			Type:          columnType,
-			NotNull:       isNullable != "YES",
-			AutoIncrement: strings.Contains(extra, "auto_increment"),
+			Name:            columnName,
+			OrdinalPosition: ordinalPosition - 1,
+			Type:            columnType,
+			NotNull:         isNullable != "YES",
+			AutoIncrement:   strings.Contains(extra, "auto_increment"),
 		}
 		schema.Columns = append(schema.Columns, column)
 		schemaMap[tableName] = schema

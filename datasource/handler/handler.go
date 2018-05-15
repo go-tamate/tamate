@@ -2,10 +2,11 @@ package handler
 
 // Column is table column
 type Column struct {
-	Name          string `json:"name"`
-	Type          string `json:"type"`
-	NotNull       bool   `json:"not_null"`
-	AutoIncrement bool   `json:"auto_increment"`
+	Name            string `json:"name"`
+	OrdinalPosition int    `json:"ordinal_position"`
+	Type            string `json:"type"`
+	NotNull         bool   `json:"not_null"`
+	AutoIncrement   bool   `json:"auto_increment"`
 }
 
 // Rows is table records
@@ -15,9 +16,23 @@ type Rows struct {
 
 // Schema is column definitions at table
 type Schema struct {
-	Name       string   `json:"name"`
-	PrimaryKey string   `json:"primary_key"`
-	Columns    []Column `json:"columns"`
+	Name            string   `json:"name"`
+	PrimaryKey      string   `json:"primary_key"`
+	Columns         []Column `json:"columns"`
+	primaryKeyIndex int
+}
+
+// NewSchema is create schema instance
+func NewSchema(name string) (*Schema, error) {
+	return &Schema{
+		Name:            name,
+		primaryKeyIndex: -1,
+	}, nil
+}
+
+// GetPrimaryKeyIndex is return index of primary key
+func (sc *Schema) GetPrimaryKeyIndex() int {
+	return sc.primaryKeyIndex
 }
 
 // Handler is read and write datasource interface
