@@ -26,6 +26,6 @@ type DiffRows struct {
 
 // ModifyRowValues is modify row values struct between left and right
 type ModifyRowValues struct {
-	Left  *[]string `json:"left"`
-	Right *[]string `json:"right"`
+	Left  []string `json:"left"`
+	Right []string `json:"right"`
 }
