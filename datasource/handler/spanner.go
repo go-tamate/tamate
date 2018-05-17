@@ -9,13 +9,11 @@ import (
 	"google.golang.org/api/iterator"
 )
 
-// SpreadsheetHandler is handler struct of csv
 type SpannerHandler struct {
 	DSN           string `json:"dsn"`
 	spannerClient *spanner.Client
 }
 
-// NewSpreadsheetHandler is create SpreadsheetHandler instance method
 func NewSpannerHandler(dsn string) (*SpannerHandler, error) {
 	ctx := context.Background()
 	spannerClient, err := spanner.NewClient(ctx, dsn)
@@ -28,17 +26,14 @@ func NewSpannerHandler(dsn string) (*SpannerHandler, error) {
 	}, nil
 }
 
-// Open is call by datasource when create instance
 func (h *SpannerHandler) Open() error {
 	return nil
 }
 
-// Close is call by datasource when free instance
 func (h *SpannerHandler) Close() error {
 	return nil
 }
 
-// GetSchemas is get all schemas method
 func (h *SpannerHandler) GetSchemas() ([]*Schema, error) {
 	ctx := context.Background()
 	stmt := spanner.NewStatement("SELECT TABLE_NAME, COLUMN_NAME, ORDINAL_POSITION, SPANNER_TYPE, IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ''")
@@ -57,52 +52,15 @@ func (h *SpannerHandler) GetSchemas() ([]*Schema, error) {
 		}
 
 		var tableName string
-		var columnName string
-		var ordinalPosition int64
-		var columnType string
-		var isNullable string
-		if err := row.Columns(&tableName, &columnName, &ordinalPosition, &columnType, &isNullable); err != nil {
+		if err := row.ColumnByName("TABLE_NAME", &tableName); err != nil {
 			return nil, err
 		}
-		// prepare schema
+
+		column, err := scanSchemaColumn(row)
 		if _, ok := schemaMap[tableName]; !ok {
-			schema, err := NewSchema(tableName)
-			if err != nil {
-				return nil, err
-			}
-			schemaMap[tableName] = schema
+			schemaMap[tableName] = &Schema{Name: tableName}
 		}
-		schema := schemaMap[tableName]
-
-		// is primary key?
-		if schema.PrimaryKey == "" {
-			stmt2 := spanner.NewStatement(fmt.Sprintf("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.INDEX_COLUMNS WHERE TABLE_NAME = '%s' AND INDEX_TYPE = 'PRIMARY_KEY' AND ORDINAL_POSITION = 1 LIMIT 1", tableName))
-			iter2 := h.spannerClient.Single().Query(ctx, stmt2)
-			isPrimaryKey := false
-			if _, err := iter2.Next(); err == iterator.Done {
-				isPrimaryKey = false
-			} else {
-				if err != nil {
-					return nil, err
-				}
-				isPrimaryKey = true
-			}
-
-			if isPrimaryKey {
-				schema.PrimaryKey = columnName
-				schema.primaryKeyIndex = int(ordinalPosition) - 1
-			}
-		}
-
-		column := Column{
-			Name:            columnName,
-			OrdinalPosition: int(ordinalPosition) - 1,
-			Type:            columnType,
-			NotNull:         isNullable != "YES",
-			AutoIncrement:   false, // Cloud Spanner doesn't have auto_increment
-		}
-		schema.Columns = append(schema.Columns, column)
-		schemaMap[tableName] = schema
+		schemaMap[tableName].Columns = append(schemaMap[tableName].Columns, column)
 	}
 
 	// set schemas
@@ -111,6 +69,52 @@ func (h *SpannerHandler) GetSchemas() ([]*Schema, error) {
 		schemas = append(schemas, schemaMap[tableName])
 	}
 	return schemas, nil
+}
+
+func (h *SpannerHandler) getPrimaryKey(tableName string) (*PrimaryKey, error) {
+	ctx := context.Background()
+	stmt := spanner.NewStatement(fmt.Sprintf("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.INDEX_COLUMNS WHERE TABLE_NAME = '%s' AND INDEX_TYPE = 'PRIMARY_KEY' ORDER BY ORDINAL_POSITION ASC", tableName))
+	iter := h.spannerClient.Single().Query(ctx, stmt)
+	defer iter.Stop()
+
+	var pk *PrimaryKey
+	for {
+		row, err := iter.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		if pk == nil {
+			pk = &PrimaryKey{}
+		}
+		var colName string
+		if err := row.ColumnByName("COLUMN_NAME", &colName); err != nil {
+			return nil, err
+		}
+		pk.ColumnNames = append(pk.ColumnNames, colName)
+	}
+	return pk, nil
+}
+
+func scanSchemaColumn(row *spanner.Row) (*Column, error) {
+	var columnName string
+	var tableName string
+	var ordinalPosition int64
+	var columnType string
+	var isNullable string
+	if err := row.Columns(&tableName, &columnName, &ordinalPosition, &columnType, &isNullable); err != nil {
+		return nil, err
+	}
+	return &Column{
+		Name:            columnName,
+		OrdinalPosition: int(ordinalPosition),
+		Type:            columnType,
+		NotNull:         isNullable == "NO",
+		AutoIncrement:   false, // Cloud Spanner does not support AUTO_INCREMENT
+	}, nil
 }
 
 // GetSchema is get schema method

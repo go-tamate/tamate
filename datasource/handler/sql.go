@@ -76,19 +76,17 @@ func (h *SQLHandler) GetSchemas() ([]*Schema, error) {
 		}
 		// prepare schema
 		if _, ok := schemaMap[tableName]; !ok {
-			schema, err := NewSchema(tableName)
-			if err != nil {
-				return nil, err
-			}
-			schemaMap[tableName] = schema
+			schemaMap[tableName] = &Schema{Name: tableName}
 		}
 		schema := schemaMap[tableName]
 		// set column in schema
 		if strings.Contains(columnKey, "PRI") {
-			schema.PrimaryKey = columnName
-			schema.primaryKeyIndex = ordinalPosition - 1
+			if schema.PrimaryKey == nil {
+				schema.PrimaryKey = &PrimaryKey{}
+			}
+			schema.PrimaryKey.ColumnNames = append(schema.PrimaryKey.ColumnNames, columnName)
 		}
-		column := Column{
+		column := &Column{
 			Name:            columnName,
 			OrdinalPosition: ordinalPosition - 1,
 			Type:            columnType,
