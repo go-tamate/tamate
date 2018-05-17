@@ -30,8 +30,8 @@ func (h *CSVHandler) Close() error {
 }
 
 // GetSchemas is get all schemas method
-func (h *CSVHandler) GetSchemas() (*[]Schema, error) {
-	schema := Schema{
+func (h *CSVHandler) GetSchemas() ([]*Schema, error) {
+	schema := &Schema{
 		Name: h.URI,
 	}
 	if h.ColumnRowIndex > 0 {
@@ -53,7 +53,7 @@ func (h *CSVHandler) GetSchemas() (*[]Schema, error) {
 			}
 		}
 	}
-	return &[]Schema{schema}, nil
+	return []*Schema{schema}, nil
 }
 
 // GetSchema is get schema method
@@ -62,7 +62,7 @@ func (h *CSVHandler) GetSchema(schema *Schema) error {
 	if err != nil {
 		return err
 	}
-	for _, sc := range *schemas {
+	for _, sc := range schemas {
 		if sc.Name == schema.Name {
 			schema.Columns = sc.Columns
 		}

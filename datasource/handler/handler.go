@@ -35,11 +35,20 @@ func (sc *Schema) GetPrimaryKeyIndex() int {
 	return sc.primaryKeyIndex
 }
 
+// GetColumnNames is return name list of columns
+func (sc *Schema) GetColumnNames() []string {
+	var colNames []string
+	for _, col := range sc.Columns {
+		colNames = append(colNames, col.Name)
+	}
+	return colNames
+}
+
 // Handler is read and write datasource interface
 type Handler interface {
 	Open() error
 	Close() error
-	GetSchemas() (*[]Schema, error)
+	GetSchemas() ([]*Schema, error)
 	GetSchema(*Schema) error
 	SetSchema(*Schema) error
 	GetRows(*Schema) (*Rows, error)
