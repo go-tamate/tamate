@@ -66,7 +66,7 @@ func (d *Differ) diffColumns() (*DiffColumns, error) {
 					found = true
 					if pattern == "Normal" {
 						// Modify
-						modifyColumnValues, err := getModifyColumnValues(&srcColumn, &dstColumn)
+						modifyColumnValues, err := getModifyColumnValues(srcColumn, dstColumn)
 						if err != nil {
 							return nil, err
 						}
@@ -80,14 +80,14 @@ func (d *Differ) diffColumns() (*DiffColumns, error) {
 			if !found {
 				if pattern == "Normal" {
 					// Add
-					modifyColumnValues, err := getModifyColumnValues(nil, &srcColumn)
+					modifyColumnValues, err := getModifyColumnValues(nil, srcColumn)
 					if err != nil {
 						return nil, err
 					}
 					diff.Add = append(diff.Add, *modifyColumnValues)
 				} else {
 					// Delete
-					modifyColumnValues, err := getModifyColumnValues(&srcColumn, nil)
+					modifyColumnValues, err := getModifyColumnValues(srcColumn, nil)
 					if err != nil {
 						return nil, err
 					}
