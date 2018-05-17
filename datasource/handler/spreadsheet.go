@@ -60,8 +60,8 @@ func (h *SpreadsheetHandler) Close() error {
 }
 
 // GetSchemas is get all schemas method
-func (h *SpreadsheetHandler) GetSchemas() (*[]Schema, error) {
-	schemas := make([]Schema, 0)
+func (h *SpreadsheetHandler) GetSchemas() ([]*Schema, error) {
+	var schemas []*Schema
 	spreadsheet, err := h.sheetService.Spreadsheets.Get(h.SpreadsheetID).Do()
 	if err != nil {
 		return nil, err
@@ -79,9 +79,9 @@ func (h *SpreadsheetHandler) GetSchemas() (*[]Schema, error) {
 		if schema == nil {
 			continue
 		}
-		schemas = append(schemas, *schema)
+		schemas = append(schemas, schema)
 	}
-	return &schemas, nil
+	return schemas, nil
 }
 
 // GetSchema is get schema method

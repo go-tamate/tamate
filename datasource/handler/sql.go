@@ -53,7 +53,7 @@ func (h *SQLHandler) Close() error {
 }
 
 // GetSchemas is get all schemas method
-func (h *SQLHandler) GetSchemas() (*[]Schema, error) {
+func (h *SQLHandler) GetSchemas() ([]*Schema, error) {
 	// get schemas
 	sqlRows, err := h.db.Query("SELECT TABLE_NAME, COLUMN_NAME, ORDINAL_POSITION, COLUMN_TYPE, COLUMN_KEY, IS_NULLABLE, EXTRA FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE()")
 	if err != nil {
@@ -62,7 +62,7 @@ func (h *SQLHandler) GetSchemas() (*[]Schema, error) {
 	defer sqlRows.Close()
 
 	// scan results
-	schemaMap := make(map[string]Schema)
+	schemaMap := make(map[string]*Schema)
 	for sqlRows.Next() {
 		var tableName string
 		var columnName string
@@ -80,7 +80,7 @@ func (h *SQLHandler) GetSchemas() (*[]Schema, error) {
 			if err != nil {
 				return nil, err
 			}
-			schemaMap[tableName] = *schema
+			schemaMap[tableName] = schema
 		}
 		schema := schemaMap[tableName]
 		// set column in schema
@@ -100,11 +100,11 @@ func (h *SQLHandler) GetSchemas() (*[]Schema, error) {
 	}
 
 	// set schemas
-	schemas := []Schema{}
+	var schemas []*Schema
 	for tableName := range schemaMap {
 		schemas = append(schemas, schemaMap[tableName])
 	}
-	return &schemas, nil
+	return schemas, nil
 }
 
 // GetSchema is get schema method

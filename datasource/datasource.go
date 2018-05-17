@@ -86,7 +86,7 @@ func (ds *Datasource) Close() error {
 }
 
 // GetSchemas is get all schema method
-func (ds *Datasource) GetSchemas() (*[]handler.Schema, error) {
+func (ds *Datasource) GetSchemas() ([]*handler.Schema, error) {
 	if ds.handler == nil {
 		return nil, errors.New("not open")
 	}
@@ -170,10 +170,10 @@ func (ds *Datasource) getTables() ([]Table, error) {
 		if schemas == nil {
 			return nil, errors.New("not define schemas")
 		}
-		tables := make([]Table, len(*schemas))
-		for i, schema := range *schemas {
+		tables := make([]Table, len(schemas))
+		for i, schema := range schemas {
 			table := Table{
-				Schema: schema,
+				Schema: *schema,
 			}
 			tables[i] = table
 		}
