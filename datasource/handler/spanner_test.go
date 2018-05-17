@@ -6,7 +6,12 @@ import (
 )
 
 func TestSpannerHandler_GetRows(t *testing.T) {
-	h, err := NewSpannerHandler(os.Getenv("TAMATE_SPANNER_DSN"))
+	dsn := os.Getenv("TAMATE_SPANNER_DSN")
+	if dsn == "" {
+		t.Skip()
+	}
+
+	h, err := NewSpannerHandler(dsn)
 	if err != nil {
 		t.Fatal(err)
 	}
