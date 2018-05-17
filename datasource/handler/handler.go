@@ -25,13 +25,6 @@ type Schema struct {
 	Columns    []*Column   `json:"columns"`
 }
 
-// NewSchema is create schema instance
-func NewSchema(name string) (*Schema, error) {
-	return &Schema{
-		Name: name,
-	}, nil
-}
-
 // TODO: composite primary key support
 func (sc *Schema) GetPrimaryKeyIndex() int {
 	for i, col := range sc.Columns {
