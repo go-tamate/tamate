@@ -8,6 +8,7 @@ const (
 	CSV Type = iota
 	SQL
 	Spreadsheet
+	Spanner
 )
 
 func (t Type) String() string {
@@ -18,6 +19,8 @@ func (t Type) String() string {
 		return "sql"
 	case Spreadsheet:
 		return "spreadsheet"
+	case Spanner:
+		return "spanner"
 	default:
 		return "unknown"
 	}

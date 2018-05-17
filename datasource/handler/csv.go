@@ -39,17 +39,15 @@ func (h *CSVHandler) GetSchemas() ([]*Schema, error) {
 		if err != nil {
 			return nil, err
 		}
+		schema.Columns = make([]*Column, len(values))
 		for i := range values {
 			if i == h.ColumnRowIndex-1 {
-				columns := []Column{}
 				for j := range values[i] {
-					column := Column{
+					schema.Columns[i] = &Column{
 						Name: values[i][j],
 						Type: "string",
 					}
-					columns = append(columns, column)
 				}
-				schema.Columns = columns
 			}
 		}
 	}
