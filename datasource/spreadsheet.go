@@ -65,10 +65,7 @@ func (h *SpreadsheetDatasource) GetSchemas() ([]*Schema, error) {
 	}
 	for _, sheet := range spreadsheet.Sheets {
 		sheetName := sheet.Properties.Title
-		schema := &Schema{
-			Name: sheetName,
-		}
-		err := h.GetSchema(schema)
+		schema, err := h.GetSchema(sheetName)
 		if err != nil {
 			return nil, err
 		}
@@ -83,12 +80,15 @@ func (h *SpreadsheetDatasource) GetSchemas() ([]*Schema, error) {
 
 // GetSchema is get schema method
 func (h *SpreadsheetDatasource) GetSchema(name string) (*Schema, error) {
+
+	var schema *Schema
 	if h.ColumnRowIndex > 0 {
 		readRange := name + "!" + h.Ranges
 		response, err := h.sheetService.Spreadsheets.Values.Get(h.SpreadsheetID, readRange).Do()
 		if err != nil {
-			return err
+			return nil, err
 		}
+		schema.Name = name
 		for i, row := range response.Values {
 			if i != h.ColumnRowIndex-1 {
 				continue
@@ -101,10 +101,11 @@ func (h *SpreadsheetDatasource) GetSchema(name string) (*Schema, error) {
 				}
 			}
 			schema.Columns = columns
-			return nil
+			return schema, nil
 		}
 	}
-	return nil
+	// @todo Correct ret val
+	return nil, nil
 }
 
 // SetSchema is set schema method

@@ -127,7 +127,7 @@ func scanSchemaColumn(row *spanner.Row) (*Column, error) {
 
 // GetSchema is get schema method
 func (h *SpannerDatasource) GetSchema(name string) (*Schema, error) {
-	return errors.New("not implemented")
+	return nil, errors.New("not implemented")
 }
 
 // SetSchema is set schema method
