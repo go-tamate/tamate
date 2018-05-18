@@ -35,13 +35,14 @@ func (ds *MockDatasource) GetSchemas() ([]*Schema, error) {
 	return nil, errors.New("GetSchemas() not supported")
 }
 
-func (ds *MockDatasource) GetSchema(sc *Schema) error {
+func (ds *MockDatasource) GetSchema(name string) (*Schema, error) {
+	sc := &Schema{}
 	sc.Columns = []*Column{
 		{Name: "id", Type: "string"},
 		{Name: "name", Type: "string"},
 	}
 	sc.PrimaryKey = &PrimaryKey{ColumnNames: []string{"id"}}
-	return nil
+	return sc, nil
 }
 
 func (ds *MockDatasource) SetSchema(sc *Schema) error {

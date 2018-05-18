@@ -3,6 +3,7 @@ package datasource
 import (
 	"encoding/csv"
 	"os"
+	"errors"
 )
 
 // CSVDatasource is handler struct of csv
@@ -115,7 +116,7 @@ func (h *CSVDatasource) SetRows(schema *Schema, rows *Rows) error {
 	values := make([][]string, 0)
 	for j := range rows.Values {
 		if j == h.ColumnRowIndex-1 {
-			err := h.GetSchema(schema.Name)
+			_, err := h.GetSchema(schema.Name)
 			if err != nil {
 				return err
 			}
