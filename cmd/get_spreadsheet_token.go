@@ -40,5 +40,7 @@ func main() {
 		log.Fatalf("Unable to parse client secret file to config: %v", err)
 	}
 	tok := getTokenFromWeb(config)
-	json.NewEncoder(os.Stdout).Encode(tok)
+	if err := json.NewEncoder(os.Stdout).Encode(tok); err != nil {
+		log.Fatal(err)
+	}
 }
