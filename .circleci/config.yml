@@ -5,6 +5,7 @@ jobs:
     docker:
       - image: circleci/golang:1.9
         environment:
+          - REVIEWDOG_VERSION: 0.9.8
           - TAMATE_MYSQL_DSN: "root:example@tcp(localhost:3306)/"
       - image: circleci/mysql:5.7
         environment:
@@ -14,11 +15,11 @@ jobs:
       - run:
           name: Install linters
           command: |
-            go get github.com/haya14busa/reviewdog/cmd/reviewdog
+            curl -fSL https://github.com/haya14busa/reviewdog/releases/download/$REVIEWDOG_VERSION/reviewdog_linux_amd64 -o ./reviewdog && chmod +x ./reviewdog
             go get github.com/golang/lint/golint
             go get honnef.co/go/tools/cmd/megacheck
             go get github.com/kisielk/errcheck
-      - run: reviewdog -ci="circle-ci" -conf=.reviewdog.yml
+      - run: ./reviewdog -ci="circle-ci" -conf=.reviewdog.yml
       - restore_cache:
           key: gopkg-{{ .Branch }}-{{ checksum "Gopkg.lock" }}
           paths:
