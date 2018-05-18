@@ -1,4 +1,4 @@
-package handler
+package datasource
 
 import (
 	"context"
@@ -9,32 +9,32 @@ import (
 	"google.golang.org/api/iterator"
 )
 
-type SpannerHandler struct {
+type SpannerDatasource struct {
 	DSN           string `json:"dsn"`
 	spannerClient *spanner.Client
 }
 
-func NewSpannerHandler(dsn string) (*SpannerHandler, error) {
+func NewSpannerDatasource(dsn string) (*SpannerDatasource, error) {
 	ctx := context.Background()
 	spannerClient, err := spanner.NewClient(ctx, dsn)
 	if err != nil {
 		return nil, err
 	}
-	return &SpannerHandler{
+	return &SpannerDatasource{
 		DSN:           dsn,
 		spannerClient: spannerClient,
 	}, nil
 }
 
-func (h *SpannerHandler) Open() error {
+func (h *SpannerDatasource) Open() error {
 	return nil
 }
 
-func (h *SpannerHandler) Close() error {
+func (h *SpannerDatasource) Close() error {
 	return nil
 }
 
-func (h *SpannerHandler) GetSchemas() ([]*Schema, error) {
+func (h *SpannerDatasource) GetSchemas() ([]*Schema, error) {
 	ctx := context.Background()
 	stmt := spanner.NewStatement("SELECT TABLE_NAME, COLUMN_NAME, ORDINAL_POSITION, SPANNER_TYPE, IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ''")
 	iter := h.spannerClient.Single().Query(ctx, stmt)
@@ -79,7 +79,7 @@ func (h *SpannerHandler) GetSchemas() ([]*Schema, error) {
 	return schemas, nil
 }
 
-func (h *SpannerHandler) getPrimaryKey(tableName string) (*PrimaryKey, error) {
+func (h *SpannerDatasource) getPrimaryKey(tableName string) (*PrimaryKey, error) {
 	ctx := context.Background()
 	stmt := spanner.NewStatement(fmt.Sprintf("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.INDEX_COLUMNS WHERE TABLE_NAME = '%s' AND INDEX_TYPE = 'PRIMARY_KEY' ORDER BY ORDINAL_POSITION ASC", tableName))
 	iter := h.spannerClient.Single().Query(ctx, stmt)
@@ -126,17 +126,17 @@ func scanSchemaColumn(row *spanner.Row) (*Column, error) {
 }
 
 // GetSchema is get schema method
-func (h *SpannerHandler) GetSchema(schema *Schema) error {
+func (h *SpannerDatasource) GetSchema(schema *Schema) error {
 	return errors.New("not implemented")
 }
 
 // SetSchema is set schema method
-func (h *SpannerHandler) SetSchema(schema *Schema) error {
+func (h *SpannerDatasource) SetSchema(schema *Schema) error {
 	return errors.New("not implemented")
 }
 
 // GetRows is get rows method
-func (h *SpannerHandler) GetRows(schema *Schema) (*Rows, error) {
+func (h *SpannerDatasource) GetRows(schema *Schema) (*Rows, error) {
 	ctx := context.Background()
 	stmt := spanner.NewStatement(fmt.Sprintf("SELECT * FROM `%s`", schema.Name))
 	iter := h.spannerClient.Single().Query(ctx, stmt)
@@ -164,7 +164,7 @@ func (h *SpannerHandler) GetRows(schema *Schema) (*Rows, error) {
 }
 
 // SetRows is set rows method
-func (h *SpannerHandler) SetRows(schema *Schema, rows *Rows) error {
+func (h *SpannerDatasource) SetRows(schema *Schema, rows *Rows) error {
 	ctx := context.Background()
 	if _, err := h.spannerClient.ReadWriteTransaction(ctx, func(ctx context.Context, tx *spanner.ReadWriteTransaction) error {
 		var ms []*spanner.Mutation

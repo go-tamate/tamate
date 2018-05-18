@@ -1,185 +1,56 @@
 package datasource
 
-import (
-	"encoding/json"
-	"errors"
-	"io"
-	"strings"
-
-	"github.com/Mitu217/tamate/datasource/handler"
-)
-
-// Table is table struct in datasource
-type Table struct {
-	Schema handler.Schema `json:"schema"`
-	rows   handler.Rows
+// Column is table column
+type Column struct {
+	Name            string `json:"name"`
+	OrdinalPosition int    `json:"ordinal_position"`
+	Type            string `json:"type"`
+	NotNull         bool   `json:"not_null"`
+	AutoIncrement   bool   `json:"auto_increment"`
 }
 
-// Datasource is datasource interface
-type Datasource struct {
-	Type    string
-	tables  []Table
-	handler handler.Handler
+// Rows is table records
+type Rows struct {
+	Values [][]string `json:"values"`
 }
 
-// ToJSON is datasource to json method
-func ToJSON(ds *Datasource, w io.Writer) error {
-	//typeName := reflect.TypeOf(config).Elem().Name()
-	//enc := json.NewEncoder(w)
-
-	// TODO: typeNameごとにEncodeを行う
-
-	return nil //enc.Encode(tj)
+type PrimaryKey struct {
+	ColumnNames []string `json:"column_names"`
 }
 
-// FromJSON is json to datasource method
-func FromJSON(r io.Reader) (*Datasource, error) {
-	// decode JSON
-	var ds struct {
-		Type   string                 `json:"type"`
-		Config map[string]interface{} `json:"config"`
-	}
-	if err := json.NewDecoder(r).Decode(&ds); err != nil {
-		return nil, err
-	}
-	return NewDatasource(ds.Type, ds.Config)
+// Schema is column definitions at table
+type Schema struct {
+	Name       string      `json:"name"`
+	PrimaryKey *PrimaryKey `json:"primary_key"`
+	Columns    []*Column   `json:"columns"`
 }
 
-// NewDatasource is create datasource instance method
-func NewDatasource(t string, config map[string]interface{}) (*Datasource, error) {
-	// decode HandlerConfig
-	var h handler.Handler
-	switch t {
-	case CSV.String():
-		h = &handler.CSVHandler{}
-		break
-	case Spreadsheet.String():
-		h = &handler.SpreadsheetHandler{}
-		break
-	case SQL.String():
-		h = &handler.SQLHandler{}
-		break
-	case Spanner.String():
-		h = &handler.SpannerHandler{}
-	default:
-		return nil, errors.New("invalid type: " + t)
-	}
-	configBytes, err := json.Marshal(config)
-	if err != nil {
-		return nil, err
-	}
-	if err := json.NewDecoder(strings.NewReader(string(configBytes))).Decode(h); err != nil {
-		return nil, err
-	}
-	return &Datasource{
-		Type:    t,
-		handler: h,
-	}, nil
-}
-
-// Open is create handler method
-func (ds *Datasource) Open() error {
-	return ds.handler.Open()
-}
-
-// Close is free handler method
-func (ds *Datasource) Close() error {
-	return ds.handler.Close()
-}
-
-// GetSchemas is get all schema method
-func (ds *Datasource) GetSchemas() ([]*handler.Schema, error) {
-	if ds.handler == nil {
-		return nil, errors.New("not open")
-	}
-	return ds.handler.GetSchemas()
-}
-
-// GetSchema is get schema from datasource method
-func (ds *Datasource) GetSchema(schemaName string) (*handler.Schema, error) {
-	if ds.handler == nil {
-		return nil, errors.New("not open")
-	}
-	tables, err := ds.getTables()
-	if err != nil {
-		return nil, errors.New("not define schemas")
-	}
-	for _, table := range tables {
-		if table.Schema.Name == schemaName {
-			return &table.Schema, nil
+// TODO: composite primary key support
+func (sc *Schema) GetPrimaryKeyIndex() int {
+	for i, col := range sc.Columns {
+		if col.Name == sc.PrimaryKey.ColumnNames[0] {
+			return i
 		}
 	}
-	return nil, errors.New("not found schema: " + schemaName)
+	return -1
 }
 
-// SetSchema is set schema to datasource method
-func (ds *Datasource) SetSchema(schema *handler.Schema) error {
-	if ds.handler == nil {
-		return errors.New("not open")
+// GetColumnNames is return name list of columns
+func (sc *Schema) GetColumnNames() []string {
+	var colNames []string
+	for _, col := range sc.Columns {
+		colNames = append(colNames, col.Name)
 	}
-	tables, err := ds.getTables()
-	if err != nil {
-		return errors.New("not define schemas")
-	}
-	for _, table := range tables {
-		if table.Schema.Name == schema.Name {
-			return ds.handler.SetSchema(schema)
-		}
-	}
-	return errors.New("not found schema: " + schema.Name)
+	return colNames
 }
 
-// GetRows is get rows from datasource method
-func (ds *Datasource) GetRows(schemaName string) (*handler.Rows, error) {
-	if ds.handler == nil {
-		return nil, errors.New("not open")
-	}
-	tables, err := ds.getTables()
-	if err != nil {
-		return nil, errors.New("not define schemas")
-	}
-	for _, table := range tables {
-		if table.Schema.Name == schemaName {
-			return ds.handler.GetRows(&table.Schema)
-		}
-	}
-	return nil, errors.New("not found schema: " + schemaName)
-}
-
-// SetRows is set rows to datasource method
-func (ds *Datasource) SetRows(schemaName string, rows *handler.Rows) error {
-	if ds.handler == nil {
-		return errors.New("not open")
-	}
-	tables, err := ds.getTables()
-	if err != nil {
-		return err
-	}
-	for _, table := range tables {
-		if table.Schema.Name == schemaName {
-			return ds.handler.SetRows(&table.Schema, rows)
-		}
-	}
-	return errors.New("not found schema: " + schemaName)
-}
-
-func (ds *Datasource) getTables() ([]Table, error) {
-	if ds.tables == nil {
-		schemas, err := ds.handler.GetSchemas()
-		if err != nil {
-			return nil, err
-		}
-		if schemas == nil {
-			return nil, errors.New("not define schemas")
-		}
-		tables := make([]Table, len(schemas))
-		for i, schema := range schemas {
-			table := Table{
-				Schema: *schema,
-			}
-			tables[i] = table
-		}
-		ds.tables = tables
-	}
-	return ds.tables, nil
+// Datasource is read and write datasource interface
+type Datasource interface {
+	Open() error
+	Close() error
+	GetSchemas() ([]*Schema, error)
+	GetSchema(*Schema) error
+	SetSchema(*Schema) error
+	GetRows(*Schema) (*Rows, error)
+	SetRows(*Schema, *Rows) error
 }

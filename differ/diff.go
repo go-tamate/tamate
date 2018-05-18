@@ -1,7 +1,7 @@
 package differ
 
 import (
-	"github.com/Mitu217/tamate/datasource/handler"
+	"github.com/Mitu217/tamate/datasource"
 )
 
 // DiffColumns is add, modify and delete columns struct
@@ -13,8 +13,8 @@ type DiffColumns struct {
 
 // ModifyColumnValues is modify column values struct between left and right
 type ModifyColumnValues struct {
-	Left  *handler.Column `json:"left"`
-	Right *handler.Column `json:"right"`
+	Left  *datasource.Column `json:"left"`
+	Right *datasource.Column `json:"right"`
 }
 
 // DiffRows is add, modify and delete rows struct

@@ -1,17 +1,17 @@
-package handler
+package datasource
 
 import (
 	"os"
 	"testing"
 )
 
-func TestSpannerHandler_GetRows(t *testing.T) {
+func TestSpanner_GetRows(t *testing.T) {
 	dsn := os.Getenv("TAMATE_SPANNER_DSN")
 	if dsn == "" {
 		t.Skip()
 	}
 
-	h, err := NewSpannerHandler(dsn)
+	h, err := NewSpannerDatasource(dsn)
 	if err != nil {
 		t.Fatal(err)
 	}

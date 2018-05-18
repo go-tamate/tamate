@@ -4,57 +4,23 @@ import (
 	"log"
 
 	"github.com/Mitu217/tamate/datasource"
-	"github.com/Mitu217/tamate/datasource/handler"
 )
-
-// TargetTable is diff target schema struct
-type TargetTable struct {
-	Datasource datasource.Datasource
-	SchemaName string
-}
-
-// NewTargetTable is create table instance method
-func NewTargetTable(ds datasource.Datasource, scn string) (*TargetTable, error) {
-	return &TargetTable{
-		Datasource: ds,
-		SchemaName: scn,
-	}, nil
-}
-
-func (t *TargetTable) getPrimaryKeyIndex() (int, error) {
-	schema, err := t.Datasource.GetSchema(t.SchemaName)
-	if err != nil {
-		return -1, err
-	}
-	return schema.GetPrimaryKeyIndex(), nil
-}
 
 // Differ is diff between tables struct
 type Differ struct {
-	Left  *TargetTable
-	Right *TargetTable
 }
 
 // NewDiffer is create differ instance method
-func NewDiffer(left *TargetTable, right *TargetTable) (*Differ, error) {
-	d := &Differ{
-		Left:  left,
-		Right: right,
-	}
+func NewDiffer(schema *datasource.Schema) (*Differ, error) {
+	d := &Differ{}
 	return d, nil
 }
 
 // DiffColumns is get diff columns method
-func (d *Differ) diffColumns() (*DiffColumns, error) {
+func (d *Differ) diffColumns(left, right *datasource.Schema) (*DiffColumns, error) {
 	// Get Schemas
-	srcSchema, err := d.Left.Datasource.GetSchema(d.Left.SchemaName)
-	if err != nil {
-		return nil, err
-	}
-	dstSchema, err := d.Right.Datasource.GetSchema(d.Right.SchemaName)
-	if err != nil {
-		return nil, err
-	}
+	srcSchema := left
+	dstSchema := right
 
 	// Get diff
 	diff := &DiffColumns{}
@@ -102,7 +68,7 @@ func (d *Differ) diffColumns() (*DiffColumns, error) {
 	return diff, nil
 }
 
-func getModifyColumnValues(left *handler.Column, right *handler.Column) (*ModifyColumnValues, error) {
+func getModifyColumnValues(left, right *datasource.Column) (*ModifyColumnValues, error) {
 	modify := false
 	if left == nil || right == nil {
 		modify = true
@@ -126,35 +92,12 @@ func getModifyColumnValues(left *handler.Column, right *handler.Column) (*Modify
 }
 
 // DiffRows is get diff rows method
-func (d *Differ) DiffRows() (*DiffRows, error) {
-	// Get target rows
-	err := d.Left.Datasource.Open()
-	if err != nil {
-		return nil, err
-	}
-	defer d.Left.Datasource.Close()
-	srcRows, err := d.Left.Datasource.GetRows(d.Left.SchemaName)
-	if err != nil {
-		return nil, err
-	}
-	err = d.Right.Datasource.Open()
-	if err != nil {
-		return nil, err
-	}
-	defer d.Right.Datasource.Close()
-	dstRows, err := d.Right.Datasource.GetRows(d.Right.SchemaName)
-	if err != nil {
-		return nil, err
-	}
-	// Get diff
-	leftPrimaryKeyIndex, err := d.Left.getPrimaryKeyIndex()
-	if err != nil {
-		return nil, err
-	}
-	rightPrimaryKeyIndex, err := d.Right.getPrimaryKeyIndex()
-	if err != nil {
-		return nil, err
-	}
+func (d *Differ) DiffRows(sc *datasource.Schema, left, right *datasource.Rows) (*DiffRows, error) {
+	srcRows := left
+	dstRows := right
+	leftPrimaryKeyIndex := sc.GetPrimaryKeyIndex()
+	rightPrimaryKeyIndex := sc.GetPrimaryKeyIndex()
+
 	diff := &DiffRows{}
 	for _, pattern := range []string{"Normal", "Reverse"} {
 		for i, srcValue := range srcRows.Values {
