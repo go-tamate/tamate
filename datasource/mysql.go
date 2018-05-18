@@ -10,24 +10,22 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-type SQLDatasource struct {
-	DriverName string `json:"driver_name"`
-	DSN        string `json:"dsn"`
-	db         *sql.DB
+type MySQLDatasource struct {
+	DSN string `json:"dsn"`
+	db  *sql.DB
 }
 
-// NewSQLDatasource is create SQLDatasource instance method
-func NewSQLDatasource(driverName string, dsn string) (*SQLDatasource, error) {
-	return &SQLDatasource{
-		DriverName: driverName,
-		DSN:        dsn,
+// NewMySQLDatasource is create MySQLDatasource instance method
+func NewMySQLDatasource(dsn string) (*MySQLDatasource, error) {
+	return &MySQLDatasource{
+		DSN: dsn,
 	}, nil
 }
 
 // Open is call by datasource when create instance
-func (h *SQLDatasource) Open() error {
+func (h *MySQLDatasource) Open() error {
 	if h.db == nil {
-		db, err := sql.Open(h.DriverName, h.DSN)
+		db, err := sql.Open("mysql", h.DSN)
 		if err != nil {
 			return err
 		}
@@ -40,7 +38,7 @@ func (h *SQLDatasource) Open() error {
 }
 
 // Close is call by datasource when free instance
-func (h *SQLDatasource) Close() error {
+func (h *MySQLDatasource) Close() error {
 	if h.db != nil {
 		err := h.db.Close()
 		h.db = nil
@@ -52,7 +50,7 @@ func (h *SQLDatasource) Close() error {
 }
 
 // GetSchemas is get all schemas method
-func (h *SQLDatasource) createAllSchemaMap() (map[string]*Schema, error) {
+func (h *MySQLDatasource) createAllSchemaMap() (map[string]*Schema, error) {
 	// get schemas
 	sqlRows, err := h.db.Query("SELECT TABLE_NAME, COLUMN_NAME, ORDINAL_POSITION, COLUMN_TYPE, COLUMN_KEY, IS_NULLABLE, EXTRA FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE()")
 	if err != nil {
@@ -99,7 +97,7 @@ func (h *SQLDatasource) createAllSchemaMap() (map[string]*Schema, error) {
 	return schemaMap, nil
 }
 
-func (h *SQLDatasource) GetAllSchema() ([]*Schema, error) {
+func (h *MySQLDatasource) GetAllSchema() ([]*Schema, error) {
 	allMap, err := h.createAllSchemaMap()
 	if err != nil {
 		return nil, err
@@ -113,7 +111,7 @@ func (h *SQLDatasource) GetAllSchema() ([]*Schema, error) {
 }
 
 // GetSchema is get schema method
-func (h *SQLDatasource) GetSchema(name string) (*Schema, error) {
+func (h *MySQLDatasource) GetSchema(name string) (*Schema, error) {
 	all, err := h.createAllSchemaMap()
 	if err != nil {
 		return nil, err
@@ -127,12 +125,12 @@ func (h *SQLDatasource) GetSchema(name string) (*Schema, error) {
 }
 
 // SetSchema is set schema method
-func (h *SQLDatasource) SetSchema(schema *Schema) error {
+func (h *MySQLDatasource) SetSchema(schema *Schema) error {
 	return errors.New("not support SetSchema()")
 }
 
 // GetRows is get rows method
-func (h *SQLDatasource) GetRows(schema *Schema) (*Rows, error) {
+func (h *MySQLDatasource) GetRows(schema *Schema) (*Rows, error) {
 	// get data
 	sqlRows, err := h.db.Query(fmt.Sprintf("SELECT * FROM %s", schema.Name))
 	if err != nil {
@@ -172,7 +170,7 @@ func (h *SQLDatasource) GetRows(schema *Schema) (*Rows, error) {
 }
 
 // SetRows is set rows method
-func (h *SQLDatasource) SetRows(schema *Schema, rows *Rows) error {
+func (h *MySQLDatasource) SetRows(schema *Schema, rows *Rows) error {
 	// reset table
 	sqlRows, err := h.db.Query(fmt.Sprintf("DELETE FROM %s", schema.Name))
 	if err != nil {
