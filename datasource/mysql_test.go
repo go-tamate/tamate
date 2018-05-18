@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	// mysql driver
+	"context"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"os"
@@ -69,7 +70,8 @@ func TestMySQLDatasource_Get(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	sc, err := ds.GetSchema("example")
+	ctx := context.Background()
+	sc, err := ds.GetSchema(ctx, "example")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -82,7 +84,7 @@ func TestMySQLDatasource_Get(t *testing.T) {
 		t.Fatal("Columns[1] must be 'name varchar(100)'")
 	}
 
-	rows, err := ds.GetRows(sc)
+	rows, err := ds.GetRows(ctx, sc)
 	if err != nil {
 		t.Fatalf("GetRows failed: %+v", err)
 	}

@@ -1,5 +1,7 @@
 package datasource
 
+import "context"
+
 // Column is table column
 type Column struct {
 	Name            string `json:"name"`
@@ -46,9 +48,9 @@ func (sc *Schema) GetColumnNames() []string {
 
 // Datasource is read and write datasource interface
 type Datasource interface {
-	GetAllSchema() ([]*Schema, error)
-	GetSchema(name string) (*Schema, error)
-	SetSchema(*Schema) error
-	GetRows(*Schema) (*Rows, error)
-	SetRows(*Schema, *Rows) error
+	GetAllSchema(ctx context.Context) ([]*Schema, error)
+	GetSchema(ctx context.Context, name string) (*Schema, error)
+	SetSchema(ctx context.Context, sc *Schema) error
+	GetRows(ctx context.Context, sc *Schema) (*Rows, error)
+	SetRows(ctx context.Context, sc *Schema, rows *Rows) error
 }

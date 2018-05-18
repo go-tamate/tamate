@@ -26,17 +26,16 @@ func NewSpannerDatasource(dsn string) (*SpannerDatasource, error) {
 	}, nil
 }
 
-func (h *SpannerDatasource) Close() error {
-	if h.spannerClient != nil {
-		h.spannerClient.Close()
+func (ds *SpannerDatasource) Close() error {
+	if ds.spannerClient != nil {
+		ds.spannerClient.Close()
 	}
 	return nil
 }
 
-func (h *SpannerDatasource) createAllSchemaMap() (map[string]*Schema, error) {
-	ctx := context.Background()
+func (ds *SpannerDatasource) createAllSchemaMap(ctx context.Context) (map[string]*Schema, error) {
 	stmt := spanner.NewStatement("SELECT TABLE_NAME, COLUMN_NAME, ORDINAL_POSITION, SPANNER_TYPE, IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ''")
-	iter := h.spannerClient.Single().Query(ctx, stmt)
+	iter := ds.spannerClient.Single().Query(ctx, stmt)
 	defer iter.Stop()
 
 	// scan results
@@ -63,7 +62,7 @@ func (h *SpannerDatasource) createAllSchemaMap() (map[string]*Schema, error) {
 	}
 
 	for tableName, schema := range schemaMap {
-		pk, err := h.getPrimaryKey(tableName)
+		pk, err := ds.getPrimaryKey(ctx, tableName)
 		if err != nil {
 			return nil, err
 		}
@@ -72,8 +71,8 @@ func (h *SpannerDatasource) createAllSchemaMap() (map[string]*Schema, error) {
 	return schemaMap, nil
 }
 
-func (h *SpannerDatasource) GetAllSchema() ([]*Schema, error) {
-	allMap, err := h.createAllSchemaMap()
+func (ds *SpannerDatasource) GetAllSchema(ctx context.Context) ([]*Schema, error) {
+	allMap, err := ds.createAllSchemaMap(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -85,10 +84,9 @@ func (h *SpannerDatasource) GetAllSchema() ([]*Schema, error) {
 	return all, nil
 }
 
-func (h *SpannerDatasource) getPrimaryKey(tableName string) (*PrimaryKey, error) {
-	ctx := context.Background()
+func (ds *SpannerDatasource) getPrimaryKey(ctx context.Context, tableName string) (*PrimaryKey, error) {
 	stmt := spanner.NewStatement(fmt.Sprintf("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.INDEX_COLUMNS WHERE TABLE_NAME = '%s' AND INDEX_TYPE = 'PRIMARY_KEY' ORDER BY ORDINAL_POSITION ASC", tableName))
-	iter := h.spannerClient.Single().Query(ctx, stmt)
+	iter := ds.spannerClient.Single().Query(ctx, stmt)
 	defer iter.Stop()
 
 	var pk *PrimaryKey
@@ -132,8 +130,8 @@ func scanSchemaColumn(row *spanner.Row) (*Column, error) {
 }
 
 // GetSchema is get schema method
-func (h *SpannerDatasource) GetSchema(name string) (*Schema, error) {
-	all, err := h.createAllSchemaMap()
+func (ds *SpannerDatasource) GetSchema(ctx context.Context, name string) (*Schema, error) {
+	all, err := ds.createAllSchemaMap(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -148,15 +146,14 @@ func (h *SpannerDatasource) GetSchema(name string) (*Schema, error) {
 }
 
 // SetSchema is set schema method
-func (h *SpannerDatasource) SetSchema(schema *Schema) error {
+func (ds *SpannerDatasource) SetSchema(ctx context.Context, schema *Schema) error {
 	return errors.New("not implemented")
 }
 
 // GetRows is get rows method
-func (h *SpannerDatasource) GetRows(schema *Schema) (*Rows, error) {
-	ctx := context.Background()
+func (ds *SpannerDatasource) GetRows(ctx context.Context, schema *Schema) (*Rows, error) {
 	stmt := spanner.NewStatement(fmt.Sprintf("SELECT * FROM `%s`", schema.Name))
-	iter := h.spannerClient.Single().Query(ctx, stmt)
+	iter := ds.spannerClient.Single().Query(ctx, stmt)
 	defer iter.Stop()
 
 	var values [][]string
@@ -186,9 +183,8 @@ func (h *SpannerDatasource) GetRows(schema *Schema) (*Rows, error) {
 }
 
 // SetRows is set rows method
-func (h *SpannerDatasource) SetRows(schema *Schema, rows *Rows) error {
-	ctx := context.Background()
-	if _, err := h.spannerClient.ReadWriteTransaction(ctx, func(ctx context.Context, tx *spanner.ReadWriteTransaction) error {
+func (ds *SpannerDatasource) SetRows(ctx context.Context, schema *Schema, rows *Rows) error {
+	if _, err := ds.spannerClient.ReadWriteTransaction(ctx, func(ctx context.Context, tx *spanner.ReadWriteTransaction) error {
 		var ms []*spanner.Mutation
 		for _, value := range rows.Values {
 			insertRow := make([]interface{}, len(value))

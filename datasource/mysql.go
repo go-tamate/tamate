@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	// mysql driver
+	"context"
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -97,7 +97,7 @@ func (h *MySQLDatasource) createAllSchemaMap() (map[string]*Schema, error) {
 	return schemaMap, nil
 }
 
-func (h *MySQLDatasource) GetAllSchema() ([]*Schema, error) {
+func (h *MySQLDatasource) GetAllSchema(ctx context.Context) ([]*Schema, error) {
 	allMap, err := h.createAllSchemaMap()
 	if err != nil {
 		return nil, err
@@ -111,7 +111,7 @@ func (h *MySQLDatasource) GetAllSchema() ([]*Schema, error) {
 }
 
 // GetSchema is get schema method
-func (h *MySQLDatasource) GetSchema(name string) (*Schema, error) {
+func (h *MySQLDatasource) GetSchema(ctx context.Context, name string) (*Schema, error) {
 	all, err := h.createAllSchemaMap()
 	if err != nil {
 		return nil, err
@@ -125,12 +125,12 @@ func (h *MySQLDatasource) GetSchema(name string) (*Schema, error) {
 }
 
 // SetSchema is set schema method
-func (h *MySQLDatasource) SetSchema(schema *Schema) error {
+func (h *MySQLDatasource) SetSchema(ctx context.Context, schema *Schema) error {
 	return errors.New("not support SetSchema()")
 }
 
 // GetRows is get rows method
-func (h *MySQLDatasource) GetRows(schema *Schema) (*Rows, error) {
+func (h *MySQLDatasource) GetRows(ctx context.Context, schema *Schema) (*Rows, error) {
 	// get data
 	sqlRows, err := h.db.Query(fmt.Sprintf("SELECT * FROM %s", schema.Name))
 	if err != nil {
@@ -170,7 +170,7 @@ func (h *MySQLDatasource) GetRows(schema *Schema) (*Rows, error) {
 }
 
 // SetRows is set rows method
-func (h *MySQLDatasource) SetRows(schema *Schema, rows *Rows) error {
+func (h *MySQLDatasource) SetRows(ctx context.Context, schema *Schema, rows *Rows) error {
 	// reset table
 	sqlRows, err := h.db.Query(fmt.Sprintf("DELETE FROM %s", schema.Name))
 	if err != nil {
