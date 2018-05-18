@@ -128,13 +128,19 @@ func getModifyColumnValues(left *handler.Column, right *handler.Column) (*Modify
 // DiffRows is get diff rows method
 func (d *Differ) DiffRows() (*DiffRows, error) {
 	// Get target rows
-	d.Left.Datasource.Open()
+	err := d.Left.Datasource.Open()
+	if err != nil {
+		return nil, err
+	}
 	srcRows, err := d.Left.Datasource.GetRows(d.Left.SchemaName)
 	if err != nil {
 		return nil, err
 	}
 	defer d.Left.Datasource.Close()
-	d.Right.Datasource.Open()
+	err = d.Right.Datasource.Open()
+	if err != nil {
+		return nil, err
+	}
 	dstRows, err := d.Right.Datasource.GetRows(d.Right.SchemaName)
 	if err != nil {
 		return nil, err
