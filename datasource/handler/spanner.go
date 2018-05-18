@@ -63,6 +63,14 @@ func (h *SpannerHandler) GetSchemas() ([]*Schema, error) {
 		schemaMap[tableName].Columns = append(schemaMap[tableName].Columns, column)
 	}
 
+	for tableName, schema := range schemaMap {
+		pk, err := h.getPrimaryKey(tableName)
+		if err != nil {
+			return nil, err
+		}
+		schema.PrimaryKey = pk
+	}
+
 	// set schemas
 	var schemas []*Schema
 	for tableName := range schemaMap {
