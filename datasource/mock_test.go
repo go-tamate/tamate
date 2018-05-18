@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestMockDatasource_GetRows(t *testing.T) {
+func TestMockDatasource_Get(t *testing.T) {
 	ds, err := NewMockDatasource()
 	if err != nil {
 		t.Fatal(err)
