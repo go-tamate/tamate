@@ -31,15 +31,15 @@ func NewSpreadsheetDatasource(token *oauth2.Token, spreadsheetID string, ranges 
 	}, nil
 }
 
-func (h *SpreadsheetDatasource) GetAllSchema() ([]*Schema, error) {
+func (ds *SpreadsheetDatasource) GetAllSchema(ctx context.Context) ([]*Schema, error) {
 	var schemas []*Schema
-	spreadsheet, err := h.sheetService.Spreadsheets.Get(h.SpreadsheetID).Do()
+	spreadsheet, err := ds.sheetService.Spreadsheets.Get(ds.SpreadsheetID).Do()
 	if err != nil {
 		return nil, err
 	}
 	for _, sheet := range spreadsheet.Sheets {
 		sheetName := sheet.Properties.Title
-		schema, err := h.GetSchema(sheetName)
+		schema, err := ds.GetSchema(ctx, sheetName)
 		if err != nil {
 			return nil, err
 		}
@@ -52,14 +52,14 @@ func (h *SpreadsheetDatasource) GetAllSchema() ([]*Schema, error) {
 	return schemas, nil
 }
 
-func (h *SpreadsheetDatasource) GetSchema(name string) (*Schema, error) {
-	readRange := name + "!" + h.Ranges
-	response, err := h.sheetService.Spreadsheets.Values.Get(h.SpreadsheetID, readRange).Do()
+func (ds *SpreadsheetDatasource) GetSchema(ctx context.Context, name string) (*Schema, error) {
+	readRange := name + "!" + ds.Ranges
+	response, err := ds.sheetService.Spreadsheets.Values.Get(ds.SpreadsheetID, readRange).Do()
 	if err != nil {
 		return nil, err
 	}
 	for i, row := range response.Values {
-		if i == h.ColumnRowIndex {
+		if i == ds.ColumnRowIndex {
 			columns := make([]*Column, len(row))
 			for i := range row {
 				columns[i] = &Column{
@@ -88,7 +88,7 @@ func choosePrimaryKey(columns []*Column) (*PrimaryKey, error) {
 }
 
 // SetSchema is set schema method
-func (h *SpreadsheetDatasource) SetSchema(schema *Schema) error {
+func (ds *SpreadsheetDatasource) SetSchema(ctx context.Context, schema *Schema) error {
 	schemaValue := make([]interface{}, len(schema.Columns))
 	for i := range schema.Columns {
 		schemaValue[i] = schema.Columns[i].Name
@@ -99,23 +99,23 @@ func (h *SpreadsheetDatasource) SetSchema(schema *Schema) error {
 	}
 
 	// FIXME:
-	writeRange := schema.Name + "!" + fmt.Sprintf("A%d:XX", h.ColumnRowIndex+1)
-	if _, err := h.sheetService.Spreadsheets.Values.Update(h.SpreadsheetID, writeRange, valueRange).ValueInputOption("USER_ENTERED").Do(); err != nil {
+	writeRange := schema.Name + "!" + fmt.Sprintf("A%d:XX", ds.ColumnRowIndex+1)
+	if _, err := ds.sheetService.Spreadsheets.Values.Update(ds.SpreadsheetID, writeRange, valueRange).ValueInputOption("USER_ENTERED").Do(); err != nil {
 		return err
 	}
 	return nil
 }
 
 // GetRows is get rows method
-func (h *SpreadsheetDatasource) GetRows(schema *Schema) (*Rows, error) {
-	readRange := schema.Name + "!" + h.Ranges
-	response, err := h.sheetService.Spreadsheets.Values.Get(h.SpreadsheetID, readRange).Do()
+func (ds *SpreadsheetDatasource) GetRows(ctx context.Context, schema *Schema) (*Rows, error) {
+	readRange := schema.Name + "!" + ds.Ranges
+	response, err := ds.sheetService.Spreadsheets.Values.Get(ds.SpreadsheetID, readRange).Do()
 	if err != nil {
 		return nil, err
 	}
 	var values [][]string
 	for i, row := range response.Values {
-		if i == h.ColumnRowIndex {
+		if i == ds.ColumnRowIndex {
 			continue
 		}
 		value := make([]string, len(row))
@@ -131,10 +131,10 @@ func (h *SpreadsheetDatasource) GetRows(schema *Schema) (*Rows, error) {
 }
 
 // SetRows is set rows method
-func (h *SpreadsheetDatasource) SetRows(schema *Schema, rows *Rows) error {
+func (ds *SpreadsheetDatasource) SetRows(ctx context.Context, schema *Schema, rows *Rows) error {
 	rowsValues := make([][]interface{}, 0)
 	for i, value := range rows.Values {
-		if i == h.ColumnRowIndex {
+		if i == ds.ColumnRowIndex {
 			rowsValues = append(rowsValues, make([]interface{}, 0))
 		}
 		row := make([]interface{}, len(value))
@@ -149,8 +149,8 @@ func (h *SpreadsheetDatasource) SetRows(schema *Schema, rows *Rows) error {
 	}
 
 	// FIXME:
-	writeRange := schema.Name + "!" + fmt.Sprintf("A%d:XX", h.ColumnRowIndex+1)
-	if _, err := h.sheetService.Spreadsheets.Values.Update(h.SpreadsheetID, writeRange, valueRange).ValueInputOption("USER_ENTERED").Do(); err != nil {
+	writeRange := schema.Name + "!" + fmt.Sprintf("A%d:XX", ds.ColumnRowIndex+1)
+	if _, err := ds.sheetService.Spreadsheets.Values.Update(ds.SpreadsheetID, writeRange, valueRange).ValueInputOption("USER_ENTERED").Do(); err != nil {
 		return err
 	}
 	return nil

@@ -1,4 +1,5 @@
 vendor/
+.env
 
 # Max OSX
 .DS_Store

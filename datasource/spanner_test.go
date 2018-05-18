@@ -1,6 +1,7 @@
 package datasource
 
 import (
+	"context"
 	"os"
 	"testing"
 )
@@ -17,14 +18,15 @@ func TestSpanner_GetRows(t *testing.T) {
 	}
 	defer h.Close()
 
-	sc, err := h.GetSchema("User")
+	ctx := context.Background()
+	sc, err := h.GetSchema(ctx, "User")
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Logf("Schema: %+v", sc)
 	t.Logf("PK: %+v", sc.PrimaryKey)
 
-	rows, err := h.GetRows(sc)
+	rows, err := h.GetRows(ctx, sc)
 	if err != nil {
 		t.Fatal(err)
 	}

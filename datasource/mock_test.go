@@ -1,6 +1,9 @@
 package datasource
 
-import "testing"
+import (
+	"context"
+	"testing"
+)
 
 func TestMockDatasource_GetRows(t *testing.T) {
 	ds, err := NewMockDatasource()
@@ -8,12 +11,13 @@ func TestMockDatasource_GetRows(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var sc *Schema
-	if sc, err = ds.GetSchema(""); err != nil {
+	ctx := context.Background()
+	sc, err := ds.GetSchema(ctx, "")
+	if err != nil {
 		t.Fatal(err)
 	}
 
-	rows, err := ds.GetRows(sc)
+	rows, err := ds.GetRows(ctx, sc)
 	if err != nil {
 		t.Fatal(err)
 	}
