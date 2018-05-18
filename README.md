@@ -33,7 +33,12 @@ go test ./...
 ### Additional tests
 
 ```bash
+# For MySQLDatasource test
+docker-compose up -d
+export TAMATE_MYSQL_DSN=root:example@tcp(localhost:3306)/
+
 # For SpannerDatasource test
+export GOOGLE_APPLICATION_CREDENTIALS=/path/to/spanner_credentials.json
 export TAMATE_SPANNER_DSN=/projects/<GCP_PROJECT_ID>/instances/<SPANNER_INSTANCE_ID>/databases/<SPANNER_DATABASE_ID>
 
 # For SpreadsheetDatasource test
