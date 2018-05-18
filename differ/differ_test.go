@@ -9,6 +9,7 @@ func TestDiffer_DiffRows(t *testing.T) {
 	sc := &datasource.Schema{
 		Columns: []*datasource.Column{
 			{Name: "id", Type: "string"},
+			{Name: "name", Type: "string"},
 		},
 		PrimaryKey: &datasource.PrimaryKey{ColumnNames: []string{"id"}},
 	}
@@ -70,6 +71,40 @@ func TestDiffer_DiffRows(t *testing.T) {
 		}
 		if len(diff2.Add) > 0 {
 			t.Fatalf("expected: no rows added, actual: %d rows added", len(diff2.Add))
+		}
+	}
+}
+
+func TestDiffer_DiffColumns(t *testing.T) {
+	differ, err := NewDiffer()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	{
+		left := &datasource.Schema{
+			Columns: []*datasource.Column{
+				{Name: "id", Type: "string"},
+				{Name: "name", Type: "string"},
+			},
+			PrimaryKey: &datasource.PrimaryKey{ColumnNames: []string{"id"}},
+		}
+
+		right := &datasource.Schema{
+			Columns: []*datasource.Column{
+				{Name: "id", Type: "int"},
+				{Name: "name", Type: "string"},
+			},
+			PrimaryKey: &datasource.PrimaryKey{ColumnNames: []string{"id"}},
+		}
+
+		d, err := differ.DiffColumns(left, right)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if len(d.Modify) != 1 {
+			t.Fatalf("expect: 1 columns modified, actual: %d", len(d.Modify))
 		}
 	}
 }

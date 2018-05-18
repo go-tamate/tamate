@@ -41,7 +41,7 @@ func NewDiffer() (*Differ, error) {
 }
 
 // DiffColumns is get diff columns method
-func (d *Differ) diffColumns(left, right *datasource.Schema) (*DiffColumns, error) {
+func (d *Differ) DiffColumns(left, right *datasource.Schema) (*DiffColumns, error) {
 	// Get Schemas
 	srcSchema := left
 	dstSchema := right
