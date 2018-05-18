@@ -12,6 +12,7 @@ jobs:
           - MYSQL_ROOT_PASSWORD: example
     steps:
       - checkout
+      - run: mkdir -p ~/bin/
       - run: curl -fSL https://github.com/haya14busa/reviewdog/releases/download/$REVIEWDOG_VERSION/reviewdog_linux_amd64 -o ~/bin/reviewdog && chmod +x ~/bin/reviewdog
       - run: go get -u github.com/golang/lint/golint
       - run: go get -u honnef.co/go/tools/cmd/megacheck
