@@ -229,6 +229,12 @@ func getModifyRowValues(left *[]string, right *[]string) (*ModifyRowValues, erro
 		}
 	}
 	if modify {
+		if left == nil {
+			left = &[]string{}
+		}
+		if right == nil {
+			right = &[]string{}
+		}
 		return &ModifyRowValues{
 			Left:  *left,
 			Right: *right,
