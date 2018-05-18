@@ -1,17 +1,41 @@
 package differ
 
 import (
-	"log"
-
 	"github.com/Mitu217/tamate/datasource"
 )
+
+// DiffColumns is add, modify and delete columns struct
+type DiffColumns struct {
+	Add    []ModifyColumnValues `json:"add"`
+	Modify []ModifyColumnValues `json:"modify"`
+	Delete []ModifyColumnValues `json:"delete"`
+}
+
+// ModifyColumnValues is modify column values struct between left and right
+type ModifyColumnValues struct {
+	Left  *datasource.Column `json:"left"`
+	Right *datasource.Column `json:"right"`
+}
+
+// DiffRows is add, modify and delete rows struct
+type DiffRows struct {
+	Add    []ModifyRowValues `json:"add"`
+	Modify []ModifyRowValues `json:"modify"`
+	Delete []ModifyRowValues `json:"delete"`
+}
+
+// ModifyRowValues is modify row values struct between left and right
+type ModifyRowValues struct {
+	Left  []string `json:"left"`
+	Right []string `json:"right"`
+}
 
 // Differ is diff between tables struct
 type Differ struct {
 }
 
 // NewDiffer is create differ instance method
-func NewDiffer(schema *datasource.Schema) (*Differ, error) {
+func NewDiffer() (*Differ, error) {
 	d := &Differ{}
 	return d, nil
 }
@@ -93,8 +117,8 @@ func getModifyColumnValues(left, right *datasource.Column) (*ModifyColumnValues,
 
 // DiffRows is get diff rows method
 func (d *Differ) DiffRows(sc *datasource.Schema, left, right *datasource.Rows) (*DiffRows, error) {
-	srcRows := left
-	dstRows := right
+	srcRows := right
+	dstRows := left
 	leftPrimaryKeyIndex := sc.GetPrimaryKeyIndex()
 	rightPrimaryKeyIndex := sc.GetPrimaryKeyIndex()
 
@@ -109,7 +133,6 @@ func (d *Differ) DiffRows(sc *datasource.Schema, left, right *datasource.Rows) (
 						found = true
 						if pattern == "Normal" {
 							modifyRowValues, err := getModifyRowValues(&srcValue, &dstValue)
-							log.Println(modifyRowValues)
 							if err != nil {
 								return nil, err
 							}
@@ -185,8 +208,8 @@ func getModifyRowValues(left *[]string, right *[]string) (*ModifyRowValues, erro
 			right = &[]string{}
 		}
 		return &ModifyRowValues{
-			Left:  *left,
-			Right: *right,
+			Left:  *right,
+			Right: *left,
 		}, nil
 	}
 	return nil, nil
