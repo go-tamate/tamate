@@ -170,8 +170,13 @@ func (h *SpannerDatasource) GetRows(schema *Schema) (*Rows, error) {
 		}
 
 		value := make([]string, row.Size())
-		for n := 0; n < row.Size(); n++ {
-			row.Column(n, &value[n])
+		for i := 0; i < row.Size(); i++ {
+			var gval spanner.GenericColumnValue
+			if err := row.Column(i, &gval); err != nil {
+				return nil, err
+			}
+			// HACK
+			value[i] = gval.Value.GetStringValue()
 		}
 		values = append(values, value)
 	}
