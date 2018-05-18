@@ -5,8 +5,8 @@ import (
 
 	"context"
 	"errors"
-	"golang.org/x/oauth2"
 	"google.golang.org/api/sheets/v4"
+	"net/http"
 )
 
 type SpreadsheetDatasource struct {
@@ -16,9 +16,7 @@ type SpreadsheetDatasource struct {
 	sheetService   *sheets.Service
 }
 
-func NewSpreadsheetDatasource(token *oauth2.Token, spreadsheetID string, ranges string, columnRowIndex int) (*SpreadsheetDatasource, error) {
-	config := oauth2.Config{}
-	client := config.Client(context.Background(), token)
+func NewSpreadsheetDatasource(client *http.Client, spreadsheetID string, ranges string, columnRowIndex int) (*SpreadsheetDatasource, error) {
 	ss, err := sheets.New(client)
 	if err != nil {
 		return nil, err
