@@ -12,14 +12,6 @@ jobs:
           - MYSQL_ROOT_PASSWORD: example
     steps:
       - checkout
-      - run:
-          name: Install linters
-          command: |
-            curl -fSL https://github.com/haya14busa/reviewdog/releases/download/$REVIEWDOG_VERSION/reviewdog_linux_amd64 -o ./reviewdog && chmod +x ./reviewdog
-            go get github.com/golang/lint/golint
-            go get honnef.co/go/tools/cmd/megacheck
-            go get github.com/kisielk/errcheck
-      - run: ./reviewdog -ci="circle-ci" -conf=.reviewdog.yml
       - restore_cache:
           key: gopkg-{{ .Branch }}-{{ checksum "Gopkg.lock" }}
           paths:
@@ -35,6 +27,14 @@ jobs:
           key: gopkg-{{ .Branch }}-{{ checksum "Gopkg.lock" }}
           paths:
             - /go/src/github.com/Mitu217/tamate/vendor
+      - run:
+          name: Install linters
+          command: |
+            curl -fSL https://github.com/haya14busa/reviewdog/releases/download/$REVIEWDOG_VERSION/reviewdog_linux_amd64 -o ./reviewdog && chmod +x ./reviewdog
+            go get github.com/golang/lint/golint
+            go get honnef.co/go/tools/cmd/megacheck
+            go get github.com/kisielk/errcheck
+      - run: ./reviewdog -ci="circle-ci" -conf=.reviewdog.yml
       - run:
           name: Wait for db
           command: dockerize -wait tcp://localhost:3306 -timeout 1m
