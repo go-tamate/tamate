@@ -33,17 +33,17 @@ func TestSpreadsheet_Get(t *testing.T) {
 		t.Fatal(err)
 	}
 	ctx := context.Background()
-	tok, err := newServiceAccountClient(ctx, jsonKey)
+	client, err := newServiceAccountClient(ctx, jsonKey)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	h, err := NewSpreadsheetDatasource(tok, spreadsheetID, "A1:C100", 0)
+	ds, err := NewSpreadsheetDatasource(client, spreadsheetID, "A1:C100", 0)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	sc, err := h.GetSchema(ctx, tableName)
+	sc, err := ds.GetSchema(ctx, tableName)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -51,7 +51,7 @@ func TestSpreadsheet_Get(t *testing.T) {
 	t.Logf("PK: %+v", sc.PrimaryKey)
 	t.Logf("Columns: %+v", sc.GetColumnNames())
 
-	rows, err := h.GetRows(ctx, sc)
+	rows, err := ds.GetRows(ctx, sc)
 	if err != nil {
 		t.Fatal(err)
 	}

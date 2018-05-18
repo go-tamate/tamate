@@ -42,5 +42,5 @@ export GOOGLE_APPLICATION_CREDENTIALS=/path/to/spanner_credentials.json
 export TAMATE_SPANNER_DSN=/projects/<GCP_PROJECT_ID>/instances/<SPANNER_INSTANCE_ID>/databases/<SPANNER_DATABASE_ID>
 
 # For SpreadsheetDatasource test
-export TAMATE_SPREADSHEET_OAUTH_TOKEN_PATH=/path/to/saved_oauth_token.json
+export TAMATE_SPREADSHEET_SERVICE_ACCOUNT_JSON_BASE64=<base64 encoded service account key JSON>
 ```

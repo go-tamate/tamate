@@ -6,27 +6,27 @@ import (
 	"testing"
 )
 
-func TestSpanner_GetRows(t *testing.T) {
+func TestSpanner_Get(t *testing.T) {
 	dsn := os.Getenv("TAMATE_SPANNER_DSN")
 	if dsn == "" {
 		t.Skip("env: TAMATE_SPANNER_DSN not set")
 	}
 
-	h, err := NewSpannerDatasource(dsn)
+	ds, err := NewSpannerDatasource(dsn)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer h.Close()
+	defer ds.Close()
 
 	ctx := context.Background()
-	sc, err := h.GetSchema(ctx, "User")
+	sc, err := ds.GetSchema(ctx, "User")
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Logf("Schema: %+v", sc)
 	t.Logf("PK: %+v", sc.PrimaryKey)
 
-	rows, err := h.GetRows(ctx, sc)
+	rows, err := ds.GetRows(ctx, sc)
 	if err != nil {
 		t.Fatal(err)
 	}
