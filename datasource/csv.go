@@ -6,7 +6,7 @@ import (
 	"errors"
 )
 
-// CSVDatasource is handler struct of csv
+// CSVDatasource is datasource struct of csv
 type CSVDatasource struct {
 	URI            string `json:"uri"`
 	ColumnRowIndex int    `json:"column_row_index"`
