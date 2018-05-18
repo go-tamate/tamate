@@ -26,15 +26,14 @@ func NewSpannerDatasource(dsn string) (*SpannerDatasource, error) {
 	}, nil
 }
 
-func (h *SpannerDatasource) Open() error {
-	return nil
-}
-
 func (h *SpannerDatasource) Close() error {
+	if h.spannerClient != nil {
+		h.spannerClient.Close()
+	}
 	return nil
 }
 
-func (h *SpannerDatasource) GetSchemas() ([]*Schema, error) {
+func (h *SpannerDatasource) createAllSchemaMap() (map[string]*Schema, error) {
 	ctx := context.Background()
 	stmt := spanner.NewStatement("SELECT TABLE_NAME, COLUMN_NAME, ORDINAL_POSITION, SPANNER_TYPE, IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ''")
 	iter := h.spannerClient.Single().Query(ctx, stmt)
@@ -70,13 +69,20 @@ func (h *SpannerDatasource) GetSchemas() ([]*Schema, error) {
 		}
 		schema.PrimaryKey = pk
 	}
+	return schemaMap, nil
+}
 
-	// set schemas
-	var schemas []*Schema
-	for tableName := range schemaMap {
-		schemas = append(schemas, schemaMap[tableName])
+func (h *SpannerDatasource) GetAllSchema() ([]*Schema, error) {
+	allMap, err := h.createAllSchemaMap()
+	if err != nil {
+		return nil, err
 	}
-	return schemas, nil
+
+	var all []*Schema
+	for _, sc := range allMap {
+		all = append(all, sc)
+	}
+	return all, nil
 }
 
 func (h *SpannerDatasource) getPrimaryKey(tableName string) (*PrimaryKey, error) {
@@ -127,15 +133,17 @@ func scanSchemaColumn(row *spanner.Row) (*Column, error) {
 
 // GetSchema is get schema method
 func (h *SpannerDatasource) GetSchema(name string) (*Schema, error) {
+	all, err := h.createAllSchemaMap()
+	if err != nil {
+		return nil, err
+	}
 
-	if schemas, err := h.GetSchemas(); err == nil {
-		for _, s := range schemas {
-			if s.Name == name {
-				return s, nil
-			}
+	for scName, sc := range all {
+		if scName == name {
+			return sc, nil
 		}
 	}
-	return nil, errors.New("Schema not found.")
+	return nil, errors.New("Schema not found: " + name)
 
 }
 

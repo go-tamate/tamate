@@ -2,8 +2,8 @@ package datasource
 
 import (
 	"encoding/csv"
-	"os"
 	"errors"
+	"os"
 )
 
 // CSVDatasource is datasource struct of csv
@@ -20,44 +20,48 @@ func NewCSVDatasource(uri string, columnRowIndex int) (*CSVDatasource, error) {
 	}, nil
 }
 
-// Open is call by datasource when create instance
-func (h *CSVDatasource) Open() error {
-	return nil
-}
-
-// Close is call by datasource when free instance
-func (h *CSVDatasource) Close() error {
-	return nil
-}
-
 // GetSchemas is get all schemas method
-func (h *CSVDatasource) GetSchemas() ([]*Schema, error) {
+func (h *CSVDatasource) createAllSchemaMap() (map[string]*Schema, error) {
+	schemaMap := make(map[string]*Schema)
+
 	schema := &Schema{
 		Name: h.URI,
 	}
-	if h.ColumnRowIndex > 0 {
-		values, err := readCSV(h.URI)
-		if err != nil {
-			return nil, err
-		}
-		schema.Columns = make([]*Column, len(values))
-		for i := range values {
-			if i == h.ColumnRowIndex-1 {
-				for j := range values[i] {
-					schema.Columns[i] = &Column{
-						Name: values[i][j],
-						Type: "string",
-					}
+	values, err := readCSV(h.URI)
+	if err != nil {
+		return nil, err
+	}
+	schema.Columns = make([]*Column, len(values))
+	for i := range values {
+		if i == h.ColumnRowIndex {
+			for j := range values[i] {
+				schema.Columns[i] = &Column{
+					Name: values[i][j],
+					Type: "string",
 				}
 			}
 		}
 	}
-	return []*Schema{schema}, nil
+	schemaMap[schema.Name] = schema
+	return schemaMap, nil
+}
+
+func (h *CSVDatasource) GetAllSchema() ([]*Schema, error) {
+	allMap, err := h.createAllSchemaMap()
+	if err != nil {
+		return nil, err
+	}
+
+	var all []*Schema
+	for _, sc := range allMap {
+		all = append(all, sc)
+	}
+	return all, nil
 }
 
 // GetSchema is get schema method
 func (h *CSVDatasource) GetSchema(name string) (*Schema, error) {
-	schemas, err := h.GetSchemas()
+	schemas, err := h.createAllSchemaMap()
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +70,7 @@ func (h *CSVDatasource) GetSchema(name string) (*Schema, error) {
 			return sc, nil
 		}
 	}
-	return nil, errors.New("Schema not found.")
+	return nil, errors.New("Schema not found: " + name)
 }
 
 // SetSchema is set schema method
@@ -77,7 +81,7 @@ func (h *CSVDatasource) SetSchema(schema *Schema) error {
 	}
 	values := make([][]string, 0)
 	for i := range rows.Values {
-		if i == h.ColumnRowIndex-1 {
+		if i == h.ColumnRowIndex {
 			schemaValue := make([]string, len(schema.Columns))
 			for j := range schema.Columns {
 				schemaValue[j] = schema.Columns[j].Name
@@ -95,17 +99,15 @@ func (h *CSVDatasource) GetRows(schema *Schema) (*Rows, error) {
 	if err != nil {
 		return nil, err
 	}
-	if h.ColumnRowIndex > 0 {
-		// drop column row
-		_values := make([][]string, 0)
-		for i, value := range values {
-			if i == h.ColumnRowIndex-1 {
-				continue
-			}
-			_values = append(_values, value)
+	// drop column row
+	_values := make([][]string, 0)
+	for i, value := range values {
+		if i == h.ColumnRowIndex {
+			continue
 		}
-		values = _values
+		_values = append(_values, value)
 	}
+	values = _values
 	return &Rows{
 		Values: values,
 	}, nil
@@ -113,9 +115,9 @@ func (h *CSVDatasource) GetRows(schema *Schema) (*Rows, error) {
 
 // SetRows is set rows method
 func (h *CSVDatasource) SetRows(schema *Schema, rows *Rows) error {
-	values := make([][]string, 0)
+	var values [][]string
 	for j := range rows.Values {
-		if j == h.ColumnRowIndex-1 {
+		if j == h.ColumnRowIndex {
 			_, err := h.GetSchema(schema.Name)
 			if err != nil {
 				return err

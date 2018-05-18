@@ -52,7 +52,7 @@ func (h *SQLDatasource) Close() error {
 }
 
 // GetSchemas is get all schemas method
-func (h *SQLDatasource) GetSchemas() ([]*Schema, error) {
+func (h *SQLDatasource) createAllSchemaMap() (map[string]*Schema, error) {
 	// get schemas
 	sqlRows, err := h.db.Query("SELECT TABLE_NAME, COLUMN_NAME, ORDINAL_POSITION, COLUMN_TYPE, COLUMN_KEY, IS_NULLABLE, EXTRA FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE()")
 	if err != nil {
@@ -96,17 +96,34 @@ func (h *SQLDatasource) GetSchemas() ([]*Schema, error) {
 		schemaMap[tableName] = schema
 	}
 
-	// set schemas
-	var schemas []*Schema
-	for tableName := range schemaMap {
-		schemas = append(schemas, schemaMap[tableName])
+	return schemaMap, nil
+}
+
+func (h *SQLDatasource) GetAllSchema() ([]*Schema, error) {
+	allMap, err := h.createAllSchemaMap()
+	if err != nil {
+		return nil, err
 	}
-	return schemas, nil
+
+	var all []*Schema
+	for _, sc := range allMap {
+		all = append(all, sc)
+	}
+	return all, nil
 }
 
 // GetSchema is get schema method
 func (h *SQLDatasource) GetSchema(name string) (*Schema, error) {
-	return nil, errors.New("not support GetSchema()")
+	all, err := h.createAllSchemaMap()
+	if err != nil {
+		return nil, err
+	}
+	for scName, sc := range all {
+		if scName == name {
+			return sc, nil
+		}
+	}
+	return nil, errors.New("schema not found: " + name)
 }
 
 // SetSchema is set schema method
