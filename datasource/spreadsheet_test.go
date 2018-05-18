@@ -2,21 +2,19 @@ package datasource
 
 import (
 	"context"
-	"encoding/json"
-	"golang.org/x/oauth2"
+	"encoding/base64"
+	"golang.org/x/oauth2/google"
+	"net/http"
 	"os"
 	"testing"
 )
 
-func getTokenFromFile(path string) (*oauth2.Token, error) {
-	f, err := os.Open(path)
-	defer f.Close()
+func newServiceAccountClient(ctx context.Context, jsonKey []byte) (*http.Client, error) {
+	conf, err := google.JWTConfigFromJSON(jsonKey, "https://www.googleapis.com/auth/spreadsheets")
 	if err != nil {
 		return nil, err
 	}
-	tok := &oauth2.Token{}
-	err = json.NewDecoder(f).Decode(tok)
-	return tok, err
+	return conf.Client(ctx), nil
 }
 
 const (
@@ -25,11 +23,17 @@ const (
 )
 
 func TestSpreadsheet_Get(t *testing.T) {
-	oauthTokenPath := os.Getenv("TAMATE_SPREADSHEET_OAUTH_TOKEN_PATH")
-	if oauthTokenPath == "" {
-		t.Skip("env: TAMATE_SPREADSHEET_OAUTH_TOKEN_PATH not set")
+	encJsonKey := os.Getenv("TAMATE_SPREADSHEET_SERVICE_ACCOUNT_JSON_BASE64")
+	if encJsonKey == "" {
+		t.Skip("env: TAMATE_SPREADSHEET_SERVICE_ACCOUNT_JSON_BASE64 not set")
 	}
-	tok, err := getTokenFromFile(oauthTokenPath)
+
+	jsonKey, err := base64.StdEncoding.DecodeString(encJsonKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	tok, err := newServiceAccountClient(ctx, jsonKey)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -39,7 +43,6 @@ func TestSpreadsheet_Get(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ctx := context.Background()
 	sc, err := h.GetSchema(ctx, tableName)
 	if err != nil {
 		t.Fatal(err)
