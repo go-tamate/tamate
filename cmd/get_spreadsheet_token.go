@@ -41,4 +41,7 @@ func main() {
 	}
 	tok := getTokenFromWeb(config)
 	json.NewEncoder(os.Stdout).Encode(tok)
+
+	encJsonKey := "12344"
+	fmt.Println(encJsonKey)
 }
