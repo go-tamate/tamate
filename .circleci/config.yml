@@ -4,7 +4,25 @@ jobs:
     working_directory: /go/src/github.com/Mitu217/tamate
     docker:
       - image: circleci/golang:1.9
+    environment:
+      - TAMATE_MYSQL_DSN: "root:example@tcp(localhost:3306)/"
     steps:
       - checkout
-      - run: go get -v -t -d ./...
+      - restore_cache:
+          key: gopkg-{{ .Branch }}-{{ checksum "Gopkg.lock" }}
+          paths:
+            - /go/src/github.com/Mitu217/tamate/vendor
+      - run:
+          name: Download libraries
+          command: |
+            if [ ! -d /go/src/github.com/your_company/your_app/vendor ]; then
+              go get -u github.com/golang/dep/cmd/dep
+              dep ensure -v
+            fi
+      - save_cache:
+          key: gopkg-{{ .Branch }}-{{ checksum "Gopkg.lock" }}
+          paths:
+            - /go/src/github.com/Mitu217/tamate/vendor
+      - run: docker-compose up -d
       - run: go test -v -race ./...
+      - run: docker-compose down
