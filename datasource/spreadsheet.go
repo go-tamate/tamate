@@ -1,4 +1,4 @@
-package handler
+package datasource
 
 import (
 	"context"
@@ -17,8 +17,7 @@ const (
 	ClientSecret = "X8nsx4H33ln0dPFDw8wNEzLp"
 )
 
-// SpreadsheetHandler is handler struct of csv
-type SpreadsheetHandler struct {
+type SpreadsheetDatasource struct {
 	Token          oauth2.Token `json:"token"`
 	SpreadsheetID  string       `json:"spreadsheet_id"`
 	Ranges         string       `json:"ranges"`
@@ -26,17 +25,15 @@ type SpreadsheetHandler struct {
 	sheetService   *sheets.Service
 }
 
-// NewSpreadsheetHandler is create SpreadsheetHandler instance method
-func NewSpreadsheetHandler(spreadsheetID string, ranges string, columnRowIndex int) (*SpreadsheetHandler, error) {
-	return &SpreadsheetHandler{
+func NewSpreadsheetDatasource(spreadsheetID string, ranges string, columnRowIndex int) (*SpreadsheetDatasource, error) {
+	return &SpreadsheetDatasource{
 		SpreadsheetID:  spreadsheetID,
 		Ranges:         ranges,
 		ColumnRowIndex: columnRowIndex,
 	}, nil
 }
 
-// Open is call by datasource when create instance
-func (h *SpreadsheetHandler) Open() error {
+func (h *SpreadsheetDatasource) Open() error {
 	if h.sheetService == nil {
 		client, err := h.getHTTPClient()
 		if err != nil {
@@ -52,7 +49,7 @@ func (h *SpreadsheetHandler) Open() error {
 }
 
 // Close is call by datasource when free instance
-func (h *SpreadsheetHandler) Close() error {
+func (h *SpreadsheetDatasource) Close() error {
 	if h.sheetService != nil {
 		h.sheetService = nil
 	}
@@ -60,7 +57,7 @@ func (h *SpreadsheetHandler) Close() error {
 }
 
 // GetSchemas is get all schemas method
-func (h *SpreadsheetHandler) GetSchemas() ([]*Schema, error) {
+func (h *SpreadsheetDatasource) GetSchemas() ([]*Schema, error) {
 	var schemas []*Schema
 	spreadsheet, err := h.sheetService.Spreadsheets.Get(h.SpreadsheetID).Do()
 	if err != nil {
@@ -85,7 +82,7 @@ func (h *SpreadsheetHandler) GetSchemas() ([]*Schema, error) {
 }
 
 // GetSchema is get schema method
-func (h *SpreadsheetHandler) GetSchema(schema *Schema) error {
+func (h *SpreadsheetDatasource) GetSchema(schema *Schema) error {
 	if h.ColumnRowIndex > 0 {
 		readRange := schema.Name + "!" + h.Ranges
 		response, err := h.sheetService.Spreadsheets.Values.Get(h.SpreadsheetID, readRange).Do()
@@ -111,7 +108,7 @@ func (h *SpreadsheetHandler) GetSchema(schema *Schema) error {
 }
 
 // SetSchema is set schema method
-func (h *SpreadsheetHandler) SetSchema(schema *Schema) error {
+func (h *SpreadsheetDatasource) SetSchema(schema *Schema) error {
 	if h.ColumnRowIndex > 0 {
 		schemaValue := make([]interface{}, len(schema.Columns))
 		for i := range schema.Columns {
@@ -132,7 +129,7 @@ func (h *SpreadsheetHandler) SetSchema(schema *Schema) error {
 }
 
 // GetRows is get rows method
-func (h *SpreadsheetHandler) GetRows(schema *Schema) (*Rows, error) {
+func (h *SpreadsheetDatasource) GetRows(schema *Schema) (*Rows, error) {
 	readRange := schema.Name + "!" + h.Ranges
 	response, err := h.sheetService.Spreadsheets.Values.Get(h.SpreadsheetID, readRange).Do()
 	if err != nil {
@@ -156,7 +153,7 @@ func (h *SpreadsheetHandler) GetRows(schema *Schema) (*Rows, error) {
 }
 
 // SetRows is set rows method
-func (h *SpreadsheetHandler) SetRows(schema *Schema, rows *Rows) error {
+func (h *SpreadsheetDatasource) SetRows(schema *Schema, rows *Rows) error {
 	rowsValues := make([][]interface{}, 0)
 	for i, value := range rows.Values {
 		if i == h.ColumnRowIndex-1 {
@@ -181,7 +178,7 @@ func (h *SpreadsheetHandler) SetRows(schema *Schema, rows *Rows) error {
 	return nil
 }
 
-func (h *SpreadsheetHandler) getHTTPClient() (*http.Client, error) {
+func (h *SpreadsheetDatasource) getHTTPClient() (*http.Client, error) {
 	if !h.Token.Valid() {
 		return nil, errors.New("not authorization")
 	}
@@ -196,6 +193,6 @@ func (h *SpreadsheetHandler) getHTTPClient() (*http.Client, error) {
 	})
 }
 
-func (h *SpreadsheetHandler) getClient(config *oauth2.Config) (*http.Client, error) {
+func (h *SpreadsheetDatasource) getClient(config *oauth2.Config) (*http.Client, error) {
 	return config.Client(context.Background(), &h.Token), nil
 }

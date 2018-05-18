@@ -1,36 +1,36 @@
-package handler
+package datasource
 
 import (
 	"encoding/csv"
 	"os"
 )
 
-// CSVHandler is handler struct of csv
-type CSVHandler struct {
+// CSVDatasource is handler struct of csv
+type CSVDatasource struct {
 	URI            string `json:"uri"`
 	ColumnRowIndex int    `json:"column_row_index"`
 }
 
-// NewCSVHandler is create CSVHandler instance method
-func NewCSVHandler(uri string, columnRowIndex int) (*CSVHandler, error) {
-	return &CSVHandler{
+// NewCSVDatasource is create CSVDatasource instance method
+func NewCSVDatasource(uri string, columnRowIndex int) (*CSVDatasource, error) {
+	return &CSVDatasource{
 		URI:            uri,
 		ColumnRowIndex: columnRowIndex,
 	}, nil
 }
 
 // Open is call by datasource when create instance
-func (h *CSVHandler) Open() error {
+func (h *CSVDatasource) Open() error {
 	return nil
 }
 
 // Close is call by datasource when free instance
-func (h *CSVHandler) Close() error {
+func (h *CSVDatasource) Close() error {
 	return nil
 }
 
 // GetSchemas is get all schemas method
-func (h *CSVHandler) GetSchemas() ([]*Schema, error) {
+func (h *CSVDatasource) GetSchemas() ([]*Schema, error) {
 	schema := &Schema{
 		Name: h.URI,
 	}
@@ -55,7 +55,7 @@ func (h *CSVHandler) GetSchemas() ([]*Schema, error) {
 }
 
 // GetSchema is get schema method
-func (h *CSVHandler) GetSchema(schema *Schema) error {
+func (h *CSVDatasource) GetSchema(schema *Schema) error {
 	schemas, err := h.GetSchemas()
 	if err != nil {
 		return err
@@ -69,7 +69,7 @@ func (h *CSVHandler) GetSchema(schema *Schema) error {
 }
 
 // SetSchema is set schema method
-func (h *CSVHandler) SetSchema(schema *Schema) error {
+func (h *CSVDatasource) SetSchema(schema *Schema) error {
 	rows, err := h.GetRows(schema)
 	if err != nil {
 		return err
@@ -89,7 +89,7 @@ func (h *CSVHandler) SetSchema(schema *Schema) error {
 }
 
 // GetRows is get rows method
-func (h *CSVHandler) GetRows(schema *Schema) (*Rows, error) {
+func (h *CSVDatasource) GetRows(schema *Schema) (*Rows, error) {
 	values, err := readCSV(h.URI)
 	if err != nil {
 		return nil, err
@@ -111,7 +111,7 @@ func (h *CSVHandler) GetRows(schema *Schema) (*Rows, error) {
 }
 
 // SetRows is set rows method
-func (h *CSVHandler) SetRows(schema *Schema, rows *Rows) error {
+func (h *CSVDatasource) SetRows(schema *Schema, rows *Rows) error {
 	values := make([][]string, 0)
 	for j := range rows.Values {
 		if j == h.ColumnRowIndex-1 {

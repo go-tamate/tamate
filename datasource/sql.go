@@ -1,4 +1,4 @@
-package handler
+package datasource
 
 import (
 	"database/sql"
@@ -10,23 +10,22 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-// SQLHandler is handler struct of sql
-type SQLHandler struct {
+type SQLDatasource struct {
 	DriverName string `json:"driver_name"`
 	DSN        string `json:"dsn"`
 	db         *sql.DB
 }
 
-// NewSQLHandler is create SQLHandler instance method
-func NewSQLHandler(driverName string, dsn string) (*SQLHandler, error) {
-	return &SQLHandler{
+// NewSQLDatasource is create SQLDatasource instance method
+func NewSQLDatasource(driverName string, dsn string) (*SQLDatasource, error) {
+	return &SQLDatasource{
 		DriverName: driverName,
 		DSN:        dsn,
 	}, nil
 }
 
 // Open is call by datasource when create instance
-func (h *SQLHandler) Open() error {
+func (h *SQLDatasource) Open() error {
 	if h.db == nil {
 		db, err := sql.Open(h.DriverName, h.DSN)
 		if err != nil {
@@ -41,7 +40,7 @@ func (h *SQLHandler) Open() error {
 }
 
 // Close is call by datasource when free instance
-func (h *SQLHandler) Close() error {
+func (h *SQLDatasource) Close() error {
 	if h.db != nil {
 		err := h.db.Close()
 		h.db = nil
@@ -53,7 +52,7 @@ func (h *SQLHandler) Close() error {
 }
 
 // GetSchemas is get all schemas method
-func (h *SQLHandler) GetSchemas() ([]*Schema, error) {
+func (h *SQLDatasource) GetSchemas() ([]*Schema, error) {
 	// get schemas
 	sqlRows, err := h.db.Query("SELECT TABLE_NAME, COLUMN_NAME, ORDINAL_POSITION, COLUMN_TYPE, COLUMN_KEY, IS_NULLABLE, EXTRA FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE()")
 	if err != nil {
@@ -106,17 +105,17 @@ func (h *SQLHandler) GetSchemas() ([]*Schema, error) {
 }
 
 // GetSchema is get schema method
-func (h *SQLHandler) GetSchema(schema *Schema) error {
+func (h *SQLDatasource) GetSchema(schema *Schema) error {
 	return errors.New("not support GetSchema()")
 }
 
 // SetSchema is set schema method
-func (h *SQLHandler) SetSchema(schema *Schema) error {
+func (h *SQLDatasource) SetSchema(schema *Schema) error {
 	return errors.New("not support SetSchema()")
 }
 
 // GetRows is get rows method
-func (h *SQLHandler) GetRows(schema *Schema) (*Rows, error) {
+func (h *SQLDatasource) GetRows(schema *Schema) (*Rows, error) {
 	// get data
 	sqlRows, err := h.db.Query(fmt.Sprintf("SELECT * FROM %s", schema.Name))
 	if err != nil {
@@ -156,7 +155,7 @@ func (h *SQLHandler) GetRows(schema *Schema) (*Rows, error) {
 }
 
 // SetRows is set rows method
-func (h *SQLHandler) SetRows(schema *Schema, rows *Rows) error {
+func (h *SQLDatasource) SetRows(schema *Schema, rows *Rows) error {
 	// reset table
 	sqlRows, err := h.db.Query(fmt.Sprintf("DELETE FROM %s", schema.Name))
 	if err != nil {
