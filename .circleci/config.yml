@@ -4,10 +4,11 @@ jobs:
     working_directory: /go/src/github.com/Mitu217/tamate
     docker:
       - image: circleci/golang:1.9
+        environment:
+          - TAMATE_MYSQL_DSN: "root:example@tcp(localhost:3306)/"
       - image: mysql:5.7
-    environment:
-      - MYSQL_ROOT_PASSWORD: example
-      - TAMATE_MYSQL_DSN: "root:example@tcp(localhost:3306)/"
+        environment:
+          - MYSQL_ROOT_PASSWORD: example
     steps:
       - checkout
       - restore_cache:
