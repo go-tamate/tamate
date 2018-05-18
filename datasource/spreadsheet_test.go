@@ -33,12 +33,8 @@ func TestSpreadsheet_Get(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	h, err := NewSpreadsheetDatasource(spreadsheetID, "A1:C100", 0)
+	h, err := NewSpreadsheetDatasource(tok, spreadsheetID, "A1:C100", 0)
 	if err != nil {
-		t.Fatal(err)
-	}
-	h.Token = tok
-	if err := h.Open(); err != nil {
 		t.Fatal(err)
 	}
 

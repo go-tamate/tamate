@@ -15,15 +15,16 @@ func TestSpanner_GetRows(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer h.Close()
 
-	scs, err := h.GetSchemas()
+	sc, err := h.GetSchema("User")
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Logf("Schema: %+v", scs[0])
-	t.Logf("PK: %+v", scs[0].PrimaryKey)
+	t.Logf("Schema: %+v", sc)
+	t.Logf("PK: %+v", sc.PrimaryKey)
 
-	rows, err := h.GetRows(scs[0])
+	rows, err := h.GetRows(sc)
 	if err != nil {
 		t.Fatal(err)
 	}
