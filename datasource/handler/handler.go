@@ -14,32 +14,41 @@ type Rows struct {
 	Values [][]string `json:"values"`
 }
 
+type PrimaryKey struct {
+	ColumnNames []string `json:"column_names"`
+}
+
 // Schema is column definitions at table
 type Schema struct {
-	Name            string   `json:"name"`
-	PrimaryKey      string   `json:"primary_key"`
-	Columns         []Column `json:"columns"`
-	primaryKeyIndex int
+	Name       string      `json:"name"`
+	PrimaryKey *PrimaryKey `json:"primary_key"`
+	Columns    []*Column   `json:"columns"`
 }
 
-// NewSchema is create schema instance
-func NewSchema(name string) (*Schema, error) {
-	return &Schema{
-		Name:            name,
-		primaryKeyIndex: -1,
-	}, nil
-}
-
-// GetPrimaryKeyIndex is return index of primary key
+// TODO: composite primary key support
 func (sc *Schema) GetPrimaryKeyIndex() int {
-	return sc.primaryKeyIndex
+	for i, col := range sc.Columns {
+		if col.Name == sc.PrimaryKey.ColumnNames[0] {
+			return i
+		}
+	}
+	return -1
+}
+
+// GetColumnNames is return name list of columns
+func (sc *Schema) GetColumnNames() []string {
+	var colNames []string
+	for _, col := range sc.Columns {
+		colNames = append(colNames, col.Name)
+	}
+	return colNames
 }
 
 // Handler is read and write datasource interface
 type Handler interface {
 	Open() error
 	Close() error
-	GetSchemas() (*[]Schema, error)
+	GetSchemas() ([]*Schema, error)
 	GetSchema(*Schema) error
 	SetSchema(*Schema) error
 	GetRows(*Schema) (*Rows, error)

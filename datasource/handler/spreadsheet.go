@@ -60,8 +60,8 @@ func (h *SpreadsheetHandler) Close() error {
 }
 
 // GetSchemas is get all schemas method
-func (h *SpreadsheetHandler) GetSchemas() (*[]Schema, error) {
-	schemas := make([]Schema, 0)
+func (h *SpreadsheetHandler) GetSchemas() ([]*Schema, error) {
+	var schemas []*Schema
 	spreadsheet, err := h.sheetService.Spreadsheets.Get(h.SpreadsheetID).Do()
 	if err != nil {
 		return nil, err
@@ -79,9 +79,9 @@ func (h *SpreadsheetHandler) GetSchemas() (*[]Schema, error) {
 		if schema == nil {
 			continue
 		}
-		schemas = append(schemas, *schema)
+		schemas = append(schemas, schema)
 	}
-	return &schemas, nil
+	return schemas, nil
 }
 
 // GetSchema is get schema method
@@ -96,9 +96,9 @@ func (h *SpreadsheetHandler) GetSchema(schema *Schema) error {
 			if i != h.ColumnRowIndex-1 {
 				continue
 			}
-			columns := make([]Column, len(row))
+			columns := make([]*Column, len(row))
 			for i := range row {
-				columns[i] = Column{
+				columns[i] = &Column{
 					Name: row[i].(string),
 					Type: "string",
 				}
@@ -138,7 +138,7 @@ func (h *SpreadsheetHandler) GetRows(schema *Schema) (*Rows, error) {
 	if err != nil {
 		return nil, err
 	}
-	values := [][]string{}
+	var values [][]string
 	for i, row := range response.Values {
 		if i == h.ColumnRowIndex-1 {
 			continue
