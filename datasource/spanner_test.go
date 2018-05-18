@@ -8,7 +8,7 @@ import (
 func TestSpanner_GetRows(t *testing.T) {
 	dsn := os.Getenv("TAMATE_SPANNER_DSN")
 	if dsn == "" {
-		t.Skip()
+		t.Skip("env: TAMATE_SPANNER_DSN not set")
 	}
 
 	h, err := NewSpannerDatasource(dsn)
