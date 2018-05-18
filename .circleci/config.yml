@@ -19,6 +19,8 @@ jobs:
             go get github.com/golang/lint/golint
             go get honnef.co/go/tools/cmd/megacheck
             go get github.com/kisielk/errcheck
+      - run: megacheck $(go list ./...)
+      - run: errcheck $(go list ./...)
       - run: ./reviewdog -ci="circle-ci" -conf=.reviewdog.yml
       - restore_cache:
           key: gopkg-{{ .Branch }}-{{ checksum "Gopkg.lock" }}
