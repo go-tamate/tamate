@@ -132,20 +132,20 @@ func (d *Differ) DiffRows() (*DiffRows, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer d.Left.Datasource.Close()
 	srcRows, err := d.Left.Datasource.GetRows(d.Left.SchemaName)
 	if err != nil {
 		return nil, err
 	}
-	defer d.Left.Datasource.Close()
 	err = d.Right.Datasource.Open()
 	if err != nil {
 		return nil, err
 	}
+	defer d.Right.Datasource.Close()
 	dstRows, err := d.Right.Datasource.GetRows(d.Right.SchemaName)
 	if err != nil {
 		return nil, err
 	}
-	defer d.Right.Datasource.Close()
 	// Get diff
 	leftPrimaryKeyIndex, err := d.Left.getPrimaryKeyIndex()
 	if err != nil {
