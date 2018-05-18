@@ -20,7 +20,8 @@ func TestSpannerHandler_GetRows(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Logf("%+v", scs[0])
+	t.Logf("Schema: %+v", scs[0])
+	t.Logf("PK: %+v", scs[0].PrimaryKey)
 
 	rows, err := h.GetRows(scs[0])
 	if err != nil {

@@ -59,6 +59,8 @@ func NewDatasource(t string, config map[string]interface{}) (*Datasource, error)
 	case SQL.String():
 		h = &handler.SQLHandler{}
 		break
+	case Spanner.String():
+		h = &handler.SpannerHandler{}
 	default:
 		return nil, errors.New("invalid type: " + t)
 	}
