@@ -1,53 +1,37 @@
 package datasource
 
 import (
-	"context"
 	"fmt"
 
+	"context"
 	"errors"
 	"golang.org/x/oauth2"
-	sheets "google.golang.org/api/sheets/v4"
+	"google.golang.org/api/sheets/v4"
 )
 
 type SpreadsheetDatasource struct {
-	Token          *oauth2.Token `json:"token"`
-	SpreadsheetID  string        `json:"spreadsheet_id"`
-	Ranges         string        `json:"ranges"`
-	ColumnRowIndex int           `json:"column_row_index"`
+	SpreadsheetID  string `json:"spreadsheet_id"`
+	Ranges         string `json:"ranges"`
+	ColumnRowIndex int    `json:"column_row_index"`
 	sheetService   *sheets.Service
 }
 
-func NewSpreadsheetDatasource(spreadsheetID string, ranges string, columnRowIndex int) (*SpreadsheetDatasource, error) {
+func NewSpreadsheetDatasource(token *oauth2.Token, spreadsheetID string, ranges string, columnRowIndex int) (*SpreadsheetDatasource, error) {
+	config := oauth2.Config{}
+	client := config.Client(context.Background(), token)
+	ss, err := sheets.New(client)
+	if err != nil {
+		return nil, err
+	}
 	return &SpreadsheetDatasource{
 		SpreadsheetID:  spreadsheetID,
 		Ranges:         ranges,
 		ColumnRowIndex: columnRowIndex,
+		sheetService:   ss,
 	}, nil
 }
 
-func (h *SpreadsheetDatasource) Open() error {
-	if h.sheetService == nil {
-		config := oauth2.Config{}
-		client := config.Client(context.Background(), h.Token)
-		sheetService, err := sheets.New(client)
-		if err != nil {
-			return err
-		}
-		h.sheetService = sheetService
-	}
-	return nil
-}
-
-// Close is call by datasource when free instance
-func (h *SpreadsheetDatasource) Close() error {
-	if h.sheetService != nil {
-		h.sheetService = nil
-	}
-	return nil
-}
-
-// GetSchemas is get all schemas method
-func (h *SpreadsheetDatasource) GetSchemas() ([]*Schema, error) {
+func (h *SpreadsheetDatasource) GetAllSchema() ([]*Schema, error) {
 	var schemas []*Schema
 	spreadsheet, err := h.sheetService.Spreadsheets.Get(h.SpreadsheetID).Do()
 	if err != nil {
@@ -68,7 +52,6 @@ func (h *SpreadsheetDatasource) GetSchemas() ([]*Schema, error) {
 	return schemas, nil
 }
 
-// GetSchema is get schema method
 func (h *SpreadsheetDatasource) GetSchema(name string) (*Schema, error) {
 	readRange := name + "!" + h.Ranges
 	response, err := h.sheetService.Spreadsheets.Values.Get(h.SpreadsheetID, readRange).Do()

@@ -23,16 +23,12 @@ func NewMockDatasource() (*MockDatasource, error) {
 	}, nil
 }
 
-func (ds *MockDatasource) Open() error {
-	return nil
-}
-
-func (ds *MockDatasource) Close() error {
-	return nil
-}
-
-func (ds *MockDatasource) GetSchemas() ([]*Schema, error) {
-	return nil, errors.New("GetSchemas() not supported")
+func (ds *MockDatasource) GetAllSchema() ([]*Schema, error) {
+	sc, err := ds.GetSchema("")
+	if err != nil {
+		return nil, err
+	}
+	return []*Schema{sc}, nil
 }
 
 func (ds *MockDatasource) GetSchema(name string) (*Schema, error) {

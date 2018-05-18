@@ -46,10 +46,8 @@ func (sc *Schema) GetColumnNames() []string {
 
 // Datasource is read and write datasource interface
 type Datasource interface {
-	Open() error
-	Close() error
-	GetSchemas() ([]*Schema, error)
-	GetSchema(string) (*Schema, error)
+	GetAllSchema() ([]*Schema, error)
+	GetSchema(name string) (*Schema, error)
 	SetSchema(*Schema) error
 	GetRows(*Schema) (*Rows, error)
 	SetRows(*Schema, *Rows) error
