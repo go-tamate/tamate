@@ -82,9 +82,9 @@ func (h *SpreadsheetDatasource) GetSchemas() ([]*Schema, error) {
 }
 
 // GetSchema is get schema method
-func (h *SpreadsheetDatasource) GetSchema(schema *Schema) error {
+func (h *SpreadsheetDatasource) GetSchema(name string) (*Schema, error) {
 	if h.ColumnRowIndex > 0 {
-		readRange := schema.Name + "!" + h.Ranges
+		readRange := name + "!" + h.Ranges
 		response, err := h.sheetService.Spreadsheets.Values.Get(h.SpreadsheetID, readRange).Do()
 		if err != nil {
 			return err

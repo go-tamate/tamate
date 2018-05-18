@@ -105,7 +105,7 @@ func (h *SQLDatasource) GetSchemas() ([]*Schema, error) {
 }
 
 // GetSchema is get schema method
-func (h *SQLDatasource) GetSchema(schema *Schema) error {
+func (h *SQLDatasource) GetSchema(name string) (*Schema, error) {
 	return errors.New("not support GetSchema()")
 }
 

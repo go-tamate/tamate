@@ -55,17 +55,17 @@ func (h *CSVDatasource) GetSchemas() ([]*Schema, error) {
 }
 
 // GetSchema is get schema method
-func (h *CSVDatasource) GetSchema(schema *Schema) error {
+func (h *CSVDatasource) GetSchema(name string) (*Schema, error) {
 	schemas, err := h.GetSchemas()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	for _, sc := range schemas {
-		if sc.Name == schema.Name {
-			schema.Columns = sc.Columns
+		if sc.Name == name {
+			return sc, nil
 		}
 	}
-	return nil
+	return nil, errors.New("Schema not found.")
 }
 
 // SetSchema is set schema method
@@ -115,7 +115,7 @@ func (h *CSVDatasource) SetRows(schema *Schema, rows *Rows) error {
 	values := make([][]string, 0)
 	for j := range rows.Values {
 		if j == h.ColumnRowIndex-1 {
-			err := h.GetSchema(schema)
+			err := h.GetSchema(schema.Name)
 			if err != nil {
 				return err
 			}
