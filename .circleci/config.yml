@@ -23,6 +23,8 @@ jobs:
           key: gopkg-{{ .Branch }}-{{ checksum "Gopkg.lock" }}
           paths:
             - /go/src/github.com/Mitu217/tamate/vendor
+      - setup_remote_docker:
+          docker_layer_caching: true
       - run: docker-compose up -d
       - run: go test -v -race ./...
       - run: docker-compose down
