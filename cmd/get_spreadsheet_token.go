@@ -9,6 +9,10 @@ import (
 	"os"
 )
 
+type Dummy struct {
+	testJson []byte
+}
+
 // Request a token from the web, then returns the retrieved token.
 func getTokenFromWeb(config *oauth2.Config) *oauth2.Token {
 	authURL := config.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
@@ -40,7 +44,5 @@ func main() {
 		log.Fatalf("Unable to parse client secret file to config: %v", err)
 	}
 	tok := getTokenFromWeb(config)
-	if err := json.NewEncoder(os.Stdout).Encode(tok); err != nil {
-		log.Fatal(err)
-	}
+	json.NewEncoder(os.Stdout).Encode(tok)
 }
