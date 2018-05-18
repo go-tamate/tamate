@@ -1,14 +1,13 @@
 runner:
   golint:
-    cmd: golint $(go list ./... | grep -v /vendor/)
+    cmd: golint $(go list ./...)
   govet:
-    cmd: go vet $(go list ./... | grep -v /vendor/)
-  # staticcheck, gosimple, unused
+    cmd: go vet $(go list ./...)
   megacheck:
-    cmd: megacheck $(go list ./... | grep -v /vendor/)
+    cmd: megacheck $(go list ./...)
     errorformat:
       - "%f:%l:%c: %m"
   errcheck:
-    cmd: errcheck -asserts -ignoretests -blank $(go list ./... | grep -v /vendor/)
+    cmd: errcheck -asserts -ignoretests -blank $(go list ./...)
     errorformat:
       - "%f:%l:%c:%m"

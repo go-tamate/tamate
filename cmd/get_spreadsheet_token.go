@@ -9,6 +9,11 @@ import (
 	"os"
 )
 
+
+type DummyStruct struct {
+	testJson []byte
+}
+
 // Request a token from the web, then returns the retrieved token.
 func getTokenFromWeb(config *oauth2.Config) *oauth2.Token {
 	authURL := config.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
