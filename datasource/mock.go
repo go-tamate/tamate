@@ -1,6 +1,7 @@
 package datasource
 
 import (
+	"context"
 	"errors"
 	"fmt"
 )
@@ -23,15 +24,15 @@ func NewMockDatasource() (*MockDatasource, error) {
 	}, nil
 }
 
-func (ds *MockDatasource) GetAllSchema() ([]*Schema, error) {
-	sc, err := ds.GetSchema("")
+func (ds *MockDatasource) GetAllSchema(ctx context.Context) ([]*Schema, error) {
+	sc, err := ds.GetSchema(ctx, "")
 	if err != nil {
 		return nil, err
 	}
 	return []*Schema{sc}, nil
 }
 
-func (ds *MockDatasource) GetSchema(name string) (*Schema, error) {
+func (ds *MockDatasource) GetSchema(ctx context.Context, name string) (*Schema, error) {
 	sc := &Schema{}
 	sc.Columns = []*Column{
 		{Name: "id", Type: "string"},
@@ -41,15 +42,15 @@ func (ds *MockDatasource) GetSchema(name string) (*Schema, error) {
 	return sc, nil
 }
 
-func (ds *MockDatasource) SetSchema(sc *Schema) error {
+func (ds *MockDatasource) SetSchema(ctx context.Context, sc *Schema) error {
 	return errors.New("SetSchema() not supported on MockDatasource")
 }
 
-func (ds *MockDatasource) GetRows(sc *Schema) (*Rows, error) {
+func (ds *MockDatasource) GetRows(ctx context.Context, sc *Schema) (*Rows, error) {
 	return ds.rows, nil
 }
 
-func (ds *MockDatasource) SetRows(sc *Schema, rows *Rows) error {
+func (ds *MockDatasource) SetRows(ctx context.Context, sc *Schema, rows *Rows) error {
 	ds.rows = rows
 	return nil
 }

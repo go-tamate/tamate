@@ -1,6 +1,7 @@
 package datasource
 
 import (
+	"context"
 	"encoding/json"
 	"golang.org/x/oauth2"
 	"os"
@@ -38,7 +39,8 @@ func TestSpreadsheet_Get(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	sc, err := h.GetSchema(tableName)
+	ctx := context.Background()
+	sc, err := h.GetSchema(ctx, tableName)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -46,7 +48,7 @@ func TestSpreadsheet_Get(t *testing.T) {
 	t.Logf("PK: %+v", sc.PrimaryKey)
 	t.Logf("Columns: %+v", sc.GetColumnNames())
 
-	rows, err := h.GetRows(sc)
+	rows, err := h.GetRows(ctx, sc)
 	if err != nil {
 		t.Fatal(err)
 	}
