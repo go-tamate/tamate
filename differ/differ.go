@@ -4,6 +4,10 @@ import (
 	"github.com/Mitu217/tamate/datasource"
 )
 
+type DummyStruct struct {
+	testJson []byte
+}
+
 // DiffColumns is add, modify and delete columns struct
 type DiffColumns struct {
 	Add    []ModifyColumnValues `json:"add"`
