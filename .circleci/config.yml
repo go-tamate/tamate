@@ -6,7 +6,7 @@ jobs:
       - image: circleci/golang:1.9
         environment:
           - TAMATE_MYSQL_DSN: "root:example@tcp(localhost:3306)/"
-      - image: mysql:5.7
+      - image: circleci/mysql:5.7
         environment:
           - MYSQL_ROOT_PASSWORD: example
     steps:
@@ -26,8 +26,6 @@ jobs:
           key: gopkg-{{ .Branch }}-{{ checksum "Gopkg.lock" }}
           paths:
             - /go/src/github.com/Mitu217/tamate/vendor
-      - setup_remote_docker:
-          docker_layer_caching: true
       - run:
           name: Wait for db
           command: dockerize -wait tcp://localhost:3306 -timeout 1m
