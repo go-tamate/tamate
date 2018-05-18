@@ -49,7 +49,7 @@ type Datasource interface {
 	Open() error
 	Close() error
 	GetSchemas() ([]*Schema, error)
-	GetSchema(*Schema) error
+	GetSchema(string) (*Schema, error)
 	SetSchema(*Schema) error
 	GetRows(*Schema) (*Rows, error)
 	SetRows(*Schema, *Rows) error

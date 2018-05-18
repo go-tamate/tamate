@@ -8,8 +8,8 @@ func TestMockDatasource_GetRows(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	sc := &Schema{}
-	if err := ds.GetSchema(sc); err != nil {
+	var sc *Schema
+	if sc, err = ds.GetSchema(""); err != nil {
 		t.Fatal(err)
 	}
 
