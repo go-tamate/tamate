@@ -94,9 +94,6 @@ func (d *Differ) DiffColumns(left, right *datasource.Schema) (*DiffColumns, erro
 
 func getModifyColumnValues(left, right *datasource.Column) (*ModifyColumnValues, error) {
 	modify := false
-	if left == nil || right == nil {
-		modify = true
-	}
 	if left != nil && right != nil {
 		if left.Type != right.Type {
 			modify = true
@@ -107,6 +104,8 @@ func getModifyColumnValues(left, right *datasource.Column) (*ModifyColumnValues,
 		if left.AutoIncrement != right.AutoIncrement {
 			modify = true
 		}
+	} else {
+		modify = true
 	}
 	if modify {
 		if left == nil {
