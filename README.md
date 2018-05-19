@@ -11,7 +11,7 @@ Reading and Getting diffs between table-based data (CSV, SQL, Google Spreadsheet
 ## Install
 
 ```sh
-go get github.com/Mitu217/tamate
+go get github.com/Mitu217/tamate/...
 ```
 
 ## Usage
@@ -25,7 +25,7 @@ go get github.com/Mitu217/tamate
 ### Getting started
 
 ```sh
-go get github.com/Mitu217/tamate
+go get github.com/Mitu217/tamate/...
 cd $GOPATH/src/github.com/Mitu217/tamate
 dep ensure
 
