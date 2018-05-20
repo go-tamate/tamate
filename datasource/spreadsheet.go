@@ -1,12 +1,11 @@
 package datasource
 
 import (
-	"fmt"
-
 	"context"
-	"errors"
-	"google.golang.org/api/sheets/v4"
+	"fmt"
 	"net/http"
+
+	"google.golang.org/api/sheets/v4"
 )
 
 type SpreadsheetDatasource struct {
@@ -36,6 +35,10 @@ func (ds *SpreadsheetDatasource) GetAllSchema(ctx context.Context) ([]*Schema, e
 		return nil, err
 	}
 	for _, sheet := range spreadsheet.Sheets {
+		if sheet.Properties.Hidden {
+			// ignore hidden sheet
+			continue
+		}
 		sheetName := sheet.Properties.Title
 		schema, err := ds.GetSchema(ctx, sheetName)
 		if err != nil {
@@ -75,7 +78,7 @@ func (ds *SpreadsheetDatasource) GetSchema(ctx context.Context, name string) (*S
 			}, nil
 		}
 	}
-	return nil, errors.New("could not find column row")
+	return nil, nil
 }
 
 func choosePrimaryKey(columns []*Column) (*PrimaryKey, error) {
