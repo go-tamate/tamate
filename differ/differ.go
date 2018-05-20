@@ -127,7 +127,7 @@ func getModifyColumnValues(left, right *datasource.Column) (*ModifyColumnValues,
 // DiffRows is get diff rows method
 func (d *Differ) DiffRows(sc *datasource.Schema, left, right *datasource.Rows) (*DiffRows, error) {
 	if sc == nil {
-		return nil, errors.New("schema is required.")
+		return nil, errors.New("schema is required")
 	}
 
 	srcRows := right
