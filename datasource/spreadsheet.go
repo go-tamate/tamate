@@ -73,6 +73,7 @@ func (ds *SpreadsheetDatasource) GetSchema(ctx context.Context, name string) (*S
 				return nil, err
 			}
 			return &Schema{
+				Name:       name,
 				Columns:    columns,
 				PrimaryKey: pk,
 			}, nil
