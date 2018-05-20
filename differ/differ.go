@@ -1,6 +1,8 @@
 package differ
 
 import (
+	"errors"
+
 	"github.com/Mitu217/tamate/datasource"
 )
 
@@ -124,6 +126,10 @@ func getModifyColumnValues(left, right *datasource.Column) (*ModifyColumnValues,
 
 // DiffRows is get diff rows method
 func (d *Differ) DiffRows(sc *datasource.Schema, left, right *datasource.Rows) (*DiffRows, error) {
+	if sc == nil {
+		return nil, errors.New("schema is required")
+	}
+
 	srcRows := right
 	dstRows := left
 	leftPrimaryKeyIndex := sc.GetPrimaryKeyIndex()
