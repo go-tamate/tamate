@@ -1,19 +1,22 @@
 package datasource
 
-import "context"
+import (
+	"context"
+)
 
 // Column is table column
 type Column struct {
-	Name            string `json:"name"`
-	OrdinalPosition int    `json:"ordinal_position"`
-	Type            string `json:"type"`
-	NotNull         bool   `json:"not_null"`
-	AutoIncrement   bool   `json:"auto_increment"`
+	Name            string     `json:"name"`
+	OrdinalPosition int        `json:"ordinal_position"`
+	Type            ColumnType `json:"type"`
+	NotNull         bool       `json:"not_null"`
+	AutoIncrement   bool       `json:"auto_increment"`
 }
 
-// Rows is table records
-type Rows struct {
-	Values [][]string `json:"values"`
+type RowValues map[string]*GenericColumnValue
+
+type Row struct {
+	values RowValues
 }
 
 type PrimaryKey struct {
@@ -51,6 +54,6 @@ type Datasource interface {
 	GetAllSchema(ctx context.Context) ([]*Schema, error)
 	GetSchema(ctx context.Context, name string) (*Schema, error)
 	SetSchema(ctx context.Context, sc *Schema) error
-	GetRows(ctx context.Context, sc *Schema) (*Rows, error)
-	SetRows(ctx context.Context, sc *Schema, rows *Rows) error
+	GetRows(ctx context.Context, sc *Schema) ([]*Row, error)
+	SetRows(ctx context.Context, sc *Schema, rows []*Row) error
 }

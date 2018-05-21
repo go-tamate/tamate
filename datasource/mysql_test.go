@@ -10,7 +10,6 @@ import (
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"os"
-	"reflect"
 )
 
 const (
@@ -80,8 +79,8 @@ func TestMySQLDatasource_Get(t *testing.T) {
 		t.Fatal("PK must be [id]")
 	}
 
-	if len(sc.Columns) != 2 || sc.Columns[1].Name != "name" || sc.Columns[1].Type != "varchar(100)" {
-		t.Fatal("Columns[1] must be 'name varchar(100)'")
+	if len(sc.Columns) != 2 || sc.Columns[1].Name != "name" || sc.Columns[1].Type != ColumnType_String {
+		t.Fatal("Columns[1] must be string-type 'name'")
 	}
 
 	rows, err := ds.GetRows(ctx, sc)
@@ -89,13 +88,16 @@ func TestMySQLDatasource_Get(t *testing.T) {
 		t.Fatalf("GetRows failed: %+v", err)
 	}
 
-	if len(rows.Values) != mysqlTestDataRowCount {
+	if len(rows) != mysqlTestDataRowCount {
 		t.Fatalf("len(rows.Value) must be %d", mysqlTestDataRowCount)
 	}
 
 	for i := 0; i < mysqlTestDataRowCount; i++ {
-		if !reflect.DeepEqual(rows.Values[i], []string{fmt.Sprintf("%d", i), fmt.Sprintf("name%d", i)}) {
-			t.Fatalf("rows.Values[%d] must be ['%d', 'name%d']", i, i, i)
+		if rows[i].values["id"].Value != i {
+			t.Fatalf("rows[%d].values['id'] must be %d", i, i)
+		}
+		if rows[i].values["name"].Value != i {
+			t.Fatalf("rows[%d].values['name'] must be 'name%d'", i, fmt.Sprintf("name%d"))
 		}
 	}
 }

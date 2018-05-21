@@ -6,22 +6,10 @@ import (
 	"fmt"
 )
 
-type MockDatasource struct {
-	rows *Rows
-}
+type MockDatasource struct{}
 
 func NewMockDatasource() (*MockDatasource, error) {
-	var values [][]string
-	for i := 0; i < 100; i++ {
-		row := []string{fmt.Sprintf("id%d", i), fmt.Sprintf("name%d", i)}
-		values = append(values, row)
-	}
-	rows := &Rows{
-		Values: values,
-	}
-	return &MockDatasource{
-		rows: rows,
-	}, nil
+	return &MockDatasource{}, nil
 }
 
 func (ds *MockDatasource) GetAllSchema(ctx context.Context) ([]*Schema, error) {
@@ -35,8 +23,8 @@ func (ds *MockDatasource) GetAllSchema(ctx context.Context) ([]*Schema, error) {
 func (ds *MockDatasource) GetSchema(ctx context.Context, name string) (*Schema, error) {
 	sc := &Schema{}
 	sc.Columns = []*Column{
-		{Name: "id", Type: "string"},
-		{Name: "name", Type: "string"},
+		{Name: "id", Type: ColumnType_String},
+		{Name: "name", Type: ColumnType_String},
 	}
 	sc.PrimaryKey = &PrimaryKey{ColumnNames: []string{"id"}}
 	return sc, nil
@@ -46,11 +34,17 @@ func (ds *MockDatasource) SetSchema(ctx context.Context, sc *Schema) error {
 	return errors.New("SetSchema() not supported on MockDatasource")
 }
 
-func (ds *MockDatasource) GetRows(ctx context.Context, sc *Schema) (*Rows, error) {
-	return ds.rows, nil
+func (ds *MockDatasource) GetRows(ctx context.Context, sc *Schema) ([]*Row, error) {
+	var rows []*Row
+	for i := 0; i < 100; i++ {
+		values := make(map[string]*GenericColumnValue)
+		values["id"] = newStringValue(fmt.Sprintf("id%d", i))
+		values["name"] = newStringValue(fmt.Sprintf("id%d", i))
+		rows = append(rows, &Row{values: values})
+	}
+	return rows, nil
 }
 
-func (ds *MockDatasource) SetRows(ctx context.Context, sc *Schema, rows *Rows) error {
-	ds.rows = rows
-	return nil
+func (ds *MockDatasource) SetRows(ctx context.Context, sc *Schema, rows []*Row) error {
+	return errors.New("MockDatasource does not support SetRows")
 }
