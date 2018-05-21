@@ -22,7 +22,7 @@ func TestMockDatasource_Get(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for _, row := range rows.Values {
+	for _, row := range rows {
 		t.Logf("%+v", row)
 	}
 }

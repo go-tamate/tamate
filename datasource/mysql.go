@@ -83,10 +83,14 @@ func (h *MySQLDatasource) createAllSchemaMap() (map[string]*Schema, error) {
 			}
 			schema.PrimaryKey.ColumnNames = append(schema.PrimaryKey.ColumnNames, columnName)
 		}
+		valueType, err := mysqlColumnTypeToValueType(columnType)
+		if err != nil {
+			return nil, err
+		}
 		column := &Column{
 			Name:            columnName,
 			OrdinalPosition: ordinalPosition - 1,
-			Type:            columnType,
+			Type:            valueType,
 			NotNull:         isNullable != "YES",
 			AutoIncrement:   strings.Contains(extra, "auto_increment"),
 		}
@@ -95,6 +99,23 @@ func (h *MySQLDatasource) createAllSchemaMap() (map[string]*Schema, error) {
 	}
 
 	return schemaMap, nil
+}
+
+// TODO: various MySQL types support
+func mysqlColumnTypeToValueType(ct string) (ColumnType, error) {
+	if strings.HasSuffix(ct, "int") {
+		return ColumnType_Int, nil
+	}
+	if strings.HasSuffix(ct, "float") ||
+		strings.HasSuffix(ct, "double") ||
+		strings.HasSuffix(ct, "decimal") {
+		return ColumnType_Float, nil
+	}
+	if strings.HasSuffix(ct, "char") ||
+		strings.HasSuffix(ct, "text") {
+		return ColumnType_String, nil
+	}
+	return ColumnType_Null, fmt.Errorf("convertion not found for MySQL type: %s", ct)
 }
 
 func (h *MySQLDatasource) GetAllSchema(ctx context.Context) ([]*Schema, error) {
@@ -130,7 +151,7 @@ func (h *MySQLDatasource) SetSchema(ctx context.Context, schema *Schema) error {
 }
 
 // GetRows is get rows method
-func (h *MySQLDatasource) GetRows(ctx context.Context, schema *Schema) (*Rows, error) {
+func (h *MySQLDatasource) GetRows(ctx context.Context, schema *Schema) ([]*Row, error) {
 	// get data
 	sqlRows, err := h.db.Query(fmt.Sprintf("SELECT * FROM %s", schema.Name))
 	if err != nil {
@@ -139,70 +160,29 @@ func (h *MySQLDatasource) GetRows(ctx context.Context, schema *Schema) (*Rows, e
 	defer sqlRows.Close()
 
 	// read data
-	columnLength := len(schema.Columns)
-	var records [][]string
+	colLen := len(schema.Columns)
+
+	var rows []*Row
 	for sqlRows.Next() {
-		data := make([]*sql.NullString, columnLength)
-		ptrs := make([]interface{}, columnLength)
-		for i := range data {
-			ptrs[i] = &data[i]
+		rowValues := make(RowValues)
+		for _, cn := range schema.Columns {
+			rowValues[cn.Name].ColumnType = cn.Type
 		}
 
-		// Read data
+		// reading values
+		ptrs := make([]interface{}, colLen)
+		for i, cn := range schema.GetColumnNames() {
+			ptrs[i] = &(rowValues[cn].Value)
+		}
 		if err := sqlRows.Scan(ptrs...); err != nil {
 			return nil, err
 		}
-
-		dataStrings := make([]string, columnLength)
-
-		for key, value := range data {
-			if value != nil && value.Valid {
-				dataStrings[key] = value.String
-			}
-		}
-
-		records = append(records, dataStrings)
-	}
-	rows := &Rows{
-		Values: records,
+		rows = append(rows, &Row{values: rowValues})
 	}
 	return rows, nil
 }
 
 // SetRows is set rows method
-func (h *MySQLDatasource) SetRows(ctx context.Context, schema *Schema, rows *Rows) error {
-	// reset table
-	sqlRows, err := h.db.Query(fmt.Sprintf("DELETE FROM %s", schema.Name))
-	if err != nil {
-		return err
-	}
-	defer sqlRows.Close()
-
-	// write data
-	columns := make([]string, 0)
-	for _, column := range schema.Columns {
-		columns = append(columns, column.Name)
-	}
-	columnsText := strings.Join(columns, ",")
-
-	data := rows.Values
-	values := make([]string, len(data))
-	for i := range data {
-		valueText := make([]string, len(data[i]))
-		for j := range data[i] {
-			if schema.Columns[j].Type == "int" {
-				valueText[j] = data[i][j]
-			}
-			valueText[j] = "'" + data[i][j] + "'"
-		}
-		values[i] = "(" + strings.Join(valueText, ",") + ")"
-	}
-	valuesText := strings.Join(values, ",")
-
-	sqlRows, err = h.db.Query(fmt.Sprintf("INSERT INTO %s (%s) VALUES %s", schema.Name, columnsText, valuesText))
-	if err != nil {
-		return err
-	}
-	defer sqlRows.Close()
-	return nil
+func (h *MySQLDatasource) SetRows(ctx context.Context, schema *Schema, rows []*Row) error {
+	return errors.New("MySQLDatasource does not support SetRows()")
 }

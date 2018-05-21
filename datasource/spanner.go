@@ -7,6 +7,8 @@ import (
 
 	"cloud.google.com/go/spanner"
 	"google.golang.org/api/iterator"
+	sppb "google.golang.org/genproto/googleapis/spanner/v1"
+	"strings"
 )
 
 type SpannerDatasource struct {
@@ -120,13 +122,30 @@ func scanSchemaColumn(row *spanner.Row) (*Column, error) {
 	if err := row.Columns(&tableName, &columnName, &ordinalPosition, &columnType, &isNullable); err != nil {
 		return nil, err
 	}
+	ct, err := spannerTypeNameToColumnType(columnType)
+	if err != nil {
+		return nil, err
+	}
 	return &Column{
 		Name:            columnName,
 		OrdinalPosition: int(ordinalPosition),
-		Type:            columnType,
+		Type:            ct,
 		NotNull:         isNullable == "NO",
 		AutoIncrement:   false, // Cloud Spanner does not support AUTO_INCREMENT
 	}, nil
+}
+
+func spannerTypeNameToColumnType(st string) (ColumnType, error) {
+	if st == "INT64" {
+		return ColumnType_Int, nil
+	}
+	if st == "FLOAT64" {
+		return ColumnType_Float, nil
+	}
+	if strings.HasPrefix(st, "STRING") {
+		return ColumnType_String, nil
+	}
+	return ColumnType_Null, fmt.Errorf("cannot convert spanner type: %s", st)
 }
 
 // GetSchema is get schema method
@@ -151,12 +170,12 @@ func (ds *SpannerDatasource) SetSchema(ctx context.Context, schema *Schema) erro
 }
 
 // GetRows is get rows method
-func (ds *SpannerDatasource) GetRows(ctx context.Context, schema *Schema) (*Rows, error) {
+func (ds *SpannerDatasource) GetRows(ctx context.Context, schema *Schema) ([]*Row, error) {
 	stmt := spanner.NewStatement(fmt.Sprintf("SELECT * FROM `%s`", schema.Name))
 	iter := ds.spannerClient.Single().Query(ctx, stmt)
 	defer iter.Stop()
 
-	var values [][]string
+	var rows []*Row
 	for {
 		row, err := iter.Next()
 		if err == iterator.Done {
@@ -166,36 +185,32 @@ func (ds *SpannerDatasource) GetRows(ctx context.Context, schema *Schema) (*Rows
 			return nil, err
 		}
 
-		value := make([]string, row.Size())
-		for i := 0; i < row.Size(); i++ {
+		rowValues := make(RowValues)
+		for _, cn := range row.ColumnNames() {
 			var gval spanner.GenericColumnValue
-			if err := row.Column(i, &gval); err != nil {
+			if err := row.ColumnByName(cn, &gval); err != nil {
 				return nil, err
 			}
-			// HACK
-			value[i] = gval.Value.GetStringValue()
+			cv, err := genericSpannerValueToTamateGenericColumnValue(gval)
+			if err != nil {
+				return nil, err
+			}
+			rowValues[cn] = cv
 		}
-		values = append(values, value)
+		rows = append(rows, &Row{rowValues})
 	}
-	return &Rows{
-		Values: values,
-	}, nil
+	return rows, nil
+}
+
+func genericSpannerValueToTamateGenericColumnValue(sp spanner.GenericColumnValue) (*GenericColumnValue, error) {
+	if sp.Type.GetCode() == sppb.TypeCode_FLOAT64 {
+		return newFloatValue(sp.Value.GetNumberValue()), nil
+	}
+	// TODO: additional represents for various spanner types
+	return newStringValue(sp.Value.GetStringValue()), nil
 }
 
 // SetRows is set rows method
-func (ds *SpannerDatasource) SetRows(ctx context.Context, schema *Schema, rows *Rows) error {
-	if _, err := ds.spannerClient.ReadWriteTransaction(ctx, func(ctx context.Context, tx *spanner.ReadWriteTransaction) error {
-		var ms []*spanner.Mutation
-		for _, value := range rows.Values {
-			insertRow := make([]interface{}, len(value))
-			for i, v := range value {
-				insertRow[i] = v
-			}
-			ms = append(ms, spanner.InsertOrUpdate(schema.Name, schema.GetColumnNames(), insertRow))
-		}
-		return tx.BufferWrite(ms)
-	}); err != nil {
-		return err
-	}
-	return nil
+func (ds *SpannerDatasource) SetRows(ctx context.Context, schema *Schema, rows []*Row) error {
+	return errors.New("SpannerDatasource does not support SetRows()")
 }
