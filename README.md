@@ -42,7 +42,7 @@ export TAMATE_MYSQL_DSN=root:example@tcp(localhost:3306)/
 
 # For SpannerDatasource test
 export GOOGLE_APPLICATION_CREDENTIALS=/path/to/spanner_credentials.json
-export TAMATE_SPANNER_DSN=/projects/<GCP_PROJECT_ID>/instances/<SPANNER_INSTANCE_ID>/databases/<SPANNER_DATABASE_ID>
+export TAMATE_SPANNER_DSN_PARENT=/projects/<GCP_PROJECT_ID>/instances/<SPANNER_INSTANCE_ID>
 
 # For SpreadsheetDatasource test
 export TAMATE_SPREADSHEET_SERVICE_ACCOUNT_JSON_BASE64=<base64 encoded service account key JSON>
