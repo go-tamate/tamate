@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	testDataRowCount = 100
+	mysqlTestDataRowCount = 100
 )
 
 func before(dsn string) {
@@ -45,7 +45,7 @@ func insertTestData(db *sql.DB) error {
 	if _, err := db.Exec("create table `example` (`id` int not null primary key, `name` varchar(100) not null)"); err != nil {
 		return err
 	}
-	for i := 0; i < testDataRowCount; i++ {
+	for i := 0; i < mysqlTestDataRowCount; i++ {
 		if _, err := db.Exec(fmt.Sprintf("INSERT INTO `example` VALUES(%d, 'name%d')", i, i)); err != nil {
 			return err
 		}
@@ -89,11 +89,11 @@ func TestMySQLDatasource_Get(t *testing.T) {
 		t.Fatalf("GetRows failed: %+v", err)
 	}
 
-	if len(rows.Values) != testDataRowCount {
-		t.Fatalf("len(rows.Value) must be %d", testDataRowCount)
+	if len(rows.Values) != mysqlTestDataRowCount {
+		t.Fatalf("len(rows.Value) must be %d", mysqlTestDataRowCount)
 	}
 
-	for i := 0; i < testDataRowCount; i++ {
+	for i := 0; i < mysqlTestDataRowCount; i++ {
 		if !reflect.DeepEqual(rows.Values[i], []string{fmt.Sprintf("%d", i), fmt.Sprintf("name%d", i)}) {
 			t.Fatalf("rows.Values[%d] must be ['%d', 'name%d']", i, i, i)
 		}
