@@ -9,6 +9,7 @@ import (
 	"google.golang.org/api/iterator"
 	sppb "google.golang.org/genproto/googleapis/spanner/v1"
 	"strings"
+	"time"
 )
 
 type SpannerDatasource struct {
@@ -57,6 +58,9 @@ func (ds *SpannerDatasource) createAllSchemaMap(ctx context.Context) (map[string
 		}
 
 		column, err := scanSchemaColumn(row)
+		if err != nil {
+			return nil, err
+		}
 		if _, ok := schemaMap[tableName]; !ok {
 			schemaMap[tableName] = &Schema{Name: tableName}
 		}
@@ -142,7 +146,23 @@ func spannerTypeNameToColumnType(st string) (ColumnType, error) {
 	if st == "FLOAT64" {
 		return ColumnType_Float, nil
 	}
+	if st == "TIMESTAMP" {
+		return ColumnType_Datetime, nil
+	}
+	if st == "DATE" {
+		return ColumnType_Date, nil
+	}
+	if st == "BOOL" {
+		return ColumnType_Bool, nil
+	}
 	if strings.HasPrefix(st, "STRING") {
+		return ColumnType_String, nil
+	}
+	if strings.HasPrefix(st, "BYTES") {
+		return ColumnType_Bytes, nil
+	}
+	// TODO: array support
+	if strings.HasPrefix(st, "ARRAY") {
 		return ColumnType_String, nil
 	}
 	return ColumnType_Null, fmt.Errorf("cannot convert spanner type: %s", st)
@@ -186,25 +206,152 @@ func (ds *SpannerDatasource) GetRows(ctx context.Context, schema *Schema) ([]*Ro
 		}
 
 		rowValues := make(RowValues)
-		for _, cn := range row.ColumnNames() {
+		for _, c := range schema.Columns {
 			var gval spanner.GenericColumnValue
-			if err := row.ColumnByName(cn, &gval); err != nil {
+			if err := row.ColumnByName(c.Name, &gval); err != nil {
 				return nil, err
 			}
-			cv, err := genericSpannerValueToTamateGenericColumnValue(gval)
+			cv, err := genericSpannerValueToTamateGenericColumnValue(gval, !c.NotNull)
 			if err != nil {
 				return nil, err
 			}
-			rowValues[cn] = cv
+			rowValues[c.Name] = cv
 		}
 		rows = append(rows, &Row{rowValues})
 	}
 	return rows, nil
 }
 
-func genericSpannerValueToTamateGenericColumnValue(sp spanner.GenericColumnValue) (*GenericColumnValue, error) {
-	if sp.Type.GetCode() == sppb.TypeCode_FLOAT64 {
-		return newFloatValue(sp.Value.GetNumberValue()), nil
+func genericSpannerValueToTamateGenericColumnValue(sp spanner.GenericColumnValue, nullable bool) (*GenericColumnValue, error) {
+	switch sp.Type.GetCode() {
+	case sppb.TypeCode_STRING:
+		cv := &GenericColumnValue{ColumnType: ColumnType_String}
+		if nullable {
+			var s spanner.NullString
+			if err := sp.Decode(&s); err != nil {
+				return nil, err
+			}
+			if s.Valid {
+				cv.Value = s.StringVal
+			} else {
+				cv.Value = nil
+			}
+		} else {
+			var s string
+			if err := sp.Decode(&s); err != nil {
+				return nil, err
+			}
+			cv.Value = s
+		}
+		return cv, nil
+	case sppb.TypeCode_INT64:
+		cv := &GenericColumnValue{ColumnType: ColumnType_Int}
+		if nullable {
+			var s spanner.NullInt64
+			if err := sp.Decode(&s); err != nil {
+				return nil, err
+			}
+			if s.Valid {
+				cv.Value = s.Int64
+			} else {
+				cv.Value = nil
+			}
+		} else {
+			var s int64
+			if err := sp.Decode(&s); err != nil {
+				return nil, err
+			}
+			cv.Value = s
+		}
+		return cv, nil
+	case sppb.TypeCode_FLOAT64:
+		cv := &GenericColumnValue{ColumnType: ColumnType_Float}
+		if nullable {
+			var s spanner.NullFloat64
+			if err := sp.Decode(&s); err != nil {
+				return nil, err
+			}
+			if s.Valid {
+				cv.Value = s.Float64
+			} else {
+				cv.Value = nil
+			}
+		} else {
+			var s float64
+			if err := sp.Decode(&s); err != nil {
+				return nil, err
+			}
+			cv.Value = s
+		}
+		return cv, nil
+	case sppb.TypeCode_BOOL:
+		cv := &GenericColumnValue{ColumnType: ColumnType_Bool}
+		if nullable {
+			var s spanner.NullBool
+			if err := sp.Decode(&s); err != nil {
+				return nil, err
+			}
+			if s.Valid {
+				cv.Value = s.Bool
+			} else {
+				cv.Value = nil
+			}
+		} else {
+			var s bool
+			if err := sp.Decode(&s); err != nil {
+				return nil, err
+			}
+			cv.Value = s
+		}
+		return cv, nil
+	case sppb.TypeCode_BYTES:
+		cv := &GenericColumnValue{ColumnType: ColumnType_Bytes}
+		var s []byte
+		if err := sp.Decode(&s); err != nil {
+			return nil, err
+		}
+		cv.Value = s
+		return cv, nil
+	case sppb.TypeCode_DATE:
+		cv := &GenericColumnValue{ColumnType: ColumnType_Bytes}
+		if nullable {
+			var s spanner.NullDate
+			if err := sp.Decode(&s); err != nil {
+				return nil, err
+			}
+			if s.Valid {
+				cv.Value = s.Date.String()
+			} else {
+				cv.Value = nil
+			}
+		} else {
+			var s string
+			if err := sp.Decode(&s); err != nil {
+				return nil, err
+			}
+			cv.Value = s
+		}
+		return cv, nil
+	case sppb.TypeCode_TIMESTAMP:
+		cv := &GenericColumnValue{ColumnType: ColumnType_Datetime}
+		if nullable {
+			var s spanner.NullTime
+			if err := sp.Decode(&s); err != nil {
+				return nil, err
+			}
+			if s.Valid {
+				cv.Value = s.Time
+			} else {
+				cv.Value = nil
+			}
+		} else {
+			var s time.Time
+			if err := sp.Decode(&s); err != nil {
+				return nil, err
+			}
+			cv.Value = s
+		}
+		return cv, nil
 	}
 	// TODO: additional represents for various spanner types
 	return newStringValue(sp.Value.GetStringValue()), nil
