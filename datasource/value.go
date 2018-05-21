@@ -22,6 +22,10 @@ const (
 	ColumnType_String
 	ColumnType_Int
 	ColumnType_Float
+	ColumnType_Datetime
+	ColumnType_Date
+	ColumnType_Bytes
+	ColumnType_Bool
 )
 
 func (vt ColumnType) String() string {
@@ -34,6 +38,14 @@ func (vt ColumnType) String() string {
 		return "int"
 	case ColumnType_Float:
 		return "float"
+	case ColumnType_Datetime:
+		return "datetime"
+	case ColumnType_Date:
+		return "date"
+	case ColumnType_Bytes:
+		return "bytes"
+	case ColumnType_Bool:
+		return "bool"
 	default:
 		return fmt.Sprintf("<unknown type: %d>", vt)
 	}

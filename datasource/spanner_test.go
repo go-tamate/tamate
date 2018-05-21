@@ -144,7 +144,6 @@ func TestSpanner_Get(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Logf("Schema: %+v", sc)
-	t.Logf("PK: %+v", sc.PrimaryKey)
 
 	rows, err := ds.GetRows(ctx, sc)
 	if err != nil {
@@ -167,8 +166,8 @@ func TestSpanner_Get(t *testing.T) {
 		if row.values["AlwaysNullStringTest"].Value != nil {
 			t.Fatalf("AlwaysNullStringTest must be nil, but %+v found", row.values["AlwaysNullStringTest"].Value)
 		}
-		if row.values["IntTest"].Value != 123456 {
-			t.Fatalf("IntTest value must be 123456, but actual: %s.", row.values["IntTest"].Value)
+		if row.values["IntTest"].Value != int64(123456) {
+			t.Fatalf("IntTest value must be int64(123456), but actual: %+v.", row.values["IntTest"].Value)
 		}
 		// TODO: generic column value
 		/*

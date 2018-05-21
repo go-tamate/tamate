@@ -2,6 +2,8 @@ package datasource
 
 import (
 	"context"
+	"fmt"
+	"strings"
 )
 
 // Column is table column
@@ -13,14 +15,30 @@ type Column struct {
 	AutoIncrement   bool       `json:"auto_increment"`
 }
 
+func (c *Column) String() string {
+	return fmt.Sprintf("%s %s", c.Name, c.Type)
+}
+
 type RowValues map[string]*GenericColumnValue
 
 type Row struct {
 	values RowValues
 }
 
+func (r *Row) String() string {
+	var sts []string
+	for cn, val := range r.values {
+		sts = append(sts, fmt.Sprintf("%s: %+v", cn, val.StringValue()))
+	}
+	return "{" + strings.Join(sts, ", ") + "}"
+}
+
 type PrimaryKey struct {
 	ColumnNames []string `json:"column_names"`
+}
+
+func (pk *PrimaryKey) String() string {
+	return strings.Join(pk.ColumnNames, ", ")
 }
 
 // Schema is column definitions at table
@@ -28,6 +46,14 @@ type Schema struct {
 	Name       string      `json:"name"`
 	PrimaryKey *PrimaryKey `json:"primary_key"`
 	Columns    []*Column   `json:"columns"`
+}
+
+func (sc *Schema) String() string {
+	var sts []string
+	for _, c := range sc.Columns {
+		sts = append(sts, c.String())
+	}
+	return fmt.Sprintf("%s(%s) PK=(%s)", sc.Name, strings.Join(sts, ", "), sc.PrimaryKey)
 }
 
 // TODO: composite primary key support
