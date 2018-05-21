@@ -196,7 +196,7 @@ func TestSpanner_Get(t *testing.T) {
 			}
 		*/
 
-		actualRowCount += 1
+		actualRowCount++
 	}
 
 	if actualRowCount != spannerTestDataRowCount {
