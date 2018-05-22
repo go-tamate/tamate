@@ -57,10 +57,3 @@ func newStringValue(value string) *GenericColumnValue {
 		Value:      value,
 	}
 }
-
-func newFloatValue(value float64) *GenericColumnValue {
-	return &GenericColumnValue{
-		ColumnType: ColumnTypeFloat,
-		Value:      value,
-	}
-}
