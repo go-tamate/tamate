@@ -113,9 +113,9 @@ func (ds *CSVDatasource) SetRows(ctx context.Context, schema *Schema, rows []*Ro
 			csvRows = append(csvRows, schema.GetColumnNames())
 			continue
 		}
-		csvRow := make([]string, len(row.values))
+		csvRow := make([]string, len(row.Values))
 		for k, cn := range schema.GetColumnNames() {
-			csvRow[k] = row.values[cn].StringValue()
+			csvRow[k] = row.Values[cn].StringValue()
 		}
 		csvRows = append(csvRows, csvRow)
 	}

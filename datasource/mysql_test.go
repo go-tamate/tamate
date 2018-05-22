@@ -93,11 +93,11 @@ func TestMySQLDatasource_Get(t *testing.T) {
 	}
 
 	for i := 0; i < mysqlTestDataRowCount; i++ {
-		if rows[i].values["id"].Value != i {
-			t.Fatalf("rows[%d].values['id'] must be %d", i, i)
+		if rows[i].Values["id"].Value != i {
+			t.Fatalf("rows[%d].Values['id'] must be %d", i, i)
 		}
-		if rows[i].values["name"].Value != i {
-			t.Fatalf("rows[%d].values['name'] must be 'name%d'", i, fmt.Sprintf("name%d"))
+		if rows[i].Values["name"].Value != i {
+			t.Fatalf("rows[%d].Values['name'] must be 'name%d'", i, fmt.Sprintf("name%d"))
 		}
 	}
 }

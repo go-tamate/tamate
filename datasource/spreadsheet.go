@@ -146,7 +146,7 @@ func (ds *SpreadsheetDatasource) SetRows(ctx context.Context, schema *Schema, ro
 			if si == ds.ColumnRowIndex {
 				sheetRow[k] = cn
 			} else {
-				sheetRow[k] = rows[ri].values[cn].StringValue()
+				sheetRow[k] = rows[ri].Values[cn].StringValue()
 				ri++
 			}
 		}

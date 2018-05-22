@@ -169,7 +169,7 @@ func (h *MySQLDatasource) GetRows(ctx context.Context, schema *Schema) ([]*Row, 
 			rowValues[cn.Name].ColumnType = cn.Type
 		}
 
-		// reading values
+		// reading Values
 		ptrs := make([]interface{}, colLen)
 		for i, cn := range schema.GetColumnNames() {
 			ptrs[i] = &(rowValues[cn].Value)
@@ -177,7 +177,7 @@ func (h *MySQLDatasource) GetRows(ctx context.Context, schema *Schema) ([]*Row, 
 		if err := sqlRows.Scan(ptrs...); err != nil {
 			return nil, err
 		}
-		rows = append(rows, &Row{values: rowValues})
+		rows = append(rows, &Row{Values: rowValues})
 	}
 	return rows, nil
 }
