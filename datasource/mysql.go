@@ -104,18 +104,18 @@ func (h *MySQLDatasource) createAllSchemaMap() (map[string]*Schema, error) {
 // TODO: various MySQL types support
 func mysqlColumnTypeToValueType(ct string) (ColumnType, error) {
 	if strings.HasSuffix(ct, "int") {
-		return ColumnType_Int, nil
+		return ColumnTypeInt, nil
 	}
 	if strings.HasSuffix(ct, "float") ||
 		strings.HasSuffix(ct, "double") ||
 		strings.HasSuffix(ct, "decimal") {
-		return ColumnType_Float, nil
+		return ColumnTypeFloat, nil
 	}
 	if strings.HasSuffix(ct, "char") ||
 		strings.HasSuffix(ct, "text") {
-		return ColumnType_String, nil
+		return ColumnTypeString, nil
 	}
-	return ColumnType_Null, fmt.Errorf("convertion not found for MySQL type: %s", ct)
+	return ColumnTypeNull, fmt.Errorf("convertion not found for MySQL type: %s", ct)
 }
 
 func (h *MySQLDatasource) GetAllSchema(ctx context.Context) ([]*Schema, error) {

@@ -18,33 +18,33 @@ func (cv *GenericColumnValue) StringValue() string {
 type ColumnType int
 
 const (
-	ColumnType_Null = ColumnType(iota)
-	ColumnType_String
-	ColumnType_Int
-	ColumnType_Float
-	ColumnType_Datetime
-	ColumnType_Date
-	ColumnType_Bytes
-	ColumnType_Bool
+	ColumnTypeNull = ColumnType(iota)
+	ColumnTypeString
+	ColumnTypeInt
+	ColumnTypeFloat
+	ColumnTypeDatetime
+	ColumnTypeDate
+	ColumnTypeBytes
+	ColumnTypeBool
 )
 
 func (vt ColumnType) String() string {
 	switch vt {
-	case ColumnType_Null:
+	case ColumnTypeNull:
 		return "<null>"
-	case ColumnType_String:
+	case ColumnTypeString:
 		return "string"
-	case ColumnType_Int:
+	case ColumnTypeInt:
 		return "int"
-	case ColumnType_Float:
+	case ColumnTypeFloat:
 		return "float"
-	case ColumnType_Datetime:
+	case ColumnTypeDatetime:
 		return "datetime"
-	case ColumnType_Date:
+	case ColumnTypeDate:
 		return "date"
-	case ColumnType_Bytes:
+	case ColumnTypeBytes:
 		return "bytes"
-	case ColumnType_Bool:
+	case ColumnTypeBool:
 		return "bool"
 	default:
 		return fmt.Sprintf("<unknown type: %d>", vt)
@@ -53,14 +53,14 @@ func (vt ColumnType) String() string {
 
 func newStringValue(value string) *GenericColumnValue {
 	return &GenericColumnValue{
-		ColumnType: ColumnType_String,
+		ColumnType: ColumnTypeString,
 		Value:      value,
 	}
 }
 
 func newFloatValue(value float64) *GenericColumnValue {
 	return &GenericColumnValue{
-		ColumnType: ColumnType_Float,
+		ColumnType: ColumnTypeFloat,
 		Value:      value,
 	}
 }

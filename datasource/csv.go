@@ -38,7 +38,7 @@ func (ds *CSVDatasource) createAllSchemaMap() (map[string]*Schema, error) {
 			for j := range values[i] {
 				schema.Columns[i] = &Column{
 					Name: values[i][j],
-					Type: ColumnType_String,
+					Type: ColumnTypeString,
 				}
 			}
 		}

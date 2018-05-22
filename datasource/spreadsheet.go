@@ -65,7 +65,7 @@ func (ds *SpreadsheetDatasource) GetSchema(ctx context.Context, name string) (*S
 			for i := range row {
 				columns[i] = &Column{
 					Name: row[i].(string),
-					Type: ColumnType_String,
+					Type: ColumnTypeString,
 				}
 			}
 			pk, err := choosePrimaryKey(columns)
