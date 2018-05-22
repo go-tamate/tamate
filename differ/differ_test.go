@@ -5,28 +5,35 @@ import (
 	"testing"
 )
 
+func newRowValuesFromString(ss map[string]string) datasource.RowValues {
+	res := make(datasource.RowValues, len(ss))
+	for k, sv := range ss {
+		res[k] = &datasource.GenericColumnValue{
+			ColumnType: datasource.ColumnType_String,
+			Value:      sv,
+		}
+	}
+	return res
+}
+
 func TestDiffer_DiffRows(t *testing.T) {
 	sc := &datasource.Schema{
 		Columns: []*datasource.Column{
-			{Name: "id", Type: "string"},
-			{Name: "name", Type: "string"},
+			{Name: "id", Type: datasource.ColumnType_String},
+			{Name: "name", Type: datasource.ColumnType_String},
 		},
 		PrimaryKey: &datasource.PrimaryKey{ColumnNames: []string{"id"}},
 	}
 
-	left := &datasource.Rows{
-		Values: [][]string{
-			{"id0", "name0"},
-			{"id1", "name1"},
-		},
+	leftRows := []*datasource.Row{
+		{newRowValuesFromString(map[string]string{"id": "id0", "name": "name0"})},
+		{newRowValuesFromString(map[string]string{"id": "id1", "name": "name1"})},
 	}
-	right := &datasource.Rows{
-		Values: [][]string{
-			{"id0", "name00"},
-			{"id1", "name1"},
-			{"id2", "name2"},
-			{"id3", "name3"},
-		},
+	rightRows := []*datasource.Row{
+		{newRowValuesFromString(map[string]string{"id": "id0", "name": "name0_modified"})},
+		{newRowValuesFromString(map[string]string{"id": "id1", "name": "name1"})},
+		{newRowValuesFromString(map[string]string{"id": "id2", "name": "name2"})},
+		{newRowValuesFromString(map[string]string{"id": "id3", "name": "name3"})},
 	}
 
 	differ, err := NewDiffer()
@@ -34,45 +41,34 @@ func TestDiffer_DiffRows(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// the same (no diff)
+	/*
+		{
+			diff, err := differ.DiffRows(sc.PrimaryKey, leftRows, leftRows)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if len(diff.Left) != 0 || len(diff.Right) != 0 {
+				t.Fatalf("expect: no row in diff, actual: diff.Left: %d, diff.Right: %d", len(diff.Left), len(diff.Right))
+			}
+		}
+	*/
+
 	{
-		diff, err := differ.DiffRows(sc, left, right)
+		diff, err := differ.DiffRows(sc.PrimaryKey, leftRows, rightRows)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		if len(diff.Add) != 2 {
-			t.Fatalf("expected: 2 rows added, actual: %d rows added", len(diff.Add))
+		if len(diff.Left) != 1 {
+			t.Fatalf("expect: 1 row in diff.Left, actual: %d", len(diff.Left))
 		}
-		if len(diff.Modify) != 1 {
-			t.Fatalf("expected: 1 rows modified, actual: %d rows modified", len(diff.Modify))
-		}
-		if diff.Modify[0].Right[1] != "name00" {
-			t.Fatalf("modified name must be 'name00'")
-		}
-		if len(diff.Delete) > 0 {
-			t.Fatalf("expected: no rows deleted, actual: %d rows deleted", len(diff.Delete))
+		if len(diff.Right) != 3 {
+			t.Fatalf("expect: 3 rows in diff.Right, actual: %d", len(diff.Right))
 		}
 	}
 
-	// 逆方向
-	{
-		diff2, err := differ.DiffRows(sc, right, left)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if len(diff2.Delete) != 2 {
-			t.Fatalf("expected: 2 rows deleted, actual: %d rows deleted", len(diff2.Delete))
-		}
-		if len(diff2.Modify) != 1 {
-			t.Fatalf("expected: 1 rows modified, actual: modified %d rows", len(diff2.Modify))
-		}
-		if diff2.Modify[0].Right[1] != "name0" {
-			t.Fatalf("modified name must be 'name0'")
-		}
-		if len(diff2.Add) > 0 {
-			t.Fatalf("expected: no rows added, actual: %d rows added", len(diff2.Add))
-		}
-	}
 }
 
 func TestDiffer_DiffColumns(t *testing.T) {
@@ -84,16 +80,16 @@ func TestDiffer_DiffColumns(t *testing.T) {
 	{
 		left := &datasource.Schema{
 			Columns: []*datasource.Column{
-				{Name: "id", Type: "string"},
-				{Name: "name", Type: "string"},
+				{Name: "id", Type: datasource.ColumnType_String},
+				{Name: "name", Type: datasource.ColumnType_String},
 			},
 			PrimaryKey: &datasource.PrimaryKey{ColumnNames: []string{"id"}},
 		}
 
 		right := &datasource.Schema{
 			Columns: []*datasource.Column{
-				{Name: "id", Type: "int"},
-				{Name: "name", Type: "string"},
+				{Name: "id", Type: datasource.ColumnType_Int},
+				{Name: "name", Type: datasource.ColumnType_String},
 			},
 			PrimaryKey: &datasource.PrimaryKey{ColumnNames: []string{"id"}},
 		}
@@ -103,8 +99,8 @@ func TestDiffer_DiffColumns(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if len(d.Modify) != 1 {
-			t.Fatalf("expect: 1 columns modified, actual: %d", len(d.Modify))
+		if len(d.Left) != 1 || len(d.Right) != 1 {
+			t.Fatalf("expect: 1 columns modified, actual: left: %d, right: %d", len(d.Left), len(d.Right))
 		}
 	}
 }
