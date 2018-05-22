@@ -23,8 +23,8 @@ func (ds *MockDatasource) GetAllSchema(ctx context.Context) ([]*Schema, error) {
 func (ds *MockDatasource) GetSchema(ctx context.Context, name string) (*Schema, error) {
 	sc := &Schema{}
 	sc.Columns = []*Column{
-		{Name: "id", Type: ColumnType_String},
-		{Name: "name", Type: ColumnType_String},
+		{Name: "id", Type: ColumnTypeString},
+		{Name: "name", Type: ColumnTypeString},
 	}
 	sc.PrimaryKey = &PrimaryKey{ColumnNames: []string{"id"}}
 	return sc, nil

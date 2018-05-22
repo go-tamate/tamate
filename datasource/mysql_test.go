@@ -79,7 +79,7 @@ func TestMySQLDatasource_Get(t *testing.T) {
 		t.Fatal("PK must be [id]")
 	}
 
-	if len(sc.Columns) != 2 || sc.Columns[1].Name != "name" || sc.Columns[1].Type != ColumnType_String {
+	if len(sc.Columns) != 2 || sc.Columns[1].Name != "name" || sc.Columns[1].Type != ColumnTypeString {
 		t.Fatal("Columns[1] must be string-type 'name'")
 	}
 

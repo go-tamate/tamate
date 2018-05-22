@@ -9,7 +9,7 @@ func newRowValuesFromString(ss map[string]string) datasource.RowValues {
 	res := make(datasource.RowValues, len(ss))
 	for k, sv := range ss {
 		res[k] = &datasource.GenericColumnValue{
-			ColumnType: datasource.ColumnType_String,
+			ColumnType: datasource.ColumnTypeString,
 			Value:      sv,
 		}
 	}
@@ -19,8 +19,8 @@ func newRowValuesFromString(ss map[string]string) datasource.RowValues {
 func TestDiffer_DiffRows(t *testing.T) {
 	sc := &datasource.Schema{
 		Columns: []*datasource.Column{
-			{Name: "id", Type: datasource.ColumnType_String},
-			{Name: "name", Type: datasource.ColumnType_String},
+			{Name: "id", Type: datasource.ColumnTypeString},
+			{Name: "name", Type: datasource.ColumnTypeString},
 		},
 		PrimaryKey: &datasource.PrimaryKey{ColumnNames: []string{"id"}},
 	}
@@ -80,16 +80,16 @@ func TestDiffer_DiffColumns(t *testing.T) {
 	{
 		left := &datasource.Schema{
 			Columns: []*datasource.Column{
-				{Name: "id", Type: datasource.ColumnType_String},
-				{Name: "name", Type: datasource.ColumnType_String},
+				{Name: "id", Type: datasource.ColumnTypeString},
+				{Name: "name", Type: datasource.ColumnTypeString},
 			},
 			PrimaryKey: &datasource.PrimaryKey{ColumnNames: []string{"id"}},
 		}
 
 		right := &datasource.Schema{
 			Columns: []*datasource.Column{
-				{Name: "id", Type: datasource.ColumnType_Int},
-				{Name: "name", Type: datasource.ColumnType_String},
+				{Name: "id", Type: datasource.ColumnTypeInt},
+				{Name: "name", Type: datasource.ColumnTypeString},
 			},
 			PrimaryKey: &datasource.PrimaryKey{ColumnNames: []string{"id"}},
 		}
