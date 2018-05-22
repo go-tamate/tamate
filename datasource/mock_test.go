@@ -26,10 +26,10 @@ func TestMockDatasource_Get(t *testing.T) {
 
 	for i, row := range rows {
 		if row.Values["id"].Value != fmt.Sprintf("id%d", i) {
-			t.Fatalf("rows[%d].Values['id'] must be 'id%s', but actual: %s", i, row.Values["id"].Value)
+			t.Fatalf("rows[%d].Values['id'] must be 'id%d', but actual: %s", i, i, row.Values["id"].Value)
 		}
 		if row.Values["name"].Value != fmt.Sprintf("name%d", i) {
-			t.Fatalf("rows[%d].Values['id'] must be 'name%s', but actual: %s", i, row.Values["name"].Value)
+			t.Fatalf("rows[%d].Values['id'] must be 'name%d', but actual: %s", i, i, row.Values["name"].Value)
 		}
 	}
 }
