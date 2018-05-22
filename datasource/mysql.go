@@ -103,17 +103,35 @@ func (h *MySQLDatasource) createAllSchemaMap() (map[string]*Schema, error) {
 
 // TODO: various MySQL types support
 func mysqlColumnTypeToValueType(ct string) (ColumnType, error) {
-	if strings.HasSuffix(ct, "int") {
+	ct = strings.ToLower(ct)
+	if strings.HasPrefix(ct, "int") ||
+		strings.HasPrefix(ct, "smallint") ||
+		strings.HasPrefix(ct, "mediumint") ||
+		strings.HasPrefix(ct, "bigint") {
 		return ColumnTypeInt, nil
 	}
-	if strings.HasSuffix(ct, "float") ||
-		strings.HasSuffix(ct, "double") ||
-		strings.HasSuffix(ct, "decimal") {
+	if strings.HasPrefix(ct, "float") ||
+		strings.HasPrefix(ct, "double") ||
+		strings.HasPrefix(ct, "decimal") {
 		return ColumnTypeFloat, nil
 	}
-	if strings.HasSuffix(ct, "char") ||
-		strings.HasSuffix(ct, "text") {
+	if strings.HasPrefix(ct, "char") ||
+		strings.HasPrefix(ct, "varchar") ||
+		strings.HasPrefix(ct, "text") ||
+		strings.HasPrefix(ct, "mediumtext") ||
+		strings.HasPrefix(ct, "longtext") ||
+		strings.HasPrefix(ct, "json") {
 		return ColumnTypeString, nil
+	}
+	if strings.HasPrefix(ct, "datetime") ||
+		strings.HasPrefix(ct, "timestamp") {
+		return ColumnTypeDatetime, nil
+	}
+	if strings.HasPrefix(ct, "date") {
+		return ColumnTypeDate, nil
+	}
+	if strings.HasPrefix(ct, "blob") {
+		return ColumnTypeBytes, nil
 	}
 	return ColumnTypeNull, fmt.Errorf("convertion not found for MySQL type: %s", ct)
 }
@@ -166,7 +184,7 @@ func (h *MySQLDatasource) GetRows(ctx context.Context, schema *Schema) ([]*Row, 
 	for sqlRows.Next() {
 		rowValues := make(RowValues)
 		for _, cn := range schema.Columns {
-			rowValues[cn.Name].ColumnType = cn.Type
+			rowValues[cn.Name] = &GenericColumnValue{ColumnType: cn.Type}
 		}
 
 		// reading Values
