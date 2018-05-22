@@ -22,12 +22,12 @@ func (c *Column) String() string {
 type RowValues map[string]*GenericColumnValue
 
 type Row struct {
-	values RowValues
+	Values RowValues
 }
 
 func (r *Row) String() string {
 	var sts []string
-	for cn, val := range r.values {
+	for cn, val := range r.Values {
 		sts = append(sts, fmt.Sprintf("%s: %+v", cn, val.StringValue()))
 	}
 	return "{" + strings.Join(sts, ", ") + "}"

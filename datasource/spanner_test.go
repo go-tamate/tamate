@@ -153,21 +153,21 @@ func TestSpanner_Get(t *testing.T) {
 	actualRowCount := 0
 	for i, row := range rows {
 		if i == 0 {
-			for key, val := range row.values {
+			for key, val := range row.Values {
 				t.Logf("%+v: %+v", key, val)
 			}
 		}
-		if _, err := uuid.Parse(row.values["ID"].StringValue()); err != nil {
-			t.Fatalf("invalid uuid: %s.", row.values["ID"].StringValue())
+		if _, err := uuid.Parse(row.Values["ID"].StringValue()); err != nil {
+			t.Fatalf("invalid uuid: %s.", row.Values["ID"].StringValue())
 		}
-		if row.values["StringTest"].StringValue() != fmt.Sprintf("testString%d", i) {
-			t.Fatalf("StringTest must be %s, but actual: %s .", fmt.Sprintf("testString%d", i), row.values["StringTest"].StringValue())
+		if row.Values["StringTest"].StringValue() != fmt.Sprintf("testString%d", i) {
+			t.Fatalf("StringTest must be %s, but actual: %s .", fmt.Sprintf("testString%d", i), row.Values["StringTest"].StringValue())
 		}
-		if row.values["AlwaysNullStringTest"].Value != nil {
-			t.Fatalf("AlwaysNullStringTest must be nil, but %+v found", row.values["AlwaysNullStringTest"].Value)
+		if row.Values["AlwaysNullStringTest"].Value != nil {
+			t.Fatalf("AlwaysNullStringTest must be nil, but %+v found", row.Values["AlwaysNullStringTest"].Value)
 		}
-		if row.values["IntTest"].Value != int64(123456) {
-			t.Fatalf("IntTest value must be int64(123456), but actual: %+v.", row.values["IntTest"].Value)
+		if row.Values["IntTest"].Value != int64(123456) {
+			t.Fatalf("IntTest value must be int64(123456), but actual: %+v.", row.Values["IntTest"].Value)
 		}
 		// TODO: generic column value
 		/*
