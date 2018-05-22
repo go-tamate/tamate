@@ -28,7 +28,7 @@ func (ds *CSVDatasource) createAllSchemaMap() (map[string]*Schema, error) {
 	schema := &Schema{
 		Name: ds.URI,
 	}
-	values, err := readCSV(ds.URI)
+	values, err := readCSVFromURI(ds.URI)
 	if err != nil {
 		return nil, err
 	}
@@ -38,7 +38,7 @@ func (ds *CSVDatasource) createAllSchemaMap() (map[string]*Schema, error) {
 			for j := range values[i] {
 				schema.Columns[i] = &Column{
 					Name: values[i][j],
-					Type: "string",
+					Type: ColumnTypeString,
 				}
 			}
 		}
@@ -80,70 +80,58 @@ func (ds *CSVDatasource) SetSchema(ctx context.Context, schema *Schema) error {
 	if err != nil {
 		return err
 	}
-	values := make([][]string, 0)
-	for i := range rows.Values {
-		if i == ds.ColumnRowIndex {
-			schemaValue := make([]string, len(schema.Columns))
-			for j := range schema.Columns {
-				schemaValue[j] = schema.Columns[j].Name
-			}
-			values = append(values, schemaValue)
-		}
-		values = append(values, rows.Values[i])
-	}
-	return writeCSV(ds.URI, values)
+	return ds.SetRows(ctx, schema, rows)
 }
 
 // GetRows is get rows method
-func (ds *CSVDatasource) GetRows(ctx context.Context, schema *Schema) (*Rows, error) {
-	values, err := readCSV(ds.URI)
+func (ds *CSVDatasource) GetRows(ctx context.Context, schema *Schema) ([]*Row, error) {
+	csvRows, err := readCSVFromURI(ds.URI)
 	if err != nil {
 		return nil, err
 	}
-	// drop column row
-	_values := make([][]string, 0)
-	for i, value := range values {
+
+	rows := make([]*Row, len(csvRows)-1)
+	for i, csvRow := range csvRows {
 		if i == ds.ColumnRowIndex {
 			continue
 		}
-		_values = append(_values, value)
+
+		rowValues := make(RowValues)
+		for k, cn := range schema.GetColumnNames() {
+			rowValues[cn] = newStringValue(csvRow[k])
+		}
+		rows = append(rows, &Row{rowValues})
 	}
-	values = _values
-	return &Rows{
-		Values: values,
-	}, nil
+	return rows, nil
 }
 
 // SetRows is set rows method
-func (ds *CSVDatasource) SetRows(ctx context.Context, schema *Schema, rows *Rows) error {
-	var values [][]string
-	for j := range rows.Values {
-		if j == ds.ColumnRowIndex {
-			_, err := ds.GetSchema(ctx, schema.Name)
-			if err != nil {
-				return err
-			}
-			schemaValue := make([]string, len(schema.Columns))
-			for j := range schema.Columns {
-				schemaValue[j] = schema.Columns[j].Name
-			}
-			values = append(values, schemaValue)
+func (ds *CSVDatasource) SetRows(ctx context.Context, schema *Schema, rows []*Row) error {
+	var csvRows [][]string
+	for i, row := range rows {
+		if i == ds.ColumnRowIndex {
+			csvRows = append(csvRows, schema.GetColumnNames())
+			continue
 		}
-		values = append(values, rows.Values[j])
+		csvRow := make([]string, len(row.Values))
+		for k, cn := range schema.GetColumnNames() {
+			csvRow[k] = row.Values[cn].StringValue()
+		}
+		csvRows = append(csvRows, csvRow)
 	}
-	return writeCSV(ds.URI, values)
+	return writeCSV(ds.URI, csvRows)
 }
 
-func readCSV(uri string) ([][]string, error) {
+func readCSVFromURI(uri string) ([][]string, error) {
 	r, err := os.Open(uri)
 	if err != nil {
 		return nil, err
 	}
 	defer r.Close()
-	return read(csv.NewReader(r))
+	return readCSV(csv.NewReader(r))
 }
 
-func read(r *csv.Reader) ([][]string, error) {
+func readCSV(r *csv.Reader) ([][]string, error) {
 	values, err := r.ReadAll()
 	if err != nil {
 		return nil, err

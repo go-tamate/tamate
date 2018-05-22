@@ -65,7 +65,7 @@ func (ds *SpreadsheetDatasource) GetSchema(ctx context.Context, name string) (*S
 			for i := range row {
 				columns[i] = &Column{
 					Name: row[i].(string),
-					Type: "string",
+					Type: ColumnTypeString,
 				}
 			}
 			pk, err := choosePrimaryKey(columns)
@@ -109,45 +109,53 @@ func (ds *SpreadsheetDatasource) SetSchema(ctx context.Context, schema *Schema) 
 }
 
 // GetRows is get rows method
-func (ds *SpreadsheetDatasource) GetRows(ctx context.Context, schema *Schema) (*Rows, error) {
+func (ds *SpreadsheetDatasource) GetRows(ctx context.Context, schema *Schema) ([]*Row, error) {
 	readRange := schema.Name + "!" + ds.Ranges
 	response, err := ds.sheetService.Spreadsheets.Values.Get(ds.SpreadsheetID, readRange).Do()
 	if err != nil {
 		return nil, err
 	}
-	var values [][]string
-	for i, row := range response.Values {
+	var rows []*Row
+	for i, sr := range response.Values {
 		if i == ds.ColumnRowIndex {
 			continue
 		}
-		value := make([]string, len(row))
-		for i := range row {
-			// FIXME: Datatime
-			value[i] = row[i].(string)
+		rowValues := make(RowValues)
+		// TODO: correct order?
+		for i, cn := range schema.GetColumnNames() {
+			srt, ok := sr[i].(string)
+			if !ok {
+				return nil, fmt.Errorf("cannot convert spreadsheet value to string: %+v", sr[i])
+			}
+			rowValues[cn] = newStringValue(srt)
 		}
-		values = append(values, value)
+		rows = append(rows, &Row{rowValues})
 	}
-	return &Rows{
-		Values: values,
-	}, nil
+	return rows, nil
 }
 
 // SetRows is set rows method
-func (ds *SpreadsheetDatasource) SetRows(ctx context.Context, schema *Schema, rows *Rows) error {
-	rowsValues := make([][]interface{}, 0)
-	for i, value := range rows.Values {
-		if i == ds.ColumnRowIndex {
-			rowsValues = append(rowsValues, make([]interface{}, 0))
+func (ds *SpreadsheetDatasource) SetRows(ctx context.Context, schema *Schema, rows []*Row) error {
+	sheetRows := make([][]interface{}, len(rows))
+	colLen := len(schema.Columns)
+
+	ri := 0
+	for si := 0; si < len(rows)+1; si++ {
+		sheetRow := make([]interface{}, colLen)
+		for k, cn := range schema.GetColumnNames() {
+			if si == ds.ColumnRowIndex {
+				sheetRow[k] = cn
+			} else {
+				sheetRow[k] = rows[ri].Values[cn].StringValue()
+				ri++
+			}
 		}
-		row := make([]interface{}, len(value))
-		for j := range value {
-			row[j] = value[j]
-		}
-		rowsValues = append(rowsValues, row)
+		sheetRows = append(sheetRows, sheetRow)
 	}
+
 	valueRange := &sheets.ValueRange{
 		MajorDimension: "ROWS",
-		Values:         rowsValues,
+		Values:         sheetRows,
 	}
 
 	// FIXME:

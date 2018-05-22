@@ -56,7 +56,7 @@ func TestSpreadsheet_Get(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for _, row := range rows.Values {
+	for _, row := range rows {
 		t.Log(row)
 	}
 }

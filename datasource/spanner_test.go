@@ -144,7 +144,6 @@ func TestSpanner_Get(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Logf("Schema: %+v", sc)
-	t.Logf("PK: %+v", sc.PrimaryKey)
 
 	rows, err := ds.GetRows(ctx, sc)
 	if err != nil {
@@ -152,48 +151,43 @@ func TestSpanner_Get(t *testing.T) {
 	}
 
 	actualRowCount := 0
-	for i, row := range rows.Values {
+	for i, row := range rows {
 		if i == 0 {
-			for key, val := range row {
+			for key, val := range row.Values {
 				t.Logf("%+v: %+v", key, val)
 			}
 		}
-		if _, err := uuid.Parse(row[0]); err != nil {
-			t.Fatalf("invalid uuid: %s.", row[0])
+		if _, err := uuid.Parse(row.Values["ID"].StringValue()); err != nil {
+			t.Fatalf("invalid uuid: %s.", row.Values["ID"].StringValue())
 		}
-		if row[1] != fmt.Sprintf("testString%d", i) {
-			t.Fatalf("TestString must be %s, but actual: %s .", fmt.Sprintf("testString%d", i), row[1])
+		if row.Values["StringTest"].StringValue() != fmt.Sprintf("testString%d", i) {
+			t.Fatalf("StringTest must be %s, but actual: %s .", fmt.Sprintf("testString%d", i), row.Values["StringTest"].StringValue())
 		}
-		// TODO: generic column value
-		/*
-			if row[2] != {
-				t.Fatalf("alwaysNullString must be nil, but %+v found", row[2])
-			}
-		*/
-		if row[3] != "123456" {
-			t.Fatalf("IntTest value must be 123456, but actual: %s.", row[3])
+		if row.Values["AlwaysNullStringTest"].Value != nil {
+			t.Fatalf("AlwaysNullStringTest must be nil, but %+v found", row.Values["AlwaysNullStringTest"].Value)
+		}
+		if row.Values["IntTest"].Value != int64(123456) {
+			t.Fatalf("IntTest value must be int64(123456), but actual: %+v.", row.Values["IntTest"].Value)
 		}
 		// TODO: generic column value
 		/*
-			if row[4] != "123456.789" {
-				t.Fatalf("FloatTest value must be 123456.789, but actual: %s", row[4])
+				if row[4] != "123456.789" {
+					t.Fatalf("FloatTest value must be 123456.789, but actual: %s", row[4])
+				}
+			if _, err := time.Parse(time.RFC3339Nano, row[5]); err != nil {
+				t.Fatalf("TimestampTest must be '%s' format (actual: %s).", time.RFC3339Nano, row[5])
 			}
-		*/
-		if _, err := time.Parse(time.RFC3339Nano, row[5]); err != nil {
-			t.Fatalf("TimestampTest must be '%s' format (actual: %s).", time.RFC3339Nano, row[5])
-		}
-		if _, err := time.Parse("2006-01-02", row[6]); err != nil {
-			t.Fatalf("DateTest must be '2006-01-02' format (actual: %s).", row[6])
-		}
-		// TODO: generic column value
-		/*
-			if row[7] != "false" {
-				t.Fatalf("BoolTest must be 'false', but actual: %s.", row[7])
+			if _, err := time.Parse("2006-01-02", row[6]); err != nil {
+				t.Fatalf("DateTest must be '2006-01-02' format (actual: %s).", row[6])
 			}
-			expectedBase64 := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("testBytes%d", i)))
-			if row[7] != expectedBase64 {
-				t.Fatalf("BytesTest must be %s, but actual: %s.", expectedBase64, row[7])
-			}
+			// TODO: generic column value
+				if row[7] != "false" {
+					t.Fatalf("BoolTest must be 'false', but actual: %s.", row[7])
+				}
+				expectedBase64 := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("testBytes%d", i)))
+				if row[7] != expectedBase64 {
+					t.Fatalf("BytesTest must be %s, but actual: %s.", expectedBase64, row[7])
+				}
 		*/
 
 		actualRowCount++

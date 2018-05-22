@@ -1,23 +1,44 @@
 package datasource
 
-import "context"
+import (
+	"context"
+	"fmt"
+	"strings"
+)
 
 // Column is table column
 type Column struct {
-	Name            string `json:"name"`
-	OrdinalPosition int    `json:"ordinal_position"`
-	Type            string `json:"type"`
-	NotNull         bool   `json:"not_null"`
-	AutoIncrement   bool   `json:"auto_increment"`
+	Name            string     `json:"name"`
+	OrdinalPosition int        `json:"ordinal_position"`
+	Type            ColumnType `json:"type"`
+	NotNull         bool       `json:"not_null"`
+	AutoIncrement   bool       `json:"auto_increment"`
 }
 
-// Rows is table records
-type Rows struct {
-	Values [][]string `json:"values"`
+func (c *Column) String() string {
+	return fmt.Sprintf("%s %s", c.Name, c.Type)
+}
+
+type RowValues map[string]*GenericColumnValue
+
+type Row struct {
+	Values RowValues
+}
+
+func (r *Row) String() string {
+	var sts []string
+	for cn, val := range r.Values {
+		sts = append(sts, fmt.Sprintf("%s: %+v", cn, val.StringValue()))
+	}
+	return "{" + strings.Join(sts, ", ") + "}"
 }
 
 type PrimaryKey struct {
 	ColumnNames []string `json:"column_names"`
+}
+
+func (pk *PrimaryKey) String() string {
+	return strings.Join(pk.ColumnNames, ", ")
 }
 
 // Schema is column definitions at table
@@ -25,6 +46,14 @@ type Schema struct {
 	Name       string      `json:"name"`
 	PrimaryKey *PrimaryKey `json:"primary_key"`
 	Columns    []*Column   `json:"columns"`
+}
+
+func (sc *Schema) String() string {
+	var sts []string
+	for _, c := range sc.Columns {
+		sts = append(sts, c.String())
+	}
+	return fmt.Sprintf("%s(%s) PK=(%s)", sc.Name, strings.Join(sts, ", "), sc.PrimaryKey)
 }
 
 // TODO: composite primary key support
@@ -51,6 +80,6 @@ type Datasource interface {
 	GetAllSchema(ctx context.Context) ([]*Schema, error)
 	GetSchema(ctx context.Context, name string) (*Schema, error)
 	SetSchema(ctx context.Context, sc *Schema) error
-	GetRows(ctx context.Context, sc *Schema) (*Rows, error)
-	SetRows(ctx context.Context, sc *Schema, rows *Rows) error
+	GetRows(ctx context.Context, sc *Schema) ([]*Row, error)
+	SetRows(ctx context.Context, sc *Schema, rows []*Row) error
 }
