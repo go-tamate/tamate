@@ -3,33 +3,20 @@ package differ
 import (
 	"errors"
 
+	"fmt"
 	"github.com/Mitu217/tamate/datasource"
 )
 
 // DiffColumns is add, modify and delete columns struct
 type DiffColumns struct {
-	Add    []ModifyColumnValues `json:"add"`
-	Modify []ModifyColumnValues `json:"modify"`
-	Delete []ModifyColumnValues `json:"delete"`
+	Left  []*datasource.Column `json:"left"`
+	Right []*datasource.Column `json:"right"`
 }
 
-// ModifyColumnValues is modify column values struct between left and right
-type ModifyColumnValues struct {
-	Left  *datasource.Column `json:"left"`
-	Right *datasource.Column `json:"right"`
-}
-
-// DiffRows is add, modify and delete rows struct
+// DiffRows is modify row values struct between left and right
 type DiffRows struct {
-	Add    []ModifyRowValues `json:"add"`
-	Modify []ModifyRowValues `json:"modify"`
-	Delete []ModifyRowValues `json:"delete"`
-}
-
-// ModifyRowValues is modify row values struct between left and right
-type ModifyRowValues struct {
-	Left  []string `json:"left"`
-	Right []string `json:"right"`
+	Left  []*datasource.Row `json:"left"`
+	Right []*datasource.Row `json:"right"`
 }
 
 // Differ is diff between tables struct
@@ -44,186 +31,109 @@ func NewDiffer() (*Differ, error) {
 
 // DiffColumns is get diff columns method
 func (d *Differ) DiffColumns(left, right *datasource.Schema) (*DiffColumns, error) {
-	// Get Schemas
-	srcSchema := left
-	dstSchema := right
-
-	// Get diff
-	diff := &DiffColumns{}
-	for _, pattern := range []string{"Normal", "Reverse"} {
-		for _, srcColumn := range srcSchema.Columns {
-			found := false
-			for _, dstColumn := range dstSchema.Columns {
-				if srcColumn.Name == dstColumn.Name {
-					found = true
-					if pattern == "Normal" {
-						// Modify
-						modifyColumnValues, err := getModifyColumnValues(srcColumn, dstColumn)
-						if err != nil {
-							return nil, err
-						}
-						if modifyColumnValues != nil {
-							diff.Modify = append(diff.Modify, *modifyColumnValues)
-						}
-					}
-					break
-				}
-			}
-			if !found {
-				if pattern == "Normal" {
-					// Add
-					modifyColumnValues, err := getModifyColumnValues(nil, srcColumn)
-					if err != nil {
-						return nil, err
-					}
-					diff.Add = append(diff.Add, *modifyColumnValues)
-				} else {
-					// Delete
-					modifyColumnValues, err := getModifyColumnValues(srcColumn, nil)
-					if err != nil {
-						return nil, err
-					}
-					diff.Delete = append(diff.Delete, *modifyColumnValues)
-				}
-			}
-		}
-		// swap
-		srcSchema, dstSchema = dstSchema, srcSchema
+	lmap, err := columnsToNameMap(left.Columns)
+	if err != nil {
+		return nil, err
+	}
+	rmap, err := columnsToNameMap(right.Columns)
+	if err != nil {
+		return nil, err
 	}
 
+	diff := &DiffColumns{}
+	ldiff := &diff.Left
+	rdiff := &diff.Right
+	for i := 0; i < 2; i++ {
+		for lcn, lcol := range lmap {
+			rcol, rhas := rmap[lcn]
+			if !rhas {
+				*ldiff = append(*ldiff, lcol)
+				continue
+			}
+			if i == 0 && !isSameColumn(lcol, rcol) {
+				*ldiff = append(*ldiff, lcol)
+				*rdiff = append(*rdiff, rcol)
+			}
+		}
+	}
+	// swap ref to (left/right)
+	lmap, rmap = rmap, lmap
+	ldiff, rdiff = rdiff, ldiff
 	return diff, nil
 }
 
-func getModifyColumnValues(left, right *datasource.Column) (*ModifyColumnValues, error) {
-	modify := false
-	if left != nil && right != nil {
-		if left.Type != right.Type {
-			modify = true
-		}
-		if left.NotNull != right.NotNull {
-			modify = true
-		}
-		if left.AutoIncrement != right.AutoIncrement {
-			modify = true
-		}
-	} else {
-		modify = true
+func columnsToNameMap(cols []*datasource.Column) (map[string]*datasource.Column, error) {
+	colMap := make(map[string]*datasource.Column, len(cols))
+	for _, col := range cols {
+		colMap[col.Name] = col
 	}
-	if modify {
-		if left == nil {
-			left = &datasource.Column{}
-		}
-		if right == nil {
-			right = &datasource.Column{}
-		}
-		return &ModifyColumnValues{
-			Left:  left,
-			Right: right,
-		}, nil
-	}
-	return nil, nil
+	return colMap, nil
+}
+
+func isSameColumn(left, right *datasource.Column) bool {
+	return left.Name == right.Name &&
+		left.Type == right.Type &&
+		left.NotNull == right.NotNull &&
+		left.AutoIncrement == right.AutoIncrement
 }
 
 // DiffRows is get diff rows method
-func (d *Differ) DiffRows(sc *datasource.Schema, left, right *datasource.Rows) (*DiffRows, error) {
-	if sc == nil {
-		return nil, errors.New("schema is required")
+func (d *Differ) DiffRows(pk *datasource.PrimaryKey, leftRows, rightRows []*datasource.Row) (*DiffRows, error) {
+	if pk == nil {
+		return nil, errors.New("Primary key required.")
+	}
+	pkn := pk.ColumnNames[0]
+
+	lmap, err := rowsToPKMap(pkn, leftRows)
+	if err != nil {
+		return nil, err
+	}
+	rmap, err := rowsToPKMap(pkn, rightRows)
+	if err != nil {
+		return nil, err
 	}
 
-	srcRows := right
-	dstRows := left
-	leftPrimaryKeyIndex := sc.GetPrimaryKeyIndex()
-	rightPrimaryKeyIndex := sc.GetPrimaryKeyIndex()
-
 	diff := &DiffRows{}
-	for _, pattern := range []string{"Normal", "Reverse"} {
-		for i, srcValue := range srcRows.Values {
-			found := false
-			if leftPrimaryKeyIndex != -1 {
-				// diff by primary key
-				for _, dstValue := range dstRows.Values {
-					if srcValue[leftPrimaryKeyIndex] == dstValue[rightPrimaryKeyIndex] {
-						found = true
-						if pattern == "Normal" {
-							modifyRowValues, err := getModifyRowValues(&srcValue, &dstValue)
-							if err != nil {
-								return nil, err
-							}
-							if modifyRowValues != nil {
-								diff.Modify = append(diff.Modify, *modifyRowValues)
-							}
-						}
-						break
-					}
-				}
-			} else {
-				// simple diff when not setting primary key
-				if i < len(dstRows.Values) {
-					dstValue := dstRows.Values[i]
-					found = true
-					if pattern == "Normal" {
-						modifyRowValues, err := getModifyRowValues(&srcValue, &dstValue)
-						if err != nil {
-							return nil, err
-						}
-						if modifyRowValues != nil {
-							diff.Modify = append(diff.Modify, *modifyRowValues)
-						}
-					}
-				}
+	ldiff := &diff.Left
+	rdiff := &diff.Right
+	for i := 0; i < 2; i++ {
+		for pkv, lrow := range lmap {
+			rlow, rhas := rmap[pkv]
+			if !rhas {
+				*ldiff = append(*ldiff, lrow)
+				continue
 			}
-			if !found {
-				if pattern == "Normal" {
-					// Add
-					modifyRowValues, err := getModifyRowValues(nil, &srcValue)
-					if err != nil {
-						return nil, err
-					}
-					diff.Add = append(diff.Add, *modifyRowValues)
-				} else {
-					// Delete
-					modifyRowValues, err := getModifyRowValues(&srcValue, nil)
-					if err != nil {
-						return nil, err
-					}
-					diff.Delete = append(diff.Delete, *modifyRowValues)
-				}
+			if i == 0 && !isSameRow(lrow, rlow) {
+				*ldiff = append(*ldiff, lrow)
+				*rdiff = append(*rdiff, rlow)
 			}
 		}
-		// swap
-		srcRows, dstRows = dstRows, srcRows
+		// swap ref to (left/right)
+		lmap, rmap = rmap, lmap
+		ldiff, rdiff = rdiff, ldiff
 	}
 	return diff, nil
 }
 
-func getModifyRowValues(left *[]string, right *[]string) (*ModifyRowValues, error) {
-	modify := false
-	if left == nil && right == nil {
-		modify = false
-	} else if left == nil || right == nil {
-		modify = true
-	} else {
-		if len(*left) == len(*right) {
-			for i := range *left {
-				if (*left)[i] != (*right)[i] {
-					modify = true
-				}
-			}
-		} else {
-			modify = true
+func rowsToPKMap(pkName string, rows []*datasource.Row) (map[string]*datasource.Row, error) {
+	rowMap := make(map[string]*datasource.Row, len(rows))
+	for _, row := range rows {
+		pkv, ok := row.Values[pkName]
+		if !ok {
+			return nil, fmt.Errorf("leftRows has no PK(%s) value", pkName)
+		}
+		rowMap[pkv.StringValue()] = row
+	}
+	return rowMap, nil
+}
+
+func isSameRow(left, right *datasource.Row) bool {
+	for cn, lval := range left.Values {
+		rval, rhas := right.Values[cn]
+		// TODO: implements comparator
+		if !rhas || lval.Value != rval.Value {
+			return false
 		}
 	}
-	if modify {
-		if left == nil {
-			left = &[]string{}
-		}
-		if right == nil {
-			right = &[]string{}
-		}
-		return &ModifyRowValues{
-			Left:  *right,
-			Right: *left,
-		}, nil
-	}
-	return nil, nil
+	return true
 }
