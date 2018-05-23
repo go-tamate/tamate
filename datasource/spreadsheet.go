@@ -127,7 +127,11 @@ func (ds *SpreadsheetDatasource) GetRows(ctx context.Context, schema *Schema) ([
 			if !ok {
 				return nil, fmt.Errorf("cannot convert spreadsheet value to string: %+v", sr[i])
 			}
-			rowValues[cn] = newStringValue(srt)
+			for _, col := range schema.Columns {
+				if col.Name == cn {
+					rowValues[cn] = &GenericColumnValue{Column: col, Value: srt}
+				}
+			}
 		}
 		rows = append(rows, &Row{rowValues})
 	}
