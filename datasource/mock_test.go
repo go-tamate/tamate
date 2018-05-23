@@ -28,8 +28,14 @@ func TestMockDatasource_Get(t *testing.T) {
 		if row.Values["id"].Value != fmt.Sprintf("id%d", i) {
 			t.Fatalf("rows[%d].Values['id'] must be 'id%d', but actual: %s", i, i, row.Values["id"].Value)
 		}
+		if i%2 == 0 && !row.Values["id"].Nullable {
+			t.Fatalf("Even number of row index AND values id must nullable, but actually not null")
+		}
 		if row.Values["name"].Value != fmt.Sprintf("name%d", i) {
 			t.Fatalf("rows[%d].Values['id'] must be 'name%d', but actual: %s", i, i, row.Values["name"].Value)
+		}
+		if i%2 != 0 && !row.Values["name"].Nullable {
+			t.Fatalf("Odd number of row index AND values name must nullable, but actually not null")
 		}
 	}
 }
