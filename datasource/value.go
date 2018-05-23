@@ -3,12 +3,12 @@ package datasource
 import "fmt"
 
 type GenericColumnValue struct {
-	ColumnType ColumnType
-	Value      interface{}
+	Column *Column
+	Value  interface{}
 }
 
 func (cv *GenericColumnValue) StringValue() string {
-	switch cv.ColumnType {
+	switch cv.Column.Type {
 	// TODO: additional string reprensentation for specific value type
 	default:
 		return fmt.Sprintf("%v", cv.Value)
@@ -48,12 +48,5 @@ func (vt ColumnType) String() string {
 		return "bool"
 	default:
 		return fmt.Sprintf("<unknown type: %d>", vt)
-	}
-}
-
-func newStringValue(value string) *GenericColumnValue {
-	return &GenericColumnValue{
-		ColumnType: ColumnTypeString,
-		Value:      value,
 	}
 }
