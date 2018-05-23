@@ -1,16 +1,17 @@
 package differ
 
 import (
-	"github.com/Mitu217/tamate/datasource"
 	"testing"
+
+	"github.com/Mitu217/tamate/datasource"
 )
 
 func newRowValuesFromString(ss map[string]string) datasource.RowValues {
 	res := make(datasource.RowValues, len(ss))
 	for k, sv := range ss {
 		res[k] = &datasource.GenericColumnValue{
-			ColumnType: datasource.ColumnTypeString,
-			Value:      sv,
+			Column: &datasource.Column{Type: datasource.ColumnTypeString},
+			Value:  sv,
 		}
 	}
 	return res
