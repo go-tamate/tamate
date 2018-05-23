@@ -313,7 +313,7 @@ func genericSpannerValueToTamateGenericColumnValue(sp spanner.GenericColumnValue
 		cv.Value = s
 		return cv, nil
 	case sppb.TypeCode_DATE:
-		cv := &GenericColumnValue{ColumnType: ColumnTypeBytes}
+		cv := &GenericColumnValue{ColumnType: ColumnTypeDate}
 		if nullable {
 			var s spanner.NullDate
 			if err := sp.Decode(&s); err != nil {
