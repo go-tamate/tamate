@@ -11,7 +11,7 @@ func (cv *GenericColumnValue) StringValue() string {
 	switch cv.ColumnType {
 	// TODO: additional string reprensentation for specific value type
 	default:
-		return fmt.Sprintf("%s", cv.Value)
+		return fmt.Sprintf("%v", cv.Value)
 	}
 }
 
