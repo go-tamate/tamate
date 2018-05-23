@@ -365,6 +365,7 @@ func (ds *SpannerDatasource) SetRows(ctx context.Context, schema *Schema, rows [
 	return errors.New("SpannerDatasource does not support SetRows()")
 }
 
+// Convert GenericColumnValue to Spanner Value
 func ConvertGenericColumnValueToSpannerValue(cv *GenericColumnValue) (interface{}, error) {
 
 	if cv.Column.NotNull && cv.Value == nil {
