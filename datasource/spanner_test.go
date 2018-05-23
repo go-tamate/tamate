@@ -169,6 +169,12 @@ func TestSpanner_Get(t *testing.T) {
 		if row.Values["IntTest"].Value != int64(123456) {
 			t.Fatalf("IntTest value must be int64(123456), but actual: %+v.", row.Values["IntTest"].Value)
 		}
+		if row.Values["DateTest"].Value != time.Now().Format("2006-01-02") {
+			t.Fatalf("DateTest value must be yyyy-mm-dd format(%s), but actual: %+v).", time.Now().Format("2006-01-02"), row.Values["DateTest"].Value)
+		}
+		if row.Values["DateTest"].ColumnType != ColumnTypeDate {
+			t.Fatalf("DateTest ColumnType must be ColumnTypeDate(%d), but actual: %d.", ColumnTypeDate, row.Values["DateTest"].ColumnType)
+		}
 		// TODO: generic column value
 		/*
 				if row[4] != "123456.789" {
@@ -176,9 +182,6 @@ func TestSpanner_Get(t *testing.T) {
 				}
 			if _, err := time.Parse(time.RFC3339Nano, row[5]); err != nil {
 				t.Fatalf("TimestampTest must be '%s' format (actual: %s).", time.RFC3339Nano, row[5])
-			}
-			if _, err := time.Parse("2006-01-02", row[6]); err != nil {
-				t.Fatalf("DateTest must be '2006-01-02' format (actual: %s).", row[6])
 			}
 			// TODO: generic column value
 				if row[7] != "false" {
