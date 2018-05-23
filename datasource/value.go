@@ -19,30 +19,26 @@ func (cv *GenericColumnValue) StringValue() string {
 		case int:
 			if i, ok := cv.Value.(int); ok {
 				return strconv.Itoa(i)
-			} else {
-				return fmt.Sprintf("%d", cv.Value)
 			}
+			return fmt.Sprintf("%d", cv.Value)
 		case int64:
 			if i, ok := cv.Value.(int64); ok {
 				return strconv.FormatInt(i, 10)
-			} else {
-				return fmt.Sprintf("%d", cv.Value)
 			}
+			return fmt.Sprintf("%d", cv.Value)
 		case float64:
 			if f, ok := cv.Value.(float64); ok {
 				return strconv.FormatFloat(f, 'f', -1, 64)
-			} else {
-				return fmt.Sprintf("%f", cv.Value)
 			}
+			return fmt.Sprintf("%f", cv.Value)
 		default:
 			return fmt.Sprintf("%d", cv.Value)
 		}
 	case ColumnTypeFloat:
 		if f, ok := cv.Value.(float64); ok {
 			return strconv.FormatFloat(f, 'f', -1, 64)
-		} else {
-			return fmt.Sprintf("%f", cv.Value)
 		}
+		return fmt.Sprintf("%f", cv.Value)
 	case ColumnTypeBool:
 		return fmt.Sprintf("%t", cv.Value)
 	case ColumnTypeDatetime:
