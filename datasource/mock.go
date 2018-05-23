@@ -39,7 +39,9 @@ func (ds *MockDatasource) GetRows(ctx context.Context, sc *Schema) ([]*Row, erro
 	for i := 0; i < 100; i++ {
 		values := make(map[string]*GenericColumnValue)
 		values["id"] = newStringValue(fmt.Sprintf("id%d", i))
+		values["id"].Nullable = i%2 == 0
 		values["name"] = newStringValue(fmt.Sprintf("name%d", i))
+		values["name"].Nullable = i%2 != 0
 		rows = append(rows, &Row{Values: values})
 	}
 	return rows, nil

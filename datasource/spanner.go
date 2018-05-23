@@ -5,11 +5,12 @@ import (
 	"errors"
 	"fmt"
 
+	"strings"
+	"time"
+
 	"cloud.google.com/go/spanner"
 	"google.golang.org/api/iterator"
 	sppb "google.golang.org/genproto/googleapis/spanner/v1"
-	"strings"
-	"time"
 )
 
 type SpannerDatasource struct {
@@ -215,6 +216,7 @@ func (ds *SpannerDatasource) GetRows(ctx context.Context, schema *Schema) ([]*Ro
 			if err != nil {
 				return nil, err
 			}
+			cv.Nullable = !c.NotNull
 			rowValues[c.Name] = cv
 		}
 		rows = append(rows, &Row{rowValues})
