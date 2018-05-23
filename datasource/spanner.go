@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"strconv"
+
 	"cloud.google.com/go/spanner"
 	"google.golang.org/api/iterator"
 	sppb "google.golang.org/genproto/googleapis/spanner/v1"
@@ -355,4 +357,76 @@ func genericSpannerValueToTamateGenericColumnValue(sp spanner.GenericColumnValue
 // SetRows is set rows method
 func (ds *SpannerDatasource) SetRows(ctx context.Context, schema *Schema, rows []*Row) error {
 	return errors.New("SpannerDatasource does not support SetRows()")
+}
+
+func ConvertGenericColumnValueToSpannerValue(cv *GenericColumnValue) (interface{}, error) {
+
+	if cv.Column.NotNull && cv.Value == nil {
+		return nil, errors.New("this value must not be null")
+	}
+	switch cv.Column.Type {
+	case ColumnTypeString:
+		if !cv.Column.NotNull && cv.Value == nil {
+			return spanner.NullString{}, nil
+		}
+		return cv.StringValue(), nil
+	case ColumnTypeInt:
+		if !cv.Column.NotNull && cv.Value == nil {
+			return spanner.NullInt64{}, nil
+		}
+		// Even if ColumnType is int, it's actually a float in some cases.
+		switch cv.Value.(type) {
+		case float64:
+			f, err := strconv.ParseFloat(cv.StringValue(), 64)
+			if err != nil {
+				return nil, err
+			}
+			return int64(f), nil
+		case int64:
+			i, err := strconv.ParseInt(cv.StringValue(), 10, 64)
+			if err != nil {
+				return nil, err
+			}
+			return i, nil
+		default:
+			i, err := strconv.ParseInt(cv.StringValue(), 10, 64)
+			if err != nil {
+				return nil, err
+			}
+			return i, nil
+		}
+	case ColumnTypeFloat:
+		if !cv.Column.NotNull && cv.Value == nil {
+			return spanner.NullFloat64{}, nil
+		}
+		f, err := strconv.ParseFloat(cv.StringValue(), 64)
+		if err != nil {
+			return nil, err
+		}
+		return f, nil
+	case ColumnTypeDatetime:
+		if !cv.Column.NotNull && cv.Value == nil {
+			return spanner.NullTime{}, nil
+		}
+		return cv.Value, nil
+	case ColumnTypeDate:
+		if !cv.Column.NotNull && cv.Value == nil {
+			return spanner.NullDate{}, nil
+		}
+		return cv.Value, nil
+	case ColumnTypeBytes:
+		if !cv.Column.NotNull && cv.Value == nil {
+			return spanner.NullString{}, nil
+		}
+		return cv.Value, nil
+	case ColumnTypeBool:
+		if !cv.Column.NotNull && cv.Value == nil {
+			return spanner.NullBool{}, nil
+		}
+		return cv.Value, nil
+	case ColumnTypeNull:
+		fallthrough
+	default:
+		return nil, nil
+	}
 }
