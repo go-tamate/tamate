@@ -10,6 +10,7 @@ import (
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"os"
+	"reflect"
 )
 
 const (
@@ -94,14 +95,11 @@ func TestMySQLDatasource_Get(t *testing.T) {
 	}
 
 	for i := 0; i < mysqlTestDataRowCount; i++ {
-		// TODO: fix for scanMySQLRows
-		/*
-			if rows[i].Values["id"].Value != i {
-				t.Fatalf("rows[%d].Values['id'] must be %d, but actual: %+v (type: %+v)", i, i, rows[i].Values["id"].Value, reflect.TypeOf(rows[i].Values["id"].Value))
-			}
-			if rows[i].Values["name"].Value != i {
-				t.Fatalf("rows[%d].Values['name'] must be 'name%d'", i, i)
-			}
-		*/
+		if rows[i].Values["id"].Value != int64(i) {
+			t.Fatalf("rows[%d].Values['id'] must be %d, but actual: %+v (type: %+v)", i, i, rows[i].Values["id"].Value, reflect.TypeOf(rows[i].Values["id"].Value))
+		}
+		if rows[i].Values["name"].Value != fmt.Sprintf("name%d", i) {
+			t.Fatalf("rows[%d].Values['name'] must be 'name%d'", i, i)
+		}
 	}
 }

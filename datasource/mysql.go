@@ -7,8 +7,9 @@ import (
 	"strings"
 
 	"context"
-
-	_ "github.com/go-sql-driver/mysql"
+	"github.com/go-sql-driver/mysql"
+	"reflect"
+	"time"
 )
 
 type MySQLDatasource struct {
@@ -178,27 +179,70 @@ func (h *MySQLDatasource) GetRows(ctx context.Context, schema *Schema) ([]*Row, 
 	}
 	defer sqlRows.Close()
 
-	// read data
-	colLen := len(schema.Columns)
-
 	var rows []*Row
 	for sqlRows.Next() {
-		rowValues := make(RowValues)
-		for _, col := range schema.Columns {
-			rowValues[col.Name] = &GenericColumnValue{Column: col}
-		}
-
-		// reading Values
-		ptrs := make([]interface{}, colLen)
-		for i, cn := range schema.GetColumnNames() {
-			ptrs[i] = &(rowValues[cn].Value)
-		}
-		if err := sqlRows.Scan(ptrs...); err != nil {
+		row, err := scanRow(sqlRows, schema)
+		if err != nil {
 			return nil, err
 		}
-		rows = append(rows, &Row{Values: rowValues})
+		rows = append(rows, row)
 	}
 	return rows, nil
+}
+
+func scanRow(sqlRows *sql.Rows, sc *Schema) (*Row, error) {
+	rowValues := make(RowValues)
+	ptrs := make([]interface{}, len(sc.Columns))
+	i := 0
+	for _, col := range sc.Columns {
+		dvp := reflect.New(colToMySQLType(col)).Interface()
+		ptrs[i] = dvp
+		i++
+	}
+	if err := sqlRows.Scan(ptrs...); err != nil {
+		return nil, err
+	}
+	i = 0
+	for _, col := range sc.Columns {
+		v := reflect.ValueOf(ptrs[i]).Elem().Interface()
+		rowValues[col.Name] = &GenericColumnValue{Column: col, Value: v}
+		i++
+	}
+	return &Row{Values: rowValues}, nil
+}
+
+func colToMySQLType(c *Column) reflect.Type {
+	switch c.Type {
+	case ColumnTypeInt:
+		if c.NotNull {
+			return reflect.TypeOf(int64(0))
+		}
+		return reflect.TypeOf(sql.NullInt64{})
+
+	case ColumnTypeFloat:
+		if c.NotNull {
+			return reflect.TypeOf(float64(0))
+		}
+		return reflect.TypeOf(sql.NullFloat64{})
+	case ColumnTypeBool:
+		if c.NotNull {
+			return reflect.TypeOf(false)
+		}
+		return reflect.TypeOf(sql.NullBool{})
+	case ColumnTypeDatetime, ColumnTypeDate:
+		if c.NotNull {
+			return reflect.TypeOf(time.Time{})
+		}
+		return reflect.TypeOf(mysql.NullTime{})
+	case ColumnTypeString:
+		if c.NotNull {
+			return reflect.TypeOf("")
+		}
+		return reflect.TypeOf(sql.NullString{})
+	case ColumnTypeBytes:
+		return reflect.TypeOf([]byte{})
+	}
+	return reflect.TypeOf(nil)
 }
 
 // SetRows is set rows method

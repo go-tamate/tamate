@@ -122,16 +122,12 @@ func (ds *SpreadsheetDatasource) GetRows(ctx context.Context, schema *Schema) ([
 		}
 		rowValues := make(RowValues)
 		// TODO: correct order?
-		for i, cn := range schema.GetColumnNames() {
+		for i, col := range schema.Columns {
 			srt, ok := sr[i].(string)
 			if !ok {
 				return nil, fmt.Errorf("cannot convert spreadsheet value to string: %+v", sr[i])
 			}
-			for _, col := range schema.Columns {
-				if col.Name == cn {
-					rowValues[cn] = &GenericColumnValue{Column: col, Value: srt}
-				}
-			}
+			rowValues[col.Name] = NewStringGenericColumnValue(col, srt)
 		}
 		rows = append(rows, &Row{rowValues})
 	}
