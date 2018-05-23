@@ -5,12 +5,13 @@ import (
 	"os"
 	"testing"
 
+	"fmt"
+	"time"
+
 	"cloud.google.com/go/spanner"
 	"cloud.google.com/go/spanner/admin/database/apiv1"
-	"fmt"
 	"github.com/google/uuid"
 	adminpb "google.golang.org/genproto/googleapis/spanner/admin/database/v1"
-	"time"
 )
 
 const (
@@ -160,8 +161,14 @@ func TestSpanner_Get(t *testing.T) {
 		if _, err := uuid.Parse(row.Values["ID"].StringValue()); err != nil {
 			t.Fatalf("invalid uuid: %s.", row.Values["ID"].StringValue())
 		}
+		if row.Values["ID"].Nullable {
+			t.Fatalf("ID must not be null, but actually nullable")
+		}
 		if row.Values["StringTest"].StringValue() != fmt.Sprintf("testString%d", i) {
 			t.Fatalf("StringTest must be %s, but actual: %s .", fmt.Sprintf("testString%d", i), row.Values["StringTest"].StringValue())
+		}
+		if !row.Values["StringTest"].Nullable {
+			t.Fatalf("StringTest can be null, but actually not nullable.")
 		}
 		if row.Values["AlwaysNullStringTest"].Value != nil {
 			t.Fatalf("AlwaysNullStringTest must be nil, but %+v found", row.Values["AlwaysNullStringTest"].Value)
