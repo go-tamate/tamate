@@ -5,11 +5,12 @@ import (
 	"errors"
 	"fmt"
 
+	"strings"
+	"time"
+
 	"cloud.google.com/go/spanner"
 	"google.golang.org/api/iterator"
 	sppb "google.golang.org/genproto/googleapis/spanner/v1"
-	"strings"
-	"time"
 )
 
 type SpannerDatasource struct {
@@ -211,7 +212,7 @@ func (ds *SpannerDatasource) GetRows(ctx context.Context, schema *Schema) ([]*Ro
 			if err := row.ColumnByName(c.Name, &gval); err != nil {
 				return nil, err
 			}
-			cv, err := genericSpannerValueToTamateGenericColumnValue(gval, !c.NotNull)
+			cv, err := genericSpannerValueToTamateGenericColumnValue(gval, c)
 			if err != nil {
 				return nil, err
 			}
@@ -222,11 +223,11 @@ func (ds *SpannerDatasource) GetRows(ctx context.Context, schema *Schema) ([]*Ro
 	return rows, nil
 }
 
-func genericSpannerValueToTamateGenericColumnValue(sp spanner.GenericColumnValue, nullable bool) (*GenericColumnValue, error) {
+func genericSpannerValueToTamateGenericColumnValue(sp spanner.GenericColumnValue, col *Column) (*GenericColumnValue, error) {
 	switch sp.Type.GetCode() {
 	case sppb.TypeCode_STRING:
-		cv := &GenericColumnValue{ColumnType: ColumnTypeString}
-		if nullable {
+		cv := &GenericColumnValue{Column: col}
+		if !cv.Column.NotNull {
 			var s spanner.NullString
 			if err := sp.Decode(&s); err != nil {
 				return nil, err
@@ -245,8 +246,8 @@ func genericSpannerValueToTamateGenericColumnValue(sp spanner.GenericColumnValue
 		}
 		return cv, nil
 	case sppb.TypeCode_INT64:
-		cv := &GenericColumnValue{ColumnType: ColumnTypeInt}
-		if nullable {
+		cv := &GenericColumnValue{Column: col}
+		if !cv.Column.NotNull {
 			var s spanner.NullInt64
 			if err := sp.Decode(&s); err != nil {
 				return nil, err
@@ -265,8 +266,8 @@ func genericSpannerValueToTamateGenericColumnValue(sp spanner.GenericColumnValue
 		}
 		return cv, nil
 	case sppb.TypeCode_FLOAT64:
-		cv := &GenericColumnValue{ColumnType: ColumnTypeFloat}
-		if nullable {
+		cv := &GenericColumnValue{Column: col}
+		if !cv.Column.NotNull {
 			var s spanner.NullFloat64
 			if err := sp.Decode(&s); err != nil {
 				return nil, err
@@ -285,8 +286,8 @@ func genericSpannerValueToTamateGenericColumnValue(sp spanner.GenericColumnValue
 		}
 		return cv, nil
 	case sppb.TypeCode_BOOL:
-		cv := &GenericColumnValue{ColumnType: ColumnTypeBool}
-		if nullable {
+		cv := &GenericColumnValue{Column: col}
+		if !cv.Column.NotNull {
 			var s spanner.NullBool
 			if err := sp.Decode(&s); err != nil {
 				return nil, err
@@ -305,7 +306,7 @@ func genericSpannerValueToTamateGenericColumnValue(sp spanner.GenericColumnValue
 		}
 		return cv, nil
 	case sppb.TypeCode_BYTES:
-		cv := &GenericColumnValue{ColumnType: ColumnTypeBytes}
+		cv := &GenericColumnValue{Column: col}
 		var s []byte
 		if err := sp.Decode(&s); err != nil {
 			return nil, err
@@ -313,8 +314,8 @@ func genericSpannerValueToTamateGenericColumnValue(sp spanner.GenericColumnValue
 		cv.Value = s
 		return cv, nil
 	case sppb.TypeCode_DATE:
-		cv := &GenericColumnValue{ColumnType: ColumnTypeDate}
-		if nullable {
+		cv := &GenericColumnValue{Column: col}
+		if !cv.Column.NotNull {
 			var s spanner.NullDate
 			if err := sp.Decode(&s); err != nil {
 				return nil, err
@@ -333,8 +334,8 @@ func genericSpannerValueToTamateGenericColumnValue(sp spanner.GenericColumnValue
 		}
 		return cv, nil
 	case sppb.TypeCode_TIMESTAMP:
-		cv := &GenericColumnValue{ColumnType: ColumnTypeDatetime}
-		if nullable {
+		cv := &GenericColumnValue{Column: col}
+		if !cv.Column.NotNull {
 			var s spanner.NullTime
 			if err := sp.Decode(&s); err != nil {
 				return nil, err
@@ -354,7 +355,7 @@ func genericSpannerValueToTamateGenericColumnValue(sp spanner.GenericColumnValue
 		return cv, nil
 	}
 	// TODO: additional represents for various spanner types
-	return newStringValue(sp.Value.GetStringValue()), nil
+	return &GenericColumnValue{Column: col, Value: sp.Value.GetStringValue()}, nil
 }
 
 // SetRows is set rows method
