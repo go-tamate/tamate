@@ -5,6 +5,7 @@ import "fmt"
 type GenericColumnValue struct {
 	ColumnType ColumnType
 	Value      interface{}
+	Nullable   bool
 }
 
 func (cv *GenericColumnValue) StringValue() string {

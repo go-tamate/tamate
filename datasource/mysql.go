@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"context"
+
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -184,7 +185,10 @@ func (h *MySQLDatasource) GetRows(ctx context.Context, schema *Schema) ([]*Row, 
 	for sqlRows.Next() {
 		rowValues := make(RowValues)
 		for _, cn := range schema.Columns {
-			rowValues[cn.Name] = &GenericColumnValue{ColumnType: cn.Type}
+			rowValues[cn.Name] = &GenericColumnValue{
+				ColumnType: cn.Type,
+				Nullable:   !cn.NotNull,
+			}
 		}
 
 		// reading Values
