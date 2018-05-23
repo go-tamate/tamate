@@ -43,18 +43,16 @@ func TestDiffer_DiffRows(t *testing.T) {
 	}
 
 	// the same (no diff)
-	/*
-		{
-			diff, err := differ.DiffRows(sc.PrimaryKey, leftRows, leftRows)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if len(diff.Left) != 0 || len(diff.Right) != 0 {
-				t.Fatalf("expect: no row in diff, actual: diff.Left: %d, diff.Right: %d", len(diff.Left), len(diff.Right))
-			}
+	{
+		diff, err := differ.DiffRows(sc.PrimaryKey, leftRows, leftRows)
+		if err != nil {
+			t.Fatal(err)
 		}
-	*/
+
+		if len(diff.Left) != 0 || len(diff.Right) != 0 {
+			t.Fatalf("expect: no row in diff, actual: diff.Left: %d, diff.Right: %d", len(diff.Left), len(diff.Right))
+		}
+	}
 
 	{
 		diff, err := differ.DiffRows(sc.PrimaryKey, leftRows, rightRows)
