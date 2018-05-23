@@ -7,6 +7,13 @@ type GenericColumnValue struct {
 	Value  interface{}
 }
 
+func NewStringGenericColumnValue(col *Column, s string) *GenericColumnValue {
+	return &GenericColumnValue{
+		Column: col,
+		Value:  s,
+	}
+}
+
 func (cv *GenericColumnValue) StringValue() string {
 	switch cv.Column.Type {
 	// TODO: additional string reprensentation for specific value type

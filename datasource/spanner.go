@@ -224,9 +224,9 @@ func (ds *SpannerDatasource) GetRows(ctx context.Context, schema *Schema) ([]*Ro
 }
 
 func genericSpannerValueToTamateGenericColumnValue(sp spanner.GenericColumnValue, col *Column) (*GenericColumnValue, error) {
+	cv := &GenericColumnValue{Column: col}
 	switch sp.Type.GetCode() {
 	case sppb.TypeCode_STRING:
-		cv := &GenericColumnValue{Column: col}
 		if !cv.Column.NotNull {
 			var s spanner.NullString
 			if err := sp.Decode(&s); err != nil {
@@ -246,7 +246,6 @@ func genericSpannerValueToTamateGenericColumnValue(sp spanner.GenericColumnValue
 		}
 		return cv, nil
 	case sppb.TypeCode_INT64:
-		cv := &GenericColumnValue{Column: col}
 		if !cv.Column.NotNull {
 			var s spanner.NullInt64
 			if err := sp.Decode(&s); err != nil {
@@ -266,7 +265,6 @@ func genericSpannerValueToTamateGenericColumnValue(sp spanner.GenericColumnValue
 		}
 		return cv, nil
 	case sppb.TypeCode_FLOAT64:
-		cv := &GenericColumnValue{Column: col}
 		if !cv.Column.NotNull {
 			var s spanner.NullFloat64
 			if err := sp.Decode(&s); err != nil {
@@ -286,7 +284,6 @@ func genericSpannerValueToTamateGenericColumnValue(sp spanner.GenericColumnValue
 		}
 		return cv, nil
 	case sppb.TypeCode_BOOL:
-		cv := &GenericColumnValue{Column: col}
 		if !cv.Column.NotNull {
 			var s spanner.NullBool
 			if err := sp.Decode(&s); err != nil {
@@ -306,7 +303,6 @@ func genericSpannerValueToTamateGenericColumnValue(sp spanner.GenericColumnValue
 		}
 		return cv, nil
 	case sppb.TypeCode_BYTES:
-		cv := &GenericColumnValue{Column: col}
 		var s []byte
 		if err := sp.Decode(&s); err != nil {
 			return nil, err
@@ -314,7 +310,6 @@ func genericSpannerValueToTamateGenericColumnValue(sp spanner.GenericColumnValue
 		cv.Value = s
 		return cv, nil
 	case sppb.TypeCode_DATE:
-		cv := &GenericColumnValue{Column: col}
 		if !cv.Column.NotNull {
 			var s spanner.NullDate
 			if err := sp.Decode(&s); err != nil {
@@ -334,7 +329,6 @@ func genericSpannerValueToTamateGenericColumnValue(sp spanner.GenericColumnValue
 		}
 		return cv, nil
 	case sppb.TypeCode_TIMESTAMP:
-		cv := &GenericColumnValue{Column: col}
 		if !cv.Column.NotNull {
 			var s spanner.NullTime
 			if err := sp.Decode(&s); err != nil {
