@@ -5,12 +5,13 @@ import (
 	"os"
 	"testing"
 
+	"fmt"
+	"time"
+
 	"cloud.google.com/go/spanner"
 	"cloud.google.com/go/spanner/admin/database/apiv1"
-	"fmt"
 	"github.com/google/uuid"
 	adminpb "google.golang.org/genproto/googleapis/spanner/admin/database/v1"
-	"time"
 )
 
 const (
@@ -172,8 +173,8 @@ func TestSpanner_Get(t *testing.T) {
 		if row.Values["DateTest"].Value != time.Now().Format("2006-01-02") {
 			t.Fatalf("DateTest value must be yyyy-mm-dd format(%s), but actual: %+v).", time.Now().Format("2006-01-02"), row.Values["DateTest"].Value)
 		}
-		if row.Values["DateTest"].ColumnType != ColumnTypeDate {
-			t.Fatalf("DateTest ColumnType must be ColumnTypeDate(%d), but actual: %d.", ColumnTypeDate, row.Values["DateTest"].ColumnType)
+		if row.Values["DateTest"].Column.Type != ColumnTypeDate {
+			t.Fatalf("DateTest ColumnType must be ColumnTypeDate(%d), but actual: %d.", ColumnTypeDate, row.Values["DateTest"].Column.Type)
 		}
 		// TODO: generic column value
 		/*
