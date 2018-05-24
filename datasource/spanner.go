@@ -11,6 +11,7 @@ import (
 	"strconv"
 
 	"cloud.google.com/go/spanner"
+	pbst "github.com/golang/protobuf/ptypes/struct"
 	"google.golang.org/api/iterator"
 	sppb "google.golang.org/genproto/googleapis/spanner/v1"
 )
@@ -349,6 +350,22 @@ func genericSpannerValueToTamateGenericColumnValue(sp spanner.GenericColumnValue
 			cv.Value = s
 		}
 		return cv, nil
+	case sppb.TypeCode_ARRAY:
+		list := sp.Value.GetListValue()
+		if list == nil {
+			return nil, errors.New("could not get list value")
+		}
+		vals := list.GetValues()
+		v := vals[0]
+
+		switch v.GetKind().(type) {
+		case *pbst.Value_StringValue:
+			cv.Value = fmt.Sprintf("%s", v.GetStringValue())
+		case *pbst.Value_NumberValue:
+			cv.Value = fmt.Sprintf("%v", v.GetNumberValue())
+		case *pbst.Value_BoolValue:
+			cv.Value = fmt.Sprintf("%v", v.GetBoolValue())
+		}
 	}
 	// TODO: additional represents for various spanner types
 	return &GenericColumnValue{Column: col, Value: sp.Value.GetStringValue()}, nil
