@@ -144,7 +144,6 @@ func scanSchemaColumn(row *spanner.Row) (*Column, error) {
 
 func spannerTypeNameToColumnType(st string) (ColumnType, error) {
 
-	fmt.Printf("SpannerType: %s\n", st)
 	if st == "INT64" {
 		return ColumnTypeInt, nil
 	}
@@ -382,12 +381,6 @@ func genericSpannerValueToTamateGenericColumnValue(sp spanner.GenericColumnValue
 			cv.Value = nil
 			return cv, nil
 		}
-		fmt.Printf("Target Column Name: %+v\n", col.Name)
-		fmt.Printf("Target Column Type: %+v\n", col.Type)
-		fmt.Printf("Target Column StringValue: %+v\n", col.String())
-		fmt.Printf("List Value Info: %+v\n", list)
-		fmt.Printf("List string: %+v\n", list.String())
-		fmt.Printf("Value Kind: %+v", sp.Value.GetKind())
 		vals := list.GetValues()
 
 		// Handle empty array
@@ -436,20 +429,6 @@ func genericSpannerValueToTamateGenericColumnValue(sp spanner.GenericColumnValue
 			}
 		}
 		cv.Value = tmtVals
-
-		//switch v.GetKind().(type) {
-		//case *pbst.Value_StringValue:
-		//	// @todo Since all value except float64 and bool convert into string, we should convert to correct type...
-		//	cv.Value = v.GetStringValue()
-		//case *pbst.Value_NumberValue:
-		//	cv.Value = fmt.Sprintf("%v", v.GetNumberValue())
-		//case *pbst.Value_BoolValue:
-		//	cv.Value = fmt.Sprintf("%v", v.GetBoolValue())
-		//case *pbst.Value_NullValue:
-		//	return nil, errors.New(fmt.Sprintf("could not convert %v", v.GetKind()))
-		//default:
-		//	return nil, errors.New(fmt.Sprintf("could not convert %v", v.GetKind()))
-		//}
 		return cv, nil
 	}
 	// TODO: additional represents for various spanner types
