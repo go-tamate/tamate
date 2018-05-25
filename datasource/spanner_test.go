@@ -91,14 +91,6 @@ CREATE TABLE %s (
 		if err != nil {
 			return err
 		}
-		//id2, err := uuid.NewRandom()
-		//if err != nil {
-		//	return err
-		//}
-		//id3, err := uuid.NewRandom()
-		//if err != nil {
-		//	return err
-		//}
 		ts := &testStruct{
 			ID:                   id.String(),
 			StringTest:           fmt.Sprintf("testString%d", i),
@@ -117,55 +109,10 @@ CREATE TABLE %s (
 			TimestampArrayTest:   []time.Time{time.Now(), time.Now().Add(2 * time.Hour), time.Now().Add(24 * time.Hour)},
 			BoolArrayTest:        []bool{true, false, false, false, true},
 		}
-		//ts2 := &testStruct{
-		//	ID:                   id2.String(),
-		//	StringTest:           fmt.Sprintf("testString%d", i),
-		//	AlwaysNullStringTest: spanner.NullString{Valid: false},
-		//	IntTest:              123456,
-		//	FloatTest:            123456.789,
-		//	TimestampTest:        time.Now(),
-		//	DateTest:             time.Now().Format("2006-01-02"),
-		//	BoolTest:             true,
-		//	BytesTest:            []byte(fmt.Sprintf("testBytes%d", i)),
-		//	Int64ArrayTest:       []int64{},
-		//	Float64ArrayTest:     []float64{},
-		//	StringArrayTest:      []string{},
-		//	BytesArrayTest:       [][]byte{},
-		//	DateArrayTest:        []string{},
-		//	TimestampArrayTest:   []time.Time{},
-		//	BoolArrayTest:        []bool{},
-		//}
-		//ts3 := &testStruct{
-		//	ID:                   id3.String(),
-		//	StringTest:           fmt.Sprintf("testString%d", i),
-		//	AlwaysNullStringTest: spanner.NullString{Valid: false},
-		//	IntTest:              123456,
-		//	FloatTest:            123456.789,
-		//	TimestampTest:        time.Now(),
-		//	DateTest:             time.Now().Format("2006-01-02"),
-		//	BoolTest:             true,
-		//	BytesTest:            []byte(fmt.Sprintf("testBytes%d", i)),
-		//	Int64ArrayTest:       nil,
-		//	Float64ArrayTest:     nil,
-		//	StringArrayTest:      nil,
-		//	BytesArrayTest:       nil,
-		//	DateArrayTest:        nil,
-		//	TimestampArrayTest:   nil,
-		//	BoolArrayTest:        nil,
-		//}
 		m, err := spanner.InsertStruct(spannerTestTableName, ts)
 		if err != nil {
 			return err
 		}
-		//m2, err := spanner.InsertStruct(spannerTestTableName, ts2)
-		//if err != nil {
-		//	return err
-		//}
-		//m3, err := spanner.InsertStruct(spannerTestTableName, ts3)
-		//if err != nil {
-		//	return err
-		//}
-		//ms = append(ms, m, m2, m3)
 		ms = append(ms, m)
 	}
 	if _, err := sc.Apply(ctx, ms); err != nil {
@@ -247,6 +194,8 @@ func TestSpanner_Get(t *testing.T) {
 		if row.Values["DateTest"].Column.Type != ColumnTypeDate {
 			t.Fatalf("DateTest ColumnType must be ColumnTypeDate(%d), but actual: %d.", ColumnTypeDate, row.Values["DateTest"].Column.Type)
 		}
+		// @todo Add Array type tests
+
 		// TODO: generic column value
 		/*
 				if row[4] != "123456.789" {
