@@ -4,6 +4,9 @@ import (
 	"errors"
 
 	"fmt"
+
+	"bytes"
+
 	"github.com/Mitu217/tamate/datasource"
 )
 
@@ -131,6 +134,32 @@ func isSameRow(left, right *datasource.Row) bool {
 	for cn, lval := range left.Values {
 		rval, rhas := right.Values[cn]
 		// TODO: implements comparator
+
+		colType := lval.Column.Type
+		// Handle bytes
+		if colType == datasource.ColumnTypeBytes && rhas {
+			lb, lbok := lval.Value.([]byte)
+			rb, rbok := rval.Value.([]byte)
+			if lbok && rbok {
+				return bytes.Equal(lb, rb)
+			}
+			return false
+		}
+
+		// Handle array types
+		if rhas &&
+			colType == datasource.ColumnTypeBoolArray ||
+			colType == datasource.ColumnTypeDatetimeArray ||
+			colType == datasource.ColumnTypeBytesArray ||
+			colType == datasource.ColumnTypeStringArray ||
+			colType == datasource.ColumnTypeIntArray ||
+			colType == datasource.ColumnTypeDateArray ||
+			colType == datasource.ColumnTypeFloatArray {
+			// For array, we compare their type AND value using StringValue()
+			return lval.Column.Type == rval.Column.Type &&
+				lval.StringValue() == rval.StringValue()
+		}
+
 		if !rhas || lval.Value != rval.Value {
 			return false
 		}
