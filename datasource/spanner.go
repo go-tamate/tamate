@@ -143,6 +143,7 @@ func scanSchemaColumn(row *spanner.Row) (*Column, error) {
 }
 
 func spannerTypeNameToColumnType(st string) (ColumnType, error) {
+
 	if st == "INT64" {
 		return ColumnTypeInt, nil
 	}
@@ -164,10 +165,30 @@ func spannerTypeNameToColumnType(st string) (ColumnType, error) {
 	if strings.HasPrefix(st, "BYTES") {
 		return ColumnTypeBytes, nil
 	}
-	// TODO: array support
-	if strings.HasPrefix(st, "ARRAY") {
-		return ColumnTypeString, nil
+
+	// This is a little suck, but for now it's just enough.
+	if strings.HasPrefix(st, "ARRAY<STRING") {
+		return ColumnTypeStringArray, nil
 	}
+	if strings.HasPrefix(st, "ARRAY<BYTES") {
+		return ColumnTypeBytesArray, nil
+	}
+	if strings.HasPrefix(st, "ARRAY<DATE") {
+		return ColumnTypeDateArray, nil
+	}
+	if strings.HasPrefix(st, "ARRAY<FLOAT64") {
+		return ColumnTypeFloatArray, nil
+	}
+	if strings.HasPrefix(st, "ARRAY<INT64") {
+		return ColumnTypeIntArray, nil
+	}
+	if strings.HasPrefix(st, "ARRAY<TIMESTAMP") {
+		return ColumnTypeDatetimeArray, nil
+	}
+	if strings.HasPrefix(st, "ARRAY<BOOL") {
+		return ColumnTypeBoolArray, nil
+	}
+
 	return ColumnTypeNull, fmt.Errorf("cannot convert spanner type: %s", st)
 }
 
@@ -349,6 +370,82 @@ func genericSpannerValueToTamateGenericColumnValue(sp spanner.GenericColumnValue
 			cv.Value = s
 		}
 		return cv, nil
+	case sppb.TypeCode_ARRAY:
+		list := sp.Value.GetListValue()
+		if list == nil && cv.Column.NotNull {
+			return nil, errors.New("could not get list value")
+		}
+
+		// @todo Check if this can handle nil correctly
+		if list == nil {
+			cv.Value = nil
+			return cv, nil
+		}
+		listValues := list.GetValues()
+
+		// Handle empty array
+		if len(listValues) < 1 {
+			switch col.Type {
+			case ColumnTypeBoolArray:
+				cv.Value = []bool{}
+				return cv, nil
+			case ColumnTypeIntArray:
+				cv.Value = []int64{}
+				return cv, nil
+			case ColumnTypeFloatArray:
+				cv.Value = []float64{}
+				return cv, nil
+			case ColumnTypeDatetimeArray:
+				fallthrough
+			case ColumnTypeDateArray:
+				fallthrough
+			case ColumnTypeBytesArray:
+				fallthrough
+			case ColumnTypeStringArray:
+				cv.Value = []string{}
+				return cv, nil
+			}
+			return nil, errors.New("array is empty")
+		}
+
+		// @todo Find more better way and correct logic.
+		switch col.Type {
+		case ColumnTypeBoolArray:
+			var values []bool
+			for _, v := range listValues {
+				values = append(values, v.GetBoolValue())
+			}
+			cv.Value = values
+		case ColumnTypeFloatArray:
+			var values []float64
+			for _, v := range listValues {
+				values = append(values, v.GetNumberValue())
+			}
+			cv.Value = values
+		case ColumnTypeIntArray:
+			var values []int64
+			for _, v := range listValues {
+				n, err := strconv.ParseInt(v.GetStringValue(), 10, 64)
+				if err != nil {
+					return nil, err
+				}
+				values = append(values, n)
+			}
+			cv.Value = values
+		case ColumnTypeDatetimeArray:
+			fallthrough
+		case ColumnTypeDateArray:
+			fallthrough
+		case ColumnTypeBytesArray:
+			fallthrough
+		case ColumnTypeStringArray:
+			var values []string
+			for _, v := range listValues {
+				values = append(values, v.GetStringValue())
+			}
+			cv.Value = values
+		}
+		return cv, nil
 	}
 	// TODO: additional represents for various spanner types
 	return &GenericColumnValue{Column: col, Value: sp.Value.GetStringValue()}, nil
@@ -425,6 +522,133 @@ func ConvertGenericColumnValueToSpannerValue(cv *GenericColumnValue) (interface{
 			return spanner.NullBool{}, nil
 		}
 		return cv.Value, nil
+		// @todo Handle array type correctly
+	case ColumnTypeFloatArray:
+		if !cv.Column.NotNull && cv.Value == nil {
+			return nil, nil
+		}
+		var values []float64
+		if arr, ok := cv.Value.([]interface{}); ok {
+			for _, v := range arr {
+				if f, ok := v.(float64); ok {
+					values = append(values, f)
+				}
+			}
+			if len(arr) != len(values) {
+				return nil, errors.New("length mismatch, some value failed to convert into float64")
+			}
+			return values, nil
+		}
+		return nil, fmt.Errorf("failed to convert %v as array", cv.Value)
+	case ColumnTypeIntArray:
+		if !cv.Column.NotNull && cv.Value == nil {
+			return nil, nil
+		}
+		var values []int64
+		if arr, ok := cv.Value.([]interface{}); ok {
+			for _, v := range arr {
+				if i, ok := v.(int64); ok {
+					values = append(values, i)
+				}
+			}
+			if len(arr) != len(values) {
+				return nil, errors.New("length mismatch, some value failed to convert into int64")
+			}
+			return values, nil
+		}
+		return nil, fmt.Errorf("failed to convert %v as array", cv.Value)
+	case ColumnTypeDateArray:
+		if !cv.Column.NotNull && cv.Value == nil {
+			return nil, nil
+		}
+		var values []string
+		if arr, ok := cv.Value.([]interface{}); ok {
+			for _, v := range arr {
+				if s, ok := v.(string); ok {
+					if _, err := time.Parse("2006-01-02", s); err != nil {
+						return nil, errors.New("failed to parse string to Date format yyyy-mm-dd")
+					}
+					values = append(values, s)
+				}
+			}
+			if len(arr) != len(values) {
+				return nil, errors.New("length mismatch, some value failed to convert into date")
+			}
+			return values, nil
+		}
+		return nil, fmt.Errorf("failed to convert %v as array", cv.Value)
+	case ColumnTypeDatetimeArray:
+		if !cv.Column.NotNull && cv.Value == nil {
+			return nil, nil
+		}
+		var values []time.Time
+		if arr, ok := cv.Value.([]interface{}); ok {
+			for _, v := range arr {
+				if s, ok := v.(string); ok {
+					t, err := time.Parse(time.RFC3339Nano, s)
+					if err != nil {
+						return nil, errors.New("failed to parse string to date format yyyy-mm-dd")
+					}
+					values = append(values, t)
+				}
+			}
+			if len(arr) != len(values) {
+				return nil, errors.New("length mismatch, some value failed to convert into string")
+			}
+			return values, nil
+		}
+		return nil, fmt.Errorf("failed to convert %v as array", cv.Value)
+	case ColumnTypeStringArray:
+		if !cv.Column.NotNull && cv.Value == nil {
+			return nil, nil
+		}
+		var values []string
+		if arr, ok := cv.Value.([]interface{}); ok {
+			for _, v := range arr {
+				if s, ok := v.(string); ok {
+					values = append(values, s)
+				}
+			}
+			if len(arr) != len(values) {
+				return nil, errors.New("length mismatch, some value failed to convert into string")
+			}
+			return values, nil
+		}
+		return nil, fmt.Errorf("failed to convert %v as array", cv.Value)
+	case ColumnTypeBytesArray:
+		if !cv.Column.NotNull && cv.Value == nil {
+			return nil, nil
+		}
+		var values [][]byte
+		if arr, ok := cv.Value.([]interface{}); ok {
+			for _, v := range arr {
+				if b, ok := v.([]byte); ok {
+					values = append(values, b)
+				}
+			}
+			if len(arr) != len(values) {
+				return nil, errors.New("length mismatch, some value failed to convert into []byte")
+			}
+			return values, nil
+		}
+		return nil, fmt.Errorf("failed to convert %v as array", cv.Value)
+	case ColumnTypeBoolArray:
+		if !cv.Column.NotNull && cv.Value == nil {
+			return nil, nil
+		}
+		var values []bool
+		if arr, ok := cv.Value.([]interface{}); ok {
+			for _, v := range arr {
+				if b, ok := v.(bool); ok {
+					values = append(values, b)
+				}
+			}
+			if len(arr) != len(values) {
+				return nil, errors.New("length mismatch, some value failed to convert into bool")
+			}
+			return values, nil
+		}
+		return nil, fmt.Errorf("failed to convert %v as array", cv.Value)
 	case ColumnTypeNull:
 		fallthrough
 	default:

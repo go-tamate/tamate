@@ -30,7 +30,13 @@ type testStruct struct {
 	DateTest             string
 	BoolTest             bool
 	BytesTest            []byte
-	ArrayTest            []int64
+	Int64ArrayTest       []int64
+	Float64ArrayTest     []float64
+	StringArrayTest      []string
+	BytesArrayTest       [][]byte
+	DateArrayTest        []string
+	TimestampArrayTest   []time.Time
+	BoolArrayTest        []bool
 }
 
 func beforeSpanner(dsnParent string) error {
@@ -54,7 +60,13 @@ CREATE TABLE %s (
   DateTest DATE,
   BoolTest BOOL,
   BytesTest BYTES(MAX),
-  ArrayTest ARRAY<INT64>,
+  Int64ArrayTest ARRAY<INT64>,
+  Float64ArrayTest ARRAY<FLOAT64>,
+  StringArrayTest ARRAY<STRING(MAX)>,
+  BytesArrayTest ARRAY<BYTES(MAX)>,
+  DateArrayTest ARRAY<DATE>,
+  TimestampArrayTest ARRAY<TIMESTAMP>,
+  BoolArrayTest ARRAY<BOOL>,
 ) PRIMARY KEY(ID)
 `, spannerTestTableName)},
 	}
@@ -89,7 +101,13 @@ CREATE TABLE %s (
 			DateTest:             time.Now().Format("2006-01-02"),
 			BoolTest:             true,
 			BytesTest:            []byte(fmt.Sprintf("testBytes%d", i)),
-			ArrayTest:            []int64{123, 456, 789},
+			Int64ArrayTest:       []int64{123, 456, -789},
+			Float64ArrayTest:     []float64{3.2, 1.4, 4.3, -2.2, 0.8},
+			StringArrayTest:      []string{"foo", "bar", "hoge"},
+			BytesArrayTest:       [][]byte{[]byte(fmt.Sprintf("bytesArray%d", i)), []byte(fmt.Sprintf("bytesArray%d", i*i)), []byte(fmt.Sprintf("bytesArray%d", i*i*i))},
+			DateArrayTest:        []string{time.Now().Format("2006-01-02"), time.Now().Add(60 * time.Minute).Format("2006-01-02"), time.Now().Add(120 * time.Minute).Format("2006-01-02")},
+			TimestampArrayTest:   []time.Time{time.Now(), time.Now().Add(2 * time.Hour), time.Now().Add(24 * time.Hour)},
+			BoolArrayTest:        []bool{true, false, false, false, true},
 		}
 		m, err := spanner.InsertStruct(spannerTestTableName, ts)
 		if err != nil {
@@ -176,6 +194,8 @@ func TestSpanner_Get(t *testing.T) {
 		if row.Values["DateTest"].Column.Type != ColumnTypeDate {
 			t.Fatalf("DateTest ColumnType must be ColumnTypeDate(%d), but actual: %d.", ColumnTypeDate, row.Values["DateTest"].Column.Type)
 		}
+		// @todo Add Array type tests
+
 		// TODO: generic column value
 		/*
 				if row[4] != "123456.789" {

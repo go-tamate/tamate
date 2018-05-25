@@ -33,6 +33,13 @@ const (
 	ColumnTypeDate
 	ColumnTypeBytes
 	ColumnTypeBool
+	ColumnTypeStringArray
+	ColumnTypeIntArray
+	ColumnTypeFloatArray
+	ColumnTypeDatetimeArray
+	ColumnTypeDateArray
+	ColumnTypeBytesArray
+	ColumnTypeBoolArray
 )
 
 func (vt ColumnType) String() string {
@@ -53,6 +60,20 @@ func (vt ColumnType) String() string {
 		return "bytes"
 	case ColumnTypeBool:
 		return "bool"
+	case ColumnTypeStringArray:
+		return "array<string>"
+	case ColumnTypeIntArray:
+		return "array<int>"
+	case ColumnTypeFloatArray:
+		return "array<float>"
+	case ColumnTypeDatetimeArray:
+		return "array<datetime>"
+	case ColumnTypeDateArray:
+		return "array<date>"
+	case ColumnTypeBytesArray:
+		return "array<bytes>"
+	case ColumnTypeBoolArray:
+		return "array<bool>"
 	default:
 		return fmt.Sprintf("<unknown type: %d>", vt)
 	}
