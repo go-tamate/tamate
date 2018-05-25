@@ -3,6 +3,8 @@ package differ
 import (
 	"testing"
 
+	"fmt"
+
 	"github.com/Mitu217/tamate/datasource"
 )
 
@@ -68,6 +70,74 @@ func TestDiffer_DiffRows(t *testing.T) {
 		}
 	}
 
+}
+
+func TestDiffer_isSameRowForBytes(t *testing.T) {
+	left := &datasource.Row{
+		Values: map[string]*datasource.GenericColumnValue{
+			"bytes": {
+				Column: &datasource.Column{
+					Type: datasource.ColumnTypeBytes,
+				},
+				Value: []byte(fmt.Sprintf("Bytes%d", 100)),
+			},
+		},
+	}
+	right := &datasource.Row{
+		Values: map[string]*datasource.GenericColumnValue{
+			"bytes": {
+				Column: &datasource.Column{
+					Type: datasource.ColumnTypeBytes,
+				},
+				Value: []byte(fmt.Sprintf("Bytes%d", 100)),
+			},
+		},
+	}
+
+	if !isSameRow(left, right) {
+		t.Fatalf("expects same row, but actually not: %v, %v", left, right)
+	}
+}
+
+func TestDiffer_isSameRowForArrayType(t *testing.T) {
+	left := &datasource.Row{
+		Values: map[string]*datasource.GenericColumnValue{
+			"bytes": {
+				Column: &datasource.Column{
+					Type: datasource.ColumnTypeStringArray,
+				},
+				Value: []string{"foo", "bar", "hoge"},
+			},
+		},
+	}
+	right := &datasource.Row{
+		Values: map[string]*datasource.GenericColumnValue{
+			"bytes": {
+				Column: &datasource.Column{
+					Type: datasource.ColumnTypeStringArray,
+				},
+				Value: []string{"foo", "bar", "hoge"},
+			},
+		},
+	}
+
+	if !isSameRow(left, right) {
+		t.Fatalf("expects same row, but actually not: %v, %v", left, right)
+	}
+
+	right2 := &datasource.Row{
+		Values: map[string]*datasource.GenericColumnValue{
+			"bytes": {
+				Column: &datasource.Column{
+					Type: datasource.ColumnTypeDateArray,
+				},
+				Value: []string{"foo", "bar", "hoge"},
+			},
+		},
+	}
+	if isSameRow(left, right2) {
+		t.Fatalf("expects not the same row (because of incompatible column type, but actually is: %v, %v", left, right)
+	}
 }
 
 func TestDiffer_DiffColumns(t *testing.T) {
