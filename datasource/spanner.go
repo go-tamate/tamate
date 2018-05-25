@@ -539,7 +539,7 @@ func ConvertGenericColumnValueToSpannerValue(cv *GenericColumnValue) (interface{
 			}
 			return values, nil
 		}
-		return nil, errors.New(fmt.Sprintf("Failed to convert %v as array", cv.Value))
+		return nil, fmt.Errorf("failed to convert %v as array", cv.Value)
 	case ColumnTypeIntArray:
 		if !cv.Column.NotNull && cv.Value == nil {
 			return nil, nil
@@ -556,7 +556,7 @@ func ConvertGenericColumnValueToSpannerValue(cv *GenericColumnValue) (interface{
 			}
 			return values, nil
 		}
-		return nil, errors.New(fmt.Sprintf("Failed to convert %v as array", cv.Value))
+		return nil, fmt.Errorf("failed to convert %v as array", cv.Value)
 	case ColumnTypeDateArray:
 		if !cv.Column.NotNull && cv.Value == nil {
 			return nil, nil
@@ -565,7 +565,7 @@ func ConvertGenericColumnValueToSpannerValue(cv *GenericColumnValue) (interface{
 		if arr, ok := cv.Value.([]interface{}); ok {
 			for _, v := range arr {
 				if s, ok := v.(string); ok {
-					if _, err := time.Parse("2016-01-02", s); err != nil {
+					if _, err := time.Parse("2006-01-02", s); err != nil {
 						return nil, errors.New("failed to parse string to Date format yyyy-mm-dd")
 					}
 					values = append(values, s)
@@ -576,7 +576,7 @@ func ConvertGenericColumnValueToSpannerValue(cv *GenericColumnValue) (interface{
 			}
 			return values, nil
 		}
-		return nil, errors.New(fmt.Sprintf("failed to convert %v as array", cv.Value))
+		return nil, fmt.Errorf("failed to convert %v as array", cv.Value)
 	case ColumnTypeDatetimeArray:
 		if !cv.Column.NotNull && cv.Value == nil {
 			return nil, nil
@@ -597,7 +597,7 @@ func ConvertGenericColumnValueToSpannerValue(cv *GenericColumnValue) (interface{
 			}
 			return values, nil
 		}
-		return nil, errors.New(fmt.Sprintf("Failed to convert %v as array", cv.Value))
+		return nil, fmt.Errorf("failed to convert %v as array", cv.Value)
 	case ColumnTypeStringArray:
 		if !cv.Column.NotNull && cv.Value == nil {
 			return nil, nil
@@ -614,7 +614,7 @@ func ConvertGenericColumnValueToSpannerValue(cv *GenericColumnValue) (interface{
 			}
 			return values, nil
 		}
-		return nil, errors.New(fmt.Sprintf("Failed to convert %v as array", cv.Value))
+		return nil, fmt.Errorf("failed to convert %v as array", cv.Value)
 	case ColumnTypeBytesArray:
 		if !cv.Column.NotNull && cv.Value == nil {
 			return nil, nil
@@ -631,7 +631,7 @@ func ConvertGenericColumnValueToSpannerValue(cv *GenericColumnValue) (interface{
 			}
 			return values, nil
 		}
-		return nil, errors.New(fmt.Sprintf("Failed to convert %v as array", cv.Value))
+		return nil, fmt.Errorf("failed to convert %v as array", cv.Value)
 	case ColumnTypeBoolArray:
 		if !cv.Column.NotNull && cv.Value == nil {
 			return nil, nil
@@ -648,7 +648,7 @@ func ConvertGenericColumnValueToSpannerValue(cv *GenericColumnValue) (interface{
 			}
 			return values, nil
 		}
-		return nil, errors.New(fmt.Sprintf("Failed to convert %v as array", cv.Value))
+		return nil, fmt.Errorf("failed to convert %v as array", cv.Value)
 	case ColumnTypeNull:
 		fallthrough
 	default:
