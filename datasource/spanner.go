@@ -11,7 +11,6 @@ import (
 	"strconv"
 
 	"cloud.google.com/go/spanner"
-	pbst "github.com/golang/protobuf/ptypes/struct"
 	"google.golang.org/api/iterator"
 	sppb "google.golang.org/genproto/googleapis/spanner/v1"
 )
@@ -144,6 +143,8 @@ func scanSchemaColumn(row *spanner.Row) (*Column, error) {
 }
 
 func spannerTypeNameToColumnType(st string) (ColumnType, error) {
+
+	fmt.Printf("SpannerType: %s\n", st)
 	if st == "INT64" {
 		return ColumnTypeInt, nil
 	}
@@ -165,10 +166,30 @@ func spannerTypeNameToColumnType(st string) (ColumnType, error) {
 	if strings.HasPrefix(st, "BYTES") {
 		return ColumnTypeBytes, nil
 	}
-	// TODO: array support
-	if strings.HasPrefix(st, "ARRAY") {
-		return ColumnTypeString, nil
+
+	// This is a little suck, but for now it's just enough.
+	if strings.HasPrefix(st, "ARRAY<STRING") {
+		return ColumnTypeStringArray, nil
 	}
+	if strings.HasPrefix(st, "ARRAY<BYTES") {
+		return ColumnTypeBytesArray, nil
+	}
+	if strings.HasPrefix(st, "ARRAY<DATE") {
+		return ColumnTypeDateArray, nil
+	}
+	if strings.HasPrefix(st, "ARRAY<FLOAT64") {
+		return ColumnTypeFloatArray, nil
+	}
+	if strings.HasPrefix(st, "ARRAY<INT64") {
+		return ColumnTypeIntArray, nil
+	}
+	if strings.HasPrefix(st, "ARRAY<TIMESTAMP") {
+		return ColumnTypeDatetimeArray, nil
+	}
+	if strings.HasPrefix(st, "ARRAY<BOOL") {
+		return ColumnTypeBoolArray, nil
+	}
+
 	return ColumnTypeNull, fmt.Errorf("cannot convert spanner type: %s", st)
 }
 
@@ -352,20 +373,84 @@ func genericSpannerValueToTamateGenericColumnValue(sp spanner.GenericColumnValue
 		return cv, nil
 	case sppb.TypeCode_ARRAY:
 		list := sp.Value.GetListValue()
-		if list == nil {
+		if list == nil && cv.Column.NotNull {
 			return nil, errors.New("could not get list value")
 		}
-		vals := list.GetValues()
-		v := vals[0]
 
-		switch v.GetKind().(type) {
-		case *pbst.Value_StringValue:
-			cv.Value = fmt.Sprintf("%s", v.GetStringValue())
-		case *pbst.Value_NumberValue:
-			cv.Value = fmt.Sprintf("%v", v.GetNumberValue())
-		case *pbst.Value_BoolValue:
-			cv.Value = fmt.Sprintf("%v", v.GetBoolValue())
+		// @todo Check if this can handle nil correctly
+		if list == nil {
+			cv.Value = nil
+			return cv, nil
 		}
+		fmt.Printf("Target Column Name: %+v\n", col.Name)
+		fmt.Printf("Target Column Type: %+v\n", col.Type)
+		fmt.Printf("Target Column StringValue: %+v\n", col.String())
+		fmt.Printf("List Value Info: %+v\n", list)
+		fmt.Printf("List string: %+v\n", list.String())
+		fmt.Printf("Value Kind: %+v", sp.Value.GetKind())
+		vals := list.GetValues()
+
+		// Handle empty array
+		if len(vals) < 1 {
+			switch col.Type {
+			case ColumnTypeBoolArray:
+				cv.Value = []bool{}
+				return cv, nil
+			case ColumnTypeIntArray:
+				cv.Value = []int64{}
+				return cv, nil
+			case ColumnTypeFloatArray:
+				cv.Value = []float64{}
+				return cv, nil
+			case ColumnTypeDatetimeArray:
+				fallthrough
+			case ColumnTypeDateArray:
+				fallthrough
+			case ColumnTypeBytesArray:
+				fallthrough
+			case ColumnTypeStringArray:
+				cv.Value = []string{}
+				return cv, nil
+			}
+			return nil, errors.New("array is empty")
+		}
+
+		// @todo Find more better way and correct logic.
+		var tmtVals []interface{}
+		for _, v := range vals {
+			switch col.Type {
+			case ColumnTypeBoolArray:
+				tmtVals = append(tmtVals, v.GetBoolValue())
+			case ColumnTypeFloatArray:
+				tmtVals = append(tmtVals, v.GetNumberValue())
+			case ColumnTypeIntArray:
+				fallthrough
+			case ColumnTypeDatetimeArray:
+				fallthrough
+			case ColumnTypeDateArray:
+				fallthrough
+			case ColumnTypeBytesArray:
+				fallthrough
+			case ColumnTypeStringArray:
+				tmtVals = append(tmtVals, v.GetStringValue())
+			}
+		}
+		cv.Value = tmtVals
+
+		//switch v.GetKind().(type) {
+		//case *pbst.Value_StringValue:
+		//	// @todo Since all value except float64 and bool convert into string, we should convert to correct type...
+		//	cv.Value = v.GetStringValue()
+		//case *pbst.Value_NumberValue:
+		//	cv.Value = fmt.Sprintf("%v", v.GetNumberValue())
+		//case *pbst.Value_BoolValue:
+		//	cv.Value = fmt.Sprintf("%v", v.GetBoolValue())
+		//case *pbst.Value_NullValue:
+		//	return nil, errors.New(fmt.Sprintf("could not convert %v", v.GetKind()))
+		//default:
+		//	return nil, errors.New(fmt.Sprintf("could not convert %v", v.GetKind()))
+		//}
+		return cv, nil
 	}
 	// TODO: additional represents for various spanner types
 	return &GenericColumnValue{Column: col, Value: sp.Value.GetStringValue()}, nil
