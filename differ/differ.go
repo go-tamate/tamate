@@ -82,15 +82,17 @@ func isSameColumn(left, right *datasource.Column) bool {
 
 // DiffRows is get diff rows method
 func (d *Differ) DiffRows(sc *datasource.Schema, leftRows, rightRows []*datasource.Row) (*DiffRows, error) {
+
+	pk := sc.PrimaryKey
 	if sc.PrimaryKey == nil {
 		return nil, errors.New("Primary key required.")
 	}
 
-	lmap, err := rowsToPKMap(sc.PrimaryKey, leftRows)
+	lmap, err := rowsToPKMap(pk, leftRows)
 	if err != nil {
 		return nil, err
 	}
-	rmap, err := rowsToPKMap(sc.PrimaryKey, rightRows)
+	rmap, err := rowsToPKMap(pk, rightRows)
 	if err != nil {
 		return nil, err
 	}
@@ -136,13 +138,7 @@ func rowsToPKMap(pk *datasource.Key, rows []*datasource.Row) (map[string]*dataso
 		for _, v := range values {
 			strvals = append(strvals, v.StringValue())
 		}
-		var pkValue string
-		if len(strvals) > 1 {
-			pkValue = strings.Join(strvals, "_")
-		} else {
-			pkValue = strings.Join(strvals, "")
-		}
-
+		pkValue := strings.Join(strvals, "_")
 		rowMap[pkValue] = row
 	}
 	return rowMap, nil
