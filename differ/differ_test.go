@@ -23,18 +23,64 @@ func TestDiffer_DiffRows(t *testing.T) {
 			{Name: "id", Type: datasource.ColumnTypeString},
 			{Name: "name", Type: datasource.ColumnTypeString},
 		},
-		PrimaryKey: &datasource.PrimaryKey{ColumnNames: []string{"id"}},
+		PrimaryKey: &datasource.Key{
+			KeyType:     datasource.KeyTypePrimary,
+			ColumnNames: []string{"id"},
+		},
 	}
 
+	gbkl_1 := make(map[*datasource.Key][]*datasource.GenericColumnValue)
+	gbkl_1[sc.PrimaryKey] = []*datasource.GenericColumnValue{
+		{
+			Column: &datasource.Column{Type: datasource.ColumnTypeString},
+			Value:  "id0",
+		},
+	}
+	gbkl_2 := make(map[*datasource.Key][]*datasource.GenericColumnValue)
+	gbkl_2[sc.PrimaryKey] = []*datasource.GenericColumnValue{
+		{
+			Column: &datasource.Column{Type: datasource.ColumnTypeString},
+			Value:  "id1",
+		},
+	}
 	leftRows := []*datasource.Row{
-		{newRowValuesFromString(map[string]string{"id": "id0", "name": "name0"})},
-		{newRowValuesFromString(map[string]string{"id": "id1", "name": "name1"})},
+		{GroupByKey: gbkl_1, Values: newRowValuesFromString(map[string]string{"id": "id0", "name": "name0"})},
+		{GroupByKey: gbkl_2, Values: newRowValuesFromString(map[string]string{"id": "id1", "name": "name1"})},
+	}
+
+	gbkr_1 := make(map[*datasource.Key][]*datasource.GenericColumnValue)
+	gbkr_1[sc.PrimaryKey] = []*datasource.GenericColumnValue{
+		{
+			Column: &datasource.Column{Type: datasource.ColumnTypeString},
+			Value:  "id0",
+		},
+	}
+	gbkr_2 := make(map[*datasource.Key][]*datasource.GenericColumnValue)
+	gbkr_2[sc.PrimaryKey] = []*datasource.GenericColumnValue{
+		{
+			Column: &datasource.Column{Type: datasource.ColumnTypeString},
+			Value:  "id1",
+		},
+	}
+	gbkr_3 := make(map[*datasource.Key][]*datasource.GenericColumnValue)
+	gbkr_3[sc.PrimaryKey] = []*datasource.GenericColumnValue{
+		{
+			Column: &datasource.Column{Type: datasource.ColumnTypeString},
+			Value:  "id2",
+		},
+	}
+	gbkr_4 := make(map[*datasource.Key][]*datasource.GenericColumnValue)
+	gbkr_4[sc.PrimaryKey] = []*datasource.GenericColumnValue{
+		{
+			Column: &datasource.Column{Type: datasource.ColumnTypeString},
+			Value:  "id3",
+		},
 	}
 	rightRows := []*datasource.Row{
-		{newRowValuesFromString(map[string]string{"id": "id0", "name": "name0_modified"})},
-		{newRowValuesFromString(map[string]string{"id": "id1", "name": "name1"})},
-		{newRowValuesFromString(map[string]string{"id": "id2", "name": "name2"})},
-		{newRowValuesFromString(map[string]string{"id": "id3", "name": "name3"})},
+		{GroupByKey: gbkr_1, Values: newRowValuesFromString(map[string]string{"id": "id0", "name": "name0_modified"})},
+		{GroupByKey: gbkr_2, Values: newRowValuesFromString(map[string]string{"id": "id1", "name": "name1"})},
+		{GroupByKey: gbkr_3, Values: newRowValuesFromString(map[string]string{"id": "id2", "name": "name2"})},
+		{GroupByKey: gbkr_4, Values: newRowValuesFromString(map[string]string{"id": "id3", "name": "name3"})},
 	}
 
 	differ, err := NewDiffer()
@@ -82,7 +128,7 @@ func TestDiffer_DiffColumns(t *testing.T) {
 				{Name: "id", Type: datasource.ColumnTypeString},
 				{Name: "name", Type: datasource.ColumnTypeString},
 			},
-			PrimaryKey: &datasource.PrimaryKey{ColumnNames: []string{"id"}},
+			PrimaryKey: &datasource.Key{ColumnNames: []string{"id"}},
 		}
 
 		right := &datasource.Schema{
@@ -90,7 +136,7 @@ func TestDiffer_DiffColumns(t *testing.T) {
 				{Name: "id", Type: datasource.ColumnTypeInt},
 				{Name: "name", Type: datasource.ColumnTypeString},
 			},
-			PrimaryKey: &datasource.PrimaryKey{ColumnNames: []string{"id"}},
+			PrimaryKey: &datasource.Key{ColumnNames: []string{"id"}},
 		}
 
 		d, err := differ.DiffColumns(left, right)
