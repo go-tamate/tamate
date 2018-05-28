@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"github.com/araddon/dateparse"
+	"strconv"
+	"strings"
 )
 
 type GenericColumnValue struct {
@@ -38,6 +40,23 @@ func (cv *GenericColumnValue) TimeValue() (time.Time, error) {
 		}
 		return tv, nil
 	}
+}
+
+func (cv *GenericColumnValue) BoolValue() bool {
+	switch cv.Value.(type) {
+	case bool:
+		return cv.Value.(bool)
+	default:
+		s := cv.StringValue()
+		if strings.ToLower(s) == "true" {
+			return true
+		}
+		num, err := strconv.Atoi(s)
+		if err == nil {
+			return num != 0
+		}
+	}
+	return false
 }
 
 type ColumnType int
