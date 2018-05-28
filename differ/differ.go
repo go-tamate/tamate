@@ -7,6 +7,8 @@ import (
 
 	"strings"
 
+	"sort"
+
 	"github.com/Mitu217/tamate/datasource"
 )
 
@@ -138,6 +140,7 @@ func rowsToPKMap(pk *datasource.Key, rows []*datasource.Row) (map[string]*dataso
 		for _, v := range values {
 			strvals = append(strvals, v.StringValue())
 		}
+		sort.Strings(strvals)
 		pkValue := strings.Join(strvals, "_")
 		rowMap[pkValue] = row
 	}
