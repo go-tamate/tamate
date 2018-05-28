@@ -30,8 +30,10 @@ func (ds *MockDatasource) GetSchema(ctx context.Context, name string) (*Schema, 
 		},
 	}
 	sc.Columns = []*Column{
-		{Name: "id", Type: ColumnTypeString},
+		{Name: "id", Type: ColumnTypeInt},
 		{Name: "name", Type: ColumnTypeString},
+		{Name: "age", Type: ColumnTypeInt},
+		{Name: "birthday", Type: ColumnTypeString},
 	}
 	sc.PrimaryKey = &Key{ColumnNames: []string{"id"}}
 	return sc, nil
@@ -47,7 +49,21 @@ func (ds *MockDatasource) GetRows(ctx context.Context, sc *Schema) ([]*Row, erro
 		values := make(map[string]*GenericColumnValue)
 		groupBykey := make(map[*Key][]*GenericColumnValue)
 		for _, col := range sc.Columns {
-			values[col.Name] = NewStringGenericColumnValue(col, fmt.Sprintf("%s%d", col.Name, i))
+			cv := &GenericColumnValue{Column: col}
+			switch col.Name {
+			case "id":
+				cv.Value = i
+
+			case "name":
+				cv.Value = fmt.Sprintf("%s%d", col.Name, i)
+
+			case "age":
+				cv.Value = i
+
+			case "birthday":
+				cv.Value = "2018-05-28 14:31:00"
+			}
+			values[col.Name] = cv
 			for _, name := range sc.PrimaryKey.ColumnNames {
 				if name == col.Name {
 					groupBykey[sc.PrimaryKey] = append(groupBykey[sc.PrimaryKey], values[col.Name])

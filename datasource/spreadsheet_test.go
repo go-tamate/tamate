@@ -22,7 +22,7 @@ const (
 	tableName     = "ClassData"
 )
 
-func TestSpreadsheet_Get(t *testing.T) {
+func getSpreadsheetClient(ctx context.Context, t *testing.T) (*http.Client, error) {
 	encJsonKey := os.Getenv("TAMATE_SPREADSHEET_SERVICE_ACCOUNT_JSON_BASE64")
 	if encJsonKey == "" {
 		t.Skip("env: TAMATE_SPREADSHEET_SERVICE_ACCOUNT_JSON_BASE64 not set")
@@ -30,15 +30,19 @@ func TestSpreadsheet_Get(t *testing.T) {
 
 	jsonKey, err := base64.StdEncoding.DecodeString(encJsonKey)
 	if err != nil {
-		t.Fatal(err)
+		return nil, err
 	}
+	return newServiceAccountClient(ctx, jsonKey)
+}
+
+func TestSpreadsheet_Get(t *testing.T) {
 	ctx := context.Background()
-	client, err := newServiceAccountClient(ctx, jsonKey)
+	client, err := getSpreadsheetClient(ctx, t)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	ds, err := NewSpreadsheetDatasource(client, spreadsheetID, "A1:C100", 0)
+	ds, err := NewSpreadsheetDatasource(client, spreadsheetID, "A1:D100", 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -48,8 +52,7 @@ func TestSpreadsheet_Get(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	t.Logf("PK: %+v", sc.PrimaryKey)
-	t.Logf("Columns: %+v", sc.GetColumnNames())
+	t.Logf("Schema: %+v", sc)
 
 	rows, err := ds.GetRows(ctx, sc)
 	if err != nil {
