@@ -78,11 +78,11 @@ func isSameColumn(left, right *datasource.Column) bool {
 }
 
 // DiffRows is get diff rows method
-func (d *Differ) DiffRows(pk *datasource.PrimaryKey, leftRows, rightRows []*datasource.Row) (*DiffRows, error) {
-	if pk == nil {
+func (d *Differ) DiffRows(sc *datasource.Schema, leftRows, rightRows []*datasource.Row) (*DiffRows, error) {
+	if sc.PrimaryKey == nil {
 		return nil, errors.New("Primary key required.")
 	}
-	pkn := pk.ColumnNames[0]
+	pkn := sc.PrimaryKey.ColumnNames[0]
 
 	lmap, err := rowsToPKMap(pkn, leftRows)
 	if err != nil {
@@ -98,14 +98,22 @@ func (d *Differ) DiffRows(pk *datasource.PrimaryKey, leftRows, rightRows []*data
 	rdiff := &diff.Right
 	for i := 0; i < 2; i++ {
 		for pkv, lrow := range lmap {
-			rlow, rhas := rmap[pkv]
+			rrow, rhas := rmap[pkv]
 			if !rhas {
 				*ldiff = append(*ldiff, lrow)
 				continue
 			}
-			if i == 0 && !isSameRow(lrow, rlow) {
-				*ldiff = append(*ldiff, lrow)
-				*rdiff = append(*rdiff, rlow)
+
+			// 一致する pk がある場合の差分チェックは1回しか行わない（normal, reverse で2回しないようにする
+			if i == 0 {
+				same, err := isSameRow(sc, lrow, rrow)
+				if err != nil {
+					return nil, err
+				}
+				if !same {
+					*ldiff = append(*ldiff, lrow)
+					*rdiff = append(*rdiff, rrow)
+				}
 			}
 		}
 		// swap ref to (left/right)
@@ -127,13 +135,43 @@ func rowsToPKMap(pkName string, rows []*datasource.Row) (map[string]*datasource.
 	return rowMap, nil
 }
 
-func isSameRow(left, right *datasource.Row) bool {
+func isSameRow(sc *datasource.Schema, left, right *datasource.Row) (bool, error) {
+	colMap := make(map[string]*datasource.Column, len(sc.Columns))
+	for _, col := range sc.Columns {
+		colMap[col.Name] = col
+	}
+
 	for cn, lval := range left.Values {
 		rval, rhas := right.Values[cn]
 		// TODO: implements comparator
-		if !rhas || lval.Value != rval.Value {
-			return false
+		// そもそも片方に存在しない行なのであれば、絶対一致しないので即 false
+		if !rhas {
+			return false, nil
+		}
+		same, err := compareValues(colMap[cn], lval, rval)
+		if err != nil {
+			return false, err
+		}
+		if !same {
+			return false, nil
 		}
 	}
-	return true
+	return true, nil
+}
+
+func compareValues(col *datasource.Column, lv, rv *datasource.GenericColumnValue) (bool, error) {
+	if col.Type == datasource.ColumnTypeDatetime {
+		ltv, err := lv.TimeValue()
+		if err != nil {
+			return false, err
+		}
+		rtv, err := rv.TimeValue()
+		if err != nil {
+			return false, err
+		}
+		return ltv == rtv, nil
+	}
+
+	// TODO: more comparator
+	return lv.Value == rv.Value, nil
 }

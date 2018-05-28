@@ -20,6 +20,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/araddon/dateparse"
+  packages = ["."]
+  revision = "5025a49c028c01c544805ec21e37330cb93ffef8"
+
+[[projects]]
+  branch = "master"
   name = "github.com/go-sql-driver/mysql"
   packages = ["."]
   revision = "3287d94d4c6a48a63e16fffaabf27ab20203af2a"
@@ -38,6 +44,12 @@
   ]
   revision = "b4deda0973fb4c70b50d226b1af49f3da59f5265"
   version = "v1.1.0"
+
+[[projects]]
+  name = "github.com/google/uuid"
+  packages = ["."]
+  revision = "064e2069ce9c359c118179501254f67d7d37ba24"
+  version = "0.2"
 
 [[projects]]
   name = "github.com/googleapis/gax-go"
@@ -200,6 +212,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "0f0406f3f37c8c9dd1bed1451517acd27bc565a8b6c32b0ab4f58d204cf07ecb"
+  inputs-digest = "a9ba31736502cdb1c829794e94fbb93fd31af7a9728237bea0338522c7bebb8f"
   solver-name = "gps-cdcl"
   solver-version = 1

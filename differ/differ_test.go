@@ -3,7 +3,10 @@ package differ
 import (
 	"testing"
 
+	"context"
 	"github.com/Mitu217/tamate/datasource"
+
+	"github.com/araddon/dateparse"
 )
 
 func newRowValuesFromString(ss map[string]string) datasource.RowValues {
@@ -44,7 +47,7 @@ func TestDiffer_DiffRows(t *testing.T) {
 
 	// the same (no diff)
 	{
-		diff, err := differ.DiffRows(sc.PrimaryKey, leftRows, leftRows)
+		diff, err := differ.DiffRows(sc, leftRows, leftRows)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -55,7 +58,7 @@ func TestDiffer_DiffRows(t *testing.T) {
 	}
 
 	{
-		diff, err := differ.DiffRows(sc.PrimaryKey, leftRows, rightRows)
+		diff, err := differ.DiffRows(sc, leftRows, rightRows)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -101,5 +104,59 @@ func TestDiffer_DiffColumns(t *testing.T) {
 		if len(d.Left) != 1 || len(d.Right) != 1 {
 			t.Fatalf("expect: 1 columns modified, actual: left: %d, right: %d", len(d.Left), len(d.Right))
 		}
+	}
+}
+
+func TestDiffer_DiffDatetimeFormatStringColumn(t *testing.T) {
+	ds, err := datasource.NewMockDatasource()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ctx := context.Background()
+	sc, err := ds.GetSchema(ctx, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	leftRows, err := ds.GetRows(ctx, sc)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Change column type string -> datetime
+	for i, col := range sc.Columns {
+		if col.Name == "birthday" {
+			sc.Columns[i].Type = datasource.ColumnTypeDatetime
+		}
+	}
+
+	rightRows, err := ds.GetRows(ctx, sc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i, rrow := range rightRows {
+		tv, err := dateparse.ParseAny(rrow.Values["birthday"].StringValue())
+		if err != nil {
+			t.Fatal(err)
+		}
+		rightRows[i].Values["birthday"].Value = tv
+	}
+
+	differ, err := NewDiffer()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	diff, err := differ.DiffRows(sc, leftRows, rightRows)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(diff.Left) != 0 {
+		t.Fatalf("len(diff.Left) must be 0, but actual: %+v", len(diff.Left))
+	}
+	if len(diff.Right) != 0 {
+		t.Fatalf("len(diff.Right) must be 0, but actual: %+v", len(diff.Right))
 	}
 }
