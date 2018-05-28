@@ -160,8 +160,8 @@ func TestDiffer_DiffRows_CompositeKey(t *testing.T) {
 		{GroupByKey: gbkl2, Values: newRowValuesFromString(map[string]string{"id": "id1", "name": "name1", "comment": "hello, world!!"})},
 	}
 
-	gbkr_1 := make(map[*datasource.Key][]*datasource.GenericColumnValue)
-	gbkr_1[sc.PrimaryKey] = []*datasource.GenericColumnValue{
+	gbkr1 := make(map[*datasource.Key][]*datasource.GenericColumnValue)
+	gbkr1[sc.PrimaryKey] = []*datasource.GenericColumnValue{
 		{
 			Column: &datasource.Column{Type: datasource.ColumnTypeString},
 			Value:  "id0",
@@ -171,8 +171,8 @@ func TestDiffer_DiffRows_CompositeKey(t *testing.T) {
 			Value:  "name0",
 		},
 	}
-	gbkr_2 := make(map[*datasource.Key][]*datasource.GenericColumnValue)
-	gbkr_2[sc.PrimaryKey] = []*datasource.GenericColumnValue{
+	gbkr2 := make(map[*datasource.Key][]*datasource.GenericColumnValue)
+	gbkr2[sc.PrimaryKey] = []*datasource.GenericColumnValue{
 		{
 			Column: &datasource.Column{Type: datasource.ColumnTypeString},
 			Value:  "id1",
@@ -182,8 +182,8 @@ func TestDiffer_DiffRows_CompositeKey(t *testing.T) {
 			Value:  "name1",
 		},
 	}
-	gbkr_3 := make(map[*datasource.Key][]*datasource.GenericColumnValue)
-	gbkr_3[sc.PrimaryKey] = []*datasource.GenericColumnValue{
+	gbkr3 := make(map[*datasource.Key][]*datasource.GenericColumnValue)
+	gbkr3[sc.PrimaryKey] = []*datasource.GenericColumnValue{
 		{
 			Column: &datasource.Column{Type: datasource.ColumnTypeString},
 			Value:  "id2",
@@ -193,8 +193,8 @@ func TestDiffer_DiffRows_CompositeKey(t *testing.T) {
 			Value:  "name2",
 		},
 	}
-	gbkr_4 := make(map[*datasource.Key][]*datasource.GenericColumnValue)
-	gbkr_4[sc.PrimaryKey] = []*datasource.GenericColumnValue{
+	gbkr4 := make(map[*datasource.Key][]*datasource.GenericColumnValue)
+	gbkr4[sc.PrimaryKey] = []*datasource.GenericColumnValue{
 		{
 			Column: &datasource.Column{Type: datasource.ColumnTypeString},
 			Value:  "id3",
@@ -205,10 +205,10 @@ func TestDiffer_DiffRows_CompositeKey(t *testing.T) {
 		},
 	}
 	rightRows := []*datasource.Row{
-		{GroupByKey: gbkr_1, Values: newRowValuesFromString(map[string]string{"id": "id0", "name": "name0", "comment": "hello, world!"})},
-		{GroupByKey: gbkr_2, Values: newRowValuesFromString(map[string]string{"id": "id1", "name": "name1", "comment": "hello, world."})},
-		{GroupByKey: gbkr_3, Values: newRowValuesFromString(map[string]string{"id": "id2", "name": "name2", "comment": "hello, world!!!"})},
-		{GroupByKey: gbkr_4, Values: newRowValuesFromString(map[string]string{"id": "id3", "name": "name3", "comment": "hello, world!!!!"})},
+		{GroupByKey: gbkr1, Values: newRowValuesFromString(map[string]string{"id": "id0", "name": "name0", "comment": "hello, world!"})},
+		{GroupByKey: gbkr2, Values: newRowValuesFromString(map[string]string{"id": "id1", "name": "name1", "comment": "hello, world."})},
+		{GroupByKey: gbkr3, Values: newRowValuesFromString(map[string]string{"id": "id2", "name": "name2", "comment": "hello, world!!!"})},
+		{GroupByKey: gbkr4, Values: newRowValuesFromString(map[string]string{"id": "id3", "name": "name3", "comment": "hello, world!!!!"})},
 	}
 
 	differ, err := NewDiffer()
