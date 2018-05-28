@@ -100,7 +100,7 @@ func (ds *CSVDatasource) GetRows(ctx context.Context, schema *Schema) ([]*Row, e
 		for k, col := range schema.Columns {
 			rowValues[col.Name] = NewStringGenericColumnValue(col, csvRow[k])
 		}
-		rows = append(rows, &Row{rowValues})
+		rows = append(rows, &Row{Values: rowValues})
 	}
 	return rows, nil
 }

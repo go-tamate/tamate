@@ -4,6 +4,11 @@ import (
 	"errors"
 
 	"fmt"
+
+	"strings"
+
+	"sort"
+
 	"github.com/Mitu217/tamate/datasource"
 )
 
@@ -79,16 +84,17 @@ func isSameColumn(left, right *datasource.Column) bool {
 
 // DiffRows is get diff rows method
 func (d *Differ) DiffRows(sc *datasource.Schema, leftRows, rightRows []*datasource.Row) (*DiffRows, error) {
+
+	pk := sc.PrimaryKey
 	if sc.PrimaryKey == nil {
 		return nil, errors.New("Primary key required.")
 	}
-	pkn := sc.PrimaryKey.ColumnNames[0]
 
-	lmap, err := rowsToPKMap(pkn, leftRows)
+	lmap, err := rowsToPKMap(pk, leftRows)
 	if err != nil {
 		return nil, err
 	}
-	rmap, err := rowsToPKMap(pkn, rightRows)
+	rmap, err := rowsToPKMap(pk, rightRows)
 	if err != nil {
 		return nil, err
 	}
@@ -123,14 +129,20 @@ func (d *Differ) DiffRows(sc *datasource.Schema, leftRows, rightRows []*datasour
 	return diff, nil
 }
 
-func rowsToPKMap(pkName string, rows []*datasource.Row) (map[string]*datasource.Row, error) {
+func rowsToPKMap(pk *datasource.Key, rows []*datasource.Row) (map[string]*datasource.Row, error) {
 	rowMap := make(map[string]*datasource.Row, len(rows))
 	for _, row := range rows {
-		pkv, ok := row.Values[pkName]
+		values, ok := row.GroupByKey[pk]
 		if !ok {
-			return nil, fmt.Errorf("leftRows has no PK(%s) value", pkName)
+			return nil, fmt.Errorf("leftRows has no PK(%s) value", pk.String())
 		}
-		rowMap[pkv.StringValue()] = row
+		var strvals []string
+		for _, v := range values {
+			strvals = append(strvals, v.StringValue())
+		}
+		sort.Strings(strvals)
+		pkValue := strings.Join(strvals, "_")
+		rowMap[pkValue] = row
 	}
 	return rowMap, nil
 }

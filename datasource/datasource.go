@@ -22,7 +22,8 @@ func (c *Column) String() string {
 type RowValues map[string]*GenericColumnValue
 
 type Row struct {
-	Values RowValues
+	GroupByKey map[*Key][]*GenericColumnValue
+	Values     RowValues
 }
 
 func (r *Row) String() string {
@@ -33,19 +34,29 @@ func (r *Row) String() string {
 	return "{" + strings.Join(sts, ", ") + "}"
 }
 
-type PrimaryKey struct {
+const (
+	KeyTypePrimary = iota
+	KeyTypeUnique
+	KeyTypeIndex
+)
+
+type KeyType int
+
+type Key struct {
+	TableName   string   `json:"table_name"`
+	KeyType     KeyType  `json:"key_type"`
 	ColumnNames []string `json:"column_names"`
 }
 
-func (pk *PrimaryKey) String() string {
-	return strings.Join(pk.ColumnNames, ", ")
+func (k *Key) String() string {
+	return strings.Join(k.ColumnNames, ",")
 }
 
 // Schema is column definitions at table
 type Schema struct {
-	Name       string      `json:"name"`
-	PrimaryKey *PrimaryKey `json:"primary_key"`
-	Columns    []*Column   `json:"columns"`
+	Name       string    `json:"name"`
+	PrimaryKey *Key      `json:"primary_key"`
+	Columns    []*Column `json:"columns"`
 }
 
 func (sc *Schema) String() string {

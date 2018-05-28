@@ -82,9 +82,10 @@ func (ds *SpreadsheetDatasource) GetSchema(ctx context.Context, name string) (*S
 	return nil, nil
 }
 
-func choosePrimaryKey(columns []*Column) (*PrimaryKey, error) {
+func choosePrimaryKey(columns []*Column) (*Key, error) {
 	// TODO: primary key choosing algorightm for spreadsheet
-	return &PrimaryKey{
+	return &Key{
+		KeyType:     KeyTypePrimary,
 		ColumnNames: []string{columns[0].Name},
 	}, nil
 }
@@ -129,7 +130,7 @@ func (ds *SpreadsheetDatasource) GetRows(ctx context.Context, schema *Schema) ([
 			}
 			rowValues[col.Name] = NewStringGenericColumnValue(col, srt)
 		}
-		rows = append(rows, &Row{rowValues})
+		rows = append(rows, &Row{Values: rowValues})
 	}
 	return rows, nil
 }

@@ -16,7 +16,7 @@
     "spanner",
     "spanner/admin/database/apiv1"
   ]
-  revision = "90f2606161ee6a14efe2ca79fc05ac2b8efe250b"
+  revision = "f9b83d71e5382dcef644448a8ce423c9944c008b"
 
 [[projects]]
   branch = "master"
@@ -28,7 +28,7 @@
   branch = "master"
   name = "github.com/go-sql-driver/mysql"
   packages = ["."]
-  revision = "3287d94d4c6a48a63e16fffaabf27ab20203af2a"
+  revision = "64db0f7ebe171b596aa9b26f39a79f7413a3b617"
 
 [[projects]]
   name = "github.com/golang/protobuf"
@@ -74,8 +74,8 @@
     "trace/internal",
     "trace/propagation"
   ]
-  revision = "10cec2c05ea2cfb8b0d856711daedc49d8a45c56"
-  version = "v0.9.0"
+  revision = "f7730ab009c252771b19074bd05217d054c0c93f"
+  version = "v0.10.0"
 
 [[projects]]
   branch = "master"
@@ -90,7 +90,7 @@
     "internal/timeseries",
     "trace"
   ]
-  revision = "2491c5de3490fced2f6cff376127c667efeed857"
+  revision = "dfa909b99c79129e1100513e5cd36307665e5723"
 
 [[projects]]
   branch = "master"
@@ -102,7 +102,7 @@
     "jws",
     "jwt"
   ]
-  revision = "cdc340f7c179dbbfa4afd43b7614e8fcadde4269"
+  revision = "770e5ebd4ab27c4d70b0983674d138217f5e2c72"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -141,7 +141,7 @@
     "transport/grpc",
     "transport/http"
   ]
-  revision = "d7aa31fbd7da4467a8056610e654315a4c1f068e"
+  revision = "8180fb51da879301a8ddb7e2ee122ca5862da7f5"
 
 [[projects]]
   name = "google.golang.org/appengine"
@@ -175,7 +175,7 @@
     "googleapis/spanner/admin/database/v1",
     "googleapis/spanner/v1"
   ]
-  revision = "7bb2a897381c9c5ab2aeb8614f758d7766af68ff"
+  revision = "694d95ba50e67b2e363f3483057db5d4910c18f9"
 
 [[projects]]
   name = "google.golang.org/grpc"
