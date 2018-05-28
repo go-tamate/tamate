@@ -22,7 +22,7 @@ func (c *Column) String() string {
 type RowValues map[string]*GenericColumnValue
 
 type Row struct {
-	GroupByKey map[*Key][]*GenericColumnValue
+	GroupByKey map[*Key][]*GenericColumnValue `json:"-"`
 	Values     RowValues
 }
 
