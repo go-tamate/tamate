@@ -21,12 +21,19 @@ func (ds *MockDatasource) GetAllSchema(ctx context.Context) ([]*Schema, error) {
 }
 
 func (ds *MockDatasource) GetSchema(ctx context.Context, name string) (*Schema, error) {
-	sc := &Schema{}
+	sc := &Schema{
+		Name: "mock",
+		PrimaryKey: &Key{
+			TableName:   "mock",
+			KeyType:     KeyTypePrimary,
+			ColumnNames: []string{"id", "name"},
+		},
+	}
 	sc.Columns = []*Column{
 		{Name: "id", Type: ColumnTypeString},
 		{Name: "name", Type: ColumnTypeString},
 	}
-	sc.PrimaryKey = &PrimaryKey{ColumnNames: []string{"id"}}
+	sc.PrimaryKey = &Key{ColumnNames: []string{"id"}}
 	return sc, nil
 }
 
@@ -38,10 +45,16 @@ func (ds *MockDatasource) GetRows(ctx context.Context, sc *Schema) ([]*Row, erro
 	var rows []*Row
 	for i := 0; i < 100; i++ {
 		values := make(map[string]*GenericColumnValue)
+		groupBykey := make(map[*Key][]*GenericColumnValue)
 		for _, col := range sc.Columns {
 			values[col.Name] = NewStringGenericColumnValue(col, fmt.Sprintf("%s%d", col.Name, i))
+			for _, name := range sc.PrimaryKey.ColumnNames {
+				if name == col.Name {
+					groupBykey[sc.PrimaryKey] = append(groupBykey[sc.PrimaryKey], values[col.Name])
+				}
+			}
 		}
-		rows = append(rows, &Row{Values: values})
+		rows = append(rows, &Row{GroupByKey: groupBykey, Values: values})
 	}
 	return rows, nil
 }

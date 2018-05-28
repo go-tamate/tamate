@@ -93,12 +93,12 @@ func (ds *SpannerDatasource) GetAllSchema(ctx context.Context) ([]*Schema, error
 	return all, nil
 }
 
-func (ds *SpannerDatasource) getPrimaryKey(ctx context.Context, tableName string) (*PrimaryKey, error) {
+func (ds *SpannerDatasource) getPrimaryKey(ctx context.Context, tableName string) (*Key, error) {
 	stmt := spanner.NewStatement(fmt.Sprintf("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.INDEX_COLUMNS WHERE TABLE_NAME = '%s' AND INDEX_TYPE = 'PRIMARY_KEY' ORDER BY ORDINAL_POSITION ASC", tableName))
 	iter := ds.spannerClient.Single().Query(ctx, stmt)
 	defer iter.Stop()
 
-	var pk *PrimaryKey
+	var pk *Key
 	for {
 		row, err := iter.Next()
 		if err == iterator.Done {
@@ -109,12 +109,14 @@ func (ds *SpannerDatasource) getPrimaryKey(ctx context.Context, tableName string
 		}
 
 		if pk == nil {
-			pk = &PrimaryKey{}
+			pk = &Key{}
 		}
 		var colName string
 		if err := row.ColumnByName("COLUMN_NAME", &colName); err != nil {
 			return nil, err
 		}
+		pk.TableName = tableName
+		pk.KeyType = KeyTypePrimary
 		pk.ColumnNames = append(pk.ColumnNames, colName)
 	}
 	return pk, nil
@@ -230,6 +232,7 @@ func (ds *SpannerDatasource) GetRows(ctx context.Context, schema *Schema) ([]*Ro
 		}
 
 		rowValues := make(RowValues)
+		rowValuesGroupByKey := make(map[*Key][]*GenericColumnValue)
 		for _, c := range schema.Columns {
 			var gval spanner.GenericColumnValue
 			if err := row.ColumnByName(c.Name, &gval); err != nil {
@@ -240,8 +243,13 @@ func (ds *SpannerDatasource) GetRows(ctx context.Context, schema *Schema) ([]*Ro
 				return nil, err
 			}
 			rowValues[c.Name] = cv
+			for _, name := range schema.PrimaryKey.ColumnNames {
+				if name == c.Name {
+					rowValuesGroupByKey[schema.PrimaryKey] = append(rowValuesGroupByKey[schema.PrimaryKey], cv)
+				}
+			}
 		}
-		rows = append(rows, &Row{rowValues})
+		rows = append(rows, &Row{rowValuesGroupByKey, rowValues})
 	}
 	return rows, nil
 }

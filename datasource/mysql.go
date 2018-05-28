@@ -7,9 +7,10 @@ import (
 	"strings"
 
 	"context"
-	"github.com/go-sql-driver/mysql"
 	"reflect"
 	"time"
+
+	"github.com/go-sql-driver/mysql"
 )
 
 type MySQLDatasource struct {
@@ -81,7 +82,10 @@ func (h *MySQLDatasource) createAllSchemaMap() (map[string]*Schema, error) {
 		// set column in schema
 		if strings.Contains(columnKey, "PRI") {
 			if schema.PrimaryKey == nil {
-				schema.PrimaryKey = &PrimaryKey{}
+				schema.PrimaryKey = &Key{
+					TableName: schema.Name,
+					KeyType:   KeyTypePrimary,
+				}
 			}
 			schema.PrimaryKey.ColumnNames = append(schema.PrimaryKey.ColumnNames, columnName)
 		}
