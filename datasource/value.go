@@ -1,6 +1,11 @@
 package datasource
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+
+	"github.com/araddon/dateparse"
+)
 
 type GenericColumnValue struct {
 	Column *Column
@@ -19,6 +24,19 @@ func (cv *GenericColumnValue) StringValue() string {
 	// TODO: additional string reprensentation for specific value type
 	default:
 		return fmt.Sprintf("%v", cv.Value)
+	}
+}
+
+func (cv *GenericColumnValue) TimeValue() (time.Time, error) {
+	switch cv.Value.(type) {
+	case time.Time:
+		return cv.Value.(time.Time), nil
+	default:
+		tv, err := dateparse.ParseAny(cv.StringValue())
+		if err != nil {
+			return time.Time{}, err
+		}
+		return tv, nil
 	}
 }
 
