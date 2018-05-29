@@ -52,8 +52,8 @@
 
 
 [[constraint]]
-  branch = "master"
   name = "cloud.google.com/go"
+  version = "^0.23.0"
 
 [[constraint]]
   branch = "master"
