@@ -2,7 +2,6 @@
 
 
 [[projects]]
-  branch = "master"
   name = "cloud.google.com/go"
   packages = [
     "civil",
@@ -16,7 +15,8 @@
     "spanner",
     "spanner/admin/database/apiv1"
   ]
-  revision = "f9b83d71e5382dcef644448a8ce423c9944c008b"
+  revision = "0fd7230b2a7505833d5f69b75cbd6c9582401479"
+  version = "v0.23.0"
 
 [[projects]]
   branch = "master"
@@ -102,7 +102,7 @@
     "jws",
     "jwt"
   ]
-  revision = "770e5ebd4ab27c4d70b0983674d138217f5e2c72"
+  revision = "8373c646843f3728aafb0d706e6edb223532ae73"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -141,7 +141,7 @@
     "transport/grpc",
     "transport/http"
   ]
-  revision = "8180fb51da879301a8ddb7e2ee122ca5862da7f5"
+  revision = "de6fadef861e6dbf0af2a8d98d6c1389aaa28ca5"
 
 [[projects]]
   name = "google.golang.org/appengine"
@@ -212,6 +212,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "a9ba31736502cdb1c829794e94fbb93fd31af7a9728237bea0338522c7bebb8f"
+  inputs-digest = "082545165057bc49e3530da64f961d07e4be49a245c02bc05aa1ccce6c1b3a20"
   solver-name = "gps-cdcl"
   solver-version = 1
