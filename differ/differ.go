@@ -39,6 +39,16 @@ func createDefaultComparatorMap() map[datasource.ColumnType]ValueComparator {
 	cm[datasource.ColumnTypeInt] = &asStringComparator{}
 	cm[datasource.ColumnTypeFloat] = &asStringComparator{}
 	cm[datasource.ColumnTypeDate] = &asStringComparator{}
+
+	// @todo Implement type optimized comparator
+	cm[datasource.ColumnTypeStringArray] = &asStringComparator{}
+	cm[datasource.ColumnTypeBytesArray] = &asStringComparator{}
+	cm[datasource.ColumnTypeFloatArray] = &asStringComparator{}
+	cm[datasource.ColumnTypeIntArray] = &asStringComparator{}
+	cm[datasource.ColumnTypeDateArray] = &asStringComparator{}
+	cm[datasource.ColumnTypeDatetimeArray] = &asStringComparator{}
+	cm[datasource.ColumnTypeBoolArray] = &asStringComparator{}
+
 	return cm
 }
 
