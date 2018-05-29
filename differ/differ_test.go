@@ -94,7 +94,7 @@ func TestDiffer_DiffRows(t *testing.T) {
 
 	// the same (no diff)
 	{
-		diff, err := differ.DiffRows(sc, leftRows, leftRows)
+		diff, err := differ.DiffRows(sc, sc, leftRows, leftRows)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -105,7 +105,7 @@ func TestDiffer_DiffRows(t *testing.T) {
 	}
 
 	{
-		diff, err := differ.DiffRows(sc, leftRows, rightRows)
+		diff, err := differ.DiffRows(sc, sc, leftRows, rightRows)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -218,7 +218,7 @@ func TestDiffer_DiffRows_CompositeKey(t *testing.T) {
 
 	// the same (no diff)
 	{
-		diff, err := differ.DiffRows(sc, leftRows, leftRows)
+		diff, err := differ.DiffRows(sc, sc, leftRows, leftRows)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -229,7 +229,7 @@ func TestDiffer_DiffRows_CompositeKey(t *testing.T) {
 	}
 
 	{
-		diff, err := differ.DiffRows(sc, leftRows, rightRows)
+		diff, err := differ.DiffRows(sc, sc, leftRows, rightRows)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -318,7 +318,7 @@ func TestDiffer_DiffDatetimeFormatStringColumn(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	diff, err := differ.DiffRows(sc, leftRows, rightRows)
+	diff, err := differ.DiffRows(sc, sc, leftRows, rightRows)
 	if err != nil {
 		t.Fatal(err)
 	}
