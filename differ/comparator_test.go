@@ -1,8 +1,9 @@
 package differ
 
 import (
-	"github.com/Mitu217/tamate/datasource"
 	"testing"
+
+	"github.com/Mitu217/tamate/datasource"
 )
 
 func newTmpColumn(type_ datasource.ColumnType) *datasource.Column {
@@ -36,6 +37,16 @@ func TestAsStringComparator(t *testing.T) {
 		col := newTmpColumn(datasource.ColumnTypeInt)
 		if eq, err := cmp.Equal(col, v1, v2); err != nil || !eq {
 			t.Fatalf("123.45 (float) == '123.45' (string) must be true, but not equals")
+		}
+	}
+
+	// []string
+	{
+		v1 := newTmpGenericColumnValue(datasource.ColumnTypeStringArray, []string{"123", "456"})
+		v2 := newTmpGenericColumnValue(datasource.ColumnTypeIntArray, []int64{123, 456})
+		col := newTmpColumn(datasource.ColumnTypeStringArray)
+		if eq, err := cmp.Equal(col, v1, v2); err != nil || !eq {
+			t.Fatalf("[123, 456] (string) == [123, 456] (int64) must be true, but not equals")
 		}
 	}
 }
