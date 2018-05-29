@@ -97,18 +97,17 @@ func isSameColumn(left, right *datasource.Column) bool {
 }
 
 // DiffRows is get diff rows method
-func (d *Differ) DiffRows(sc *datasource.Schema, leftRows, rightRows []*datasource.Row) (*DiffRows, error) {
+func (d *Differ) DiffRows(leftSchema, rightSchema *datasource.Schema, leftRows, rightRows []*datasource.Row) (*DiffRows, error) {
 
-	pk := sc.PrimaryKey
-	if sc.PrimaryKey == nil {
+	if leftSchema.PrimaryKey == nil || rightSchema.PrimaryKey == nil {
 		return nil, errors.New("Primary key required.")
 	}
 
-	lmap, err := rowsToPKMap(pk, leftRows)
+	lmap, err := rowsToPKMap(leftSchema.PrimaryKey, leftRows)
 	if err != nil {
 		return nil, err
 	}
-	rmap, err := rowsToPKMap(pk, rightRows)
+	rmap, err := rowsToPKMap(rightSchema.PrimaryKey, rightRows)
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +125,7 @@ func (d *Differ) DiffRows(sc *datasource.Schema, leftRows, rightRows []*datasour
 
 			// 一致する pk がある場合の差分チェックは1回しか行わない（normal, reverse で2回しないようにする
 			if i == 0 {
-				same, err := d.isSameRow(sc, lrow, rrow)
+				same, err := d.isSameRow(leftSchema, lrow, rrow)
 				if err != nil {
 					return nil, err
 				}

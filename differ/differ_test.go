@@ -22,7 +22,8 @@ func newRowValuesFromString(ss map[string]string) datasource.RowValues {
 }
 
 func TestDiffer_DiffRows(t *testing.T) {
-	sc := &datasource.Schema{
+
+	scl := &datasource.Schema{
 		Columns: []*datasource.Column{
 			{Name: "id", Type: datasource.ColumnTypeString},
 			{Name: "name", Type: datasource.ColumnTypeString},
@@ -32,16 +33,15 @@ func TestDiffer_DiffRows(t *testing.T) {
 			ColumnNames: []string{"id"},
 		},
 	}
-
 	gbkl1 := make(map[*datasource.Key][]*datasource.GenericColumnValue)
-	gbkl1[sc.PrimaryKey] = []*datasource.GenericColumnValue{
+	gbkl1[scl.PrimaryKey] = []*datasource.GenericColumnValue{
 		{
 			Column: &datasource.Column{Type: datasource.ColumnTypeString},
 			Value:  "id0",
 		},
 	}
 	gbkl2 := make(map[*datasource.Key][]*datasource.GenericColumnValue)
-	gbkl2[sc.PrimaryKey] = []*datasource.GenericColumnValue{
+	gbkl2[scl.PrimaryKey] = []*datasource.GenericColumnValue{
 		{
 			Column: &datasource.Column{Type: datasource.ColumnTypeString},
 			Value:  "id1",
@@ -52,29 +52,39 @@ func TestDiffer_DiffRows(t *testing.T) {
 		{GroupByKey: gbkl2, Values: newRowValuesFromString(map[string]string{"id": "id1", "name": "name1"})},
 	}
 
+	scr := &datasource.Schema{
+		Columns: []*datasource.Column{
+			{Name: "id", Type: datasource.ColumnTypeString},
+			{Name: "name", Type: datasource.ColumnTypeString},
+		},
+		PrimaryKey: &datasource.Key{
+			KeyType:     datasource.KeyTypePrimary,
+			ColumnNames: []string{"id"},
+		},
+	}
 	gbkr1 := make(map[*datasource.Key][]*datasource.GenericColumnValue)
-	gbkr1[sc.PrimaryKey] = []*datasource.GenericColumnValue{
+	gbkr1[scr.PrimaryKey] = []*datasource.GenericColumnValue{
 		{
 			Column: &datasource.Column{Type: datasource.ColumnTypeString},
 			Value:  "id0",
 		},
 	}
 	gbkr2 := make(map[*datasource.Key][]*datasource.GenericColumnValue)
-	gbkr2[sc.PrimaryKey] = []*datasource.GenericColumnValue{
+	gbkr2[scr.PrimaryKey] = []*datasource.GenericColumnValue{
 		{
 			Column: &datasource.Column{Type: datasource.ColumnTypeString},
 			Value:  "id1",
 		},
 	}
 	gbkr3 := make(map[*datasource.Key][]*datasource.GenericColumnValue)
-	gbkr3[sc.PrimaryKey] = []*datasource.GenericColumnValue{
+	gbkr3[scr.PrimaryKey] = []*datasource.GenericColumnValue{
 		{
 			Column: &datasource.Column{Type: datasource.ColumnTypeString},
 			Value:  "id2",
 		},
 	}
 	gbkr4 := make(map[*datasource.Key][]*datasource.GenericColumnValue)
-	gbkr4[sc.PrimaryKey] = []*datasource.GenericColumnValue{
+	gbkr4[scr.PrimaryKey] = []*datasource.GenericColumnValue{
 		{
 			Column: &datasource.Column{Type: datasource.ColumnTypeString},
 			Value:  "id3",
@@ -94,7 +104,7 @@ func TestDiffer_DiffRows(t *testing.T) {
 
 	// the same (no diff)
 	{
-		diff, err := differ.DiffRows(sc, leftRows, leftRows)
+		diff, err := differ.DiffRows(scl, scl, leftRows, leftRows)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -104,8 +114,16 @@ func TestDiffer_DiffRows(t *testing.T) {
 		}
 	}
 
+	// wrong schema is chosen
 	{
-		diff, err := differ.DiffRows(sc, leftRows, rightRows)
+		_, err := differ.DiffRows(scl, scr, leftRows, leftRows)
+		if err == nil {
+			t.Fatal(err)
+		}
+	}
+
+	{
+		diff, err := differ.DiffRows(scl, scr, leftRows, rightRows)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -121,7 +139,8 @@ func TestDiffer_DiffRows(t *testing.T) {
 }
 
 func TestDiffer_DiffRows_CompositeKey(t *testing.T) {
-	sc := &datasource.Schema{
+
+	scl := &datasource.Schema{
 		Columns: []*datasource.Column{
 			{Name: "id", Type: datasource.ColumnTypeString},
 			{Name: "name", Type: datasource.ColumnTypeString},
@@ -132,9 +151,8 @@ func TestDiffer_DiffRows_CompositeKey(t *testing.T) {
 			ColumnNames: []string{"id", "name"},
 		},
 	}
-
 	gbkl1 := make(map[*datasource.Key][]*datasource.GenericColumnValue)
-	gbkl1[sc.PrimaryKey] = []*datasource.GenericColumnValue{
+	gbkl1[scl.PrimaryKey] = []*datasource.GenericColumnValue{
 		{
 			Column: &datasource.Column{Type: datasource.ColumnTypeString},
 			Value:  "id0",
@@ -145,7 +163,7 @@ func TestDiffer_DiffRows_CompositeKey(t *testing.T) {
 		},
 	}
 	gbkl2 := make(map[*datasource.Key][]*datasource.GenericColumnValue)
-	gbkl2[sc.PrimaryKey] = []*datasource.GenericColumnValue{
+	gbkl2[scl.PrimaryKey] = []*datasource.GenericColumnValue{
 		{
 			Column: &datasource.Column{Type: datasource.ColumnTypeString},
 			Value:  "id1",
@@ -160,8 +178,19 @@ func TestDiffer_DiffRows_CompositeKey(t *testing.T) {
 		{GroupByKey: gbkl2, Values: newRowValuesFromString(map[string]string{"id": "id1", "name": "name1", "comment": "hello, world!!"})},
 	}
 
+	scr := &datasource.Schema{
+		Columns: []*datasource.Column{
+			{Name: "id", Type: datasource.ColumnTypeString},
+			{Name: "name", Type: datasource.ColumnTypeString},
+			{Name: "comment", Type: datasource.ColumnTypeString},
+		},
+		PrimaryKey: &datasource.Key{
+			KeyType:     datasource.KeyTypePrimary,
+			ColumnNames: []string{"id", "name"},
+		},
+	}
 	gbkr1 := make(map[*datasource.Key][]*datasource.GenericColumnValue)
-	gbkr1[sc.PrimaryKey] = []*datasource.GenericColumnValue{
+	gbkr1[scr.PrimaryKey] = []*datasource.GenericColumnValue{
 		{
 			Column: &datasource.Column{Type: datasource.ColumnTypeString},
 			Value:  "id0",
@@ -172,7 +201,7 @@ func TestDiffer_DiffRows_CompositeKey(t *testing.T) {
 		},
 	}
 	gbkr2 := make(map[*datasource.Key][]*datasource.GenericColumnValue)
-	gbkr2[sc.PrimaryKey] = []*datasource.GenericColumnValue{
+	gbkr2[scr.PrimaryKey] = []*datasource.GenericColumnValue{
 		{
 			Column: &datasource.Column{Type: datasource.ColumnTypeString},
 			Value:  "id1",
@@ -183,7 +212,7 @@ func TestDiffer_DiffRows_CompositeKey(t *testing.T) {
 		},
 	}
 	gbkr3 := make(map[*datasource.Key][]*datasource.GenericColumnValue)
-	gbkr3[sc.PrimaryKey] = []*datasource.GenericColumnValue{
+	gbkr3[scr.PrimaryKey] = []*datasource.GenericColumnValue{
 		{
 			Column: &datasource.Column{Type: datasource.ColumnTypeString},
 			Value:  "id2",
@@ -194,7 +223,7 @@ func TestDiffer_DiffRows_CompositeKey(t *testing.T) {
 		},
 	}
 	gbkr4 := make(map[*datasource.Key][]*datasource.GenericColumnValue)
-	gbkr4[sc.PrimaryKey] = []*datasource.GenericColumnValue{
+	gbkr4[scr.PrimaryKey] = []*datasource.GenericColumnValue{
 		{
 			Column: &datasource.Column{Type: datasource.ColumnTypeString},
 			Value:  "id3",
@@ -218,7 +247,7 @@ func TestDiffer_DiffRows_CompositeKey(t *testing.T) {
 
 	// the same (no diff)
 	{
-		diff, err := differ.DiffRows(sc, leftRows, leftRows)
+		diff, err := differ.DiffRows(scl, scl, leftRows, leftRows)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -229,7 +258,7 @@ func TestDiffer_DiffRows_CompositeKey(t *testing.T) {
 	}
 
 	{
-		diff, err := differ.DiffRows(sc, leftRows, rightRows)
+		diff, err := differ.DiffRows(scl, scr, leftRows, rightRows)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -284,24 +313,28 @@ func TestDiffer_DiffDatetimeFormatStringColumn(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	sc, err := ds.GetSchema(ctx, "")
+	scl, err := ds.GetSchema(ctx, "")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	leftRows, err := ds.GetRows(ctx, sc)
+	leftRows, err := ds.GetRows(ctx, scl)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Change column type string -> datetime
-	for i, col := range sc.Columns {
+	for i, col := range scl.Columns {
 		if col.Name == "birthday" {
-			sc.Columns[i].Type = datasource.ColumnTypeDatetime
+			scl.Columns[i].Type = datasource.ColumnTypeDatetime
 		}
 	}
 
-	rightRows, err := ds.GetRows(ctx, sc)
+	scr, err := ds.GetSchema(ctx, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	rightRows, err := ds.GetRows(ctx, scr)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -318,7 +351,7 @@ func TestDiffer_DiffDatetimeFormatStringColumn(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	diff, err := differ.DiffRows(sc, leftRows, rightRows)
+	diff, err := differ.DiffRows(scl, scr, leftRows, rightRows)
 	if err != nil {
 		t.Fatal(err)
 	}
