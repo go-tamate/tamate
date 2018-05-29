@@ -313,24 +313,28 @@ func TestDiffer_DiffDatetimeFormatStringColumn(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	sc, err := ds.GetSchema(ctx, "")
+	scl, err := ds.GetSchema(ctx, "")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	leftRows, err := ds.GetRows(ctx, sc)
+	leftRows, err := ds.GetRows(ctx, scl)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Change column type string -> datetime
-	for i, col := range sc.Columns {
+	for i, col := range scl.Columns {
 		if col.Name == "birthday" {
-			sc.Columns[i].Type = datasource.ColumnTypeDatetime
+			scl.Columns[i].Type = datasource.ColumnTypeDatetime
 		}
 	}
 
-	rightRows, err := ds.GetRows(ctx, sc)
+	scr, err := ds.GetSchema(ctx, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	rightRows, err := ds.GetRows(ctx, scr)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -347,7 +351,7 @@ func TestDiffer_DiffDatetimeFormatStringColumn(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	diff, err := differ.DiffRows(sc, sc, leftRows, rightRows)
+	diff, err := differ.DiffRows(scl, scr, leftRows, rightRows)
 	if err != nil {
 		t.Fatal(err)
 	}
