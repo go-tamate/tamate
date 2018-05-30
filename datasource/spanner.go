@@ -480,7 +480,7 @@ func ConvertGenericColumnValueToSpannerValue(cv *GenericColumnValue) (interface{
 		if !cv.Column.NotNull && cv.Value == nil {
 			return spanner.NullInt64{}, nil
 		}
-		// Even if ColumnType is int, it's actually a float in some cases.
+		// Why this type assertion see int as float64?
 		switch cv.Value.(type) {
 		case float64:
 			f, err := strconv.ParseFloat(cv.StringValue(), 64)
@@ -530,7 +530,6 @@ func ConvertGenericColumnValueToSpannerValue(cv *GenericColumnValue) (interface{
 			return spanner.NullBool{}, nil
 		}
 		return cv.Value, nil
-		// @todo Handle array type correctly
 	case ColumnTypeFloatArray:
 		if !cv.Column.NotNull && cv.Value == nil {
 			return nil, nil
@@ -552,11 +551,14 @@ func ConvertGenericColumnValueToSpannerValue(cv *GenericColumnValue) (interface{
 		if !cv.Column.NotNull && cv.Value == nil {
 			return nil, nil
 		}
+		// Why this type assertion see int as float64?
 		var values []int64
 		if arr, ok := cv.Value.([]interface{}); ok {
 			for _, v := range arr {
 				if i, ok := v.(int64); ok {
 					values = append(values, i)
+				} else if i, ok := v.(float64); ok {
+					values = append(values, int64(i))
 				}
 			}
 			if len(arr) != len(values) {
@@ -627,15 +629,25 @@ func ConvertGenericColumnValueToSpannerValue(cv *GenericColumnValue) (interface{
 		if !cv.Column.NotNull && cv.Value == nil {
 			return nil, nil
 		}
+
+		// type assertion to string is ok but, if we save as []byte,
+		// value will change after insert into Spanner...
+		// so, if assertion success on string, convert them to []string
 		var values [][]byte
+		var strValues []string
 		if arr, ok := cv.Value.([]interface{}); ok {
 			for _, v := range arr {
 				if b, ok := v.([]byte); ok {
 					values = append(values, b)
+				} else if b, ok := v.(string); ok {
+					strValues = append(strValues, b)
 				}
 			}
-			if len(arr) != len(values) {
+			if len(arr) != len(values) && len(arr) != len(strValues) {
 				return nil, errors.New("length mismatch, some value failed to convert into []byte")
+			}
+			if len(arr) != len(values) {
+				return strValues, nil
 			}
 			return values, nil
 		}
