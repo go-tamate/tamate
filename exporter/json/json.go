@@ -11,17 +11,39 @@ import (
 )
 
 type JSONExporter struct {
-	LeftTargetName  string
-	RightTargetName string
+	leftDatasource  datasource.Datasource
+	rightDatasource datasource.Datasource
+	leftTargetName  string
+	rightTargetName string
 	diffDir         exporter.DiffDirection
-	Pretty          bool
+	pretty          bool
+}
+
+func NewExporter(leftDs, rightDs datasource.Datasource, leftName, rightName string) *JSONExporter {
+	return &JSONExporter{
+		leftDatasource:  leftDs,
+		rightDatasource: rightDs,
+		leftTargetName:  leftName,
+		rightTargetName: rightName,
+		diffDir:         exporter.DiffDirectionLeftToRight,
+		pretty:          false,
+	}
+}
+
+func (je *JSONExporter) SetPretty(pretty bool) {
+	je.pretty = pretty
 }
 
 func (je *JSONExporter) SetDirection(direction exporter.DiffDirection) {
 	je.diffDir = direction
 }
 
-func (je *JSONExporter) ExportStruct(l datasource.Datasource, r datasource.Datasource) (*differ.Diff, error) {
+func (je *JSONExporter) SetDatasources(left, right datasource.Datasource) {
+	je.leftDatasource = left
+	je.rightDatasource = right
+}
+
+func (je *JSONExporter) ExportStruct() (*differ.Diff, error) {
 
 	ctx := context.Background()
 	df, err := differ.NewDiffer()
@@ -29,20 +51,20 @@ func (je *JSONExporter) ExportStruct(l datasource.Datasource, r datasource.Datas
 		return nil, err
 	}
 
-	leftSchema, err := l.GetSchema(ctx, je.LeftTargetName)
+	leftSchema, err := je.leftDatasource.GetSchema(ctx, je.leftTargetName)
 	if err != nil {
 		return nil, err
 	}
-	leftRows, err := l.GetRows(ctx, leftSchema)
+	leftRows, err := je.leftDatasource.GetRows(ctx, leftSchema)
 	if err != nil {
 		return nil, err
 	}
 
-	rightSchema, err := r.GetSchema(ctx, je.RightTargetName)
+	rightSchema, err := je.rightDatasource.GetSchema(ctx, je.rightTargetName)
 	if err != nil {
 		return nil, err
 	}
-	rightRows, err := r.GetRows(ctx, rightSchema)
+	rightRows, err := je.rightDatasource.GetRows(ctx, rightSchema)
 	if err != nil {
 		return nil, err
 	}
@@ -81,16 +103,16 @@ func (je *JSONExporter) ExportStruct(l datasource.Datasource, r datasource.Datas
 
 }
 
-func (je *JSONExporter) ExportJSON(l datasource.Datasource, r datasource.Datasource) ([]byte, error) {
+func (je *JSONExporter) ExportJSON() ([]byte, error) {
 
-	diff, err := je.ExportStruct(l, r)
+	diff, err := je.ExportStruct()
 	if err != nil {
 		return nil, err
 	}
 
 	var b []byte
 	var marshalError error
-	if je.Pretty {
+	if je.pretty {
 		b, marshalError = json.MarshalIndent(diff, "", "  ")
 	} else {
 		b, marshalError = json.Marshal(diff)

@@ -24,6 +24,7 @@ func (dd DiffDirection) String() string {
 }
 
 type Exporter interface {
-	ExportStruct(left datasource.Datasource, right datasource.Datasource) (*differ.Diff, error)
+	SetDatasources(left, right datasource.Datasource)
 	SetDirection(diffDirection DiffDirection)
+	ExportStruct() (*differ.Diff, error)
 }
