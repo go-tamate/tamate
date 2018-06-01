@@ -10,18 +10,18 @@ import (
 	"github.com/Mitu217/tamate/exporter"
 )
 
-type JsonExporter struct {
+type JSONExporter struct {
 	LeftTargetName  string
 	RightTargetName string
 	diffDir         exporter.DiffDirection
 	Pretty          bool
 }
 
-func (je *JsonExporter) SetDirection(direction exporter.DiffDirection) {
+func (je *JSONExporter) SetDirection(direction exporter.DiffDirection) {
 	je.diffDir = direction
 }
 
-func (je *JsonExporter) ExportStruct(l datasource.Datasource, r datasource.Datasource) (*differ.Diff, error) {
+func (je *JSONExporter) ExportStruct(l datasource.Datasource, r datasource.Datasource) (*differ.Diff, error) {
 
 	ctx := context.Background()
 	df, err := differ.NewDiffer()
@@ -81,7 +81,7 @@ func (je *JsonExporter) ExportStruct(l datasource.Datasource, r datasource.Datas
 
 }
 
-func (je *JsonExporter) ExportJSON(l datasource.Datasource, r datasource.Datasource) ([]byte, error) {
+func (je *JSONExporter) ExportJSON(l datasource.Datasource, r datasource.Datasource) ([]byte, error) {
 
 	diff, err := je.ExportStruct(l, r)
 	if err != nil {
