@@ -22,6 +22,22 @@ const (
 	tableName     = "ClassData"
 )
 
+func spreadsheetTestCase(t *testing.T, fun func(*SpreadsheetDatasource) error) {
+	ctx := context.Background()
+	client, err := getSpreadsheetClient(ctx, t)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ds, err := NewSpreadsheetDatasource(client, spreadsheetID, "A1:Z100", 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := fun(ds); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func getSpreadsheetClient(ctx context.Context, t *testing.T) (*http.Client, error) {
 	encJsonKey := os.Getenv("TAMATE_SPREADSHEET_SERVICE_ACCOUNT_JSON_BASE64")
 	if encJsonKey == "" {
@@ -36,30 +52,23 @@ func getSpreadsheetClient(ctx context.Context, t *testing.T) (*http.Client, erro
 }
 
 func TestSpreadsheet_Get(t *testing.T) {
-	ctx := context.Background()
-	client, err := getSpreadsheetClient(ctx, t)
-	if err != nil {
-		t.Fatal(err)
-	}
+	spreadsheetTestCase(t, func(ds *SpreadsheetDatasource) error {
+		ctx := context.Background()
+		sc, err := ds.GetSchema(ctx, tableName)
+		if err != nil {
+			return err
+		}
 
-	ds, err := NewSpreadsheetDatasource(client, spreadsheetID, "A1:D100", 0)
-	if err != nil {
-		t.Fatal(err)
-	}
+		t.Logf("Schema: %+v", sc)
 
-	sc, err := ds.GetSchema(ctx, tableName)
-	if err != nil {
-		t.Fatal(err)
-	}
+		rows, err := ds.GetRows(ctx, sc)
+		if err != nil {
+			return err
+		}
 
-	t.Logf("Schema: %+v", sc)
-
-	rows, err := ds.GetRows(ctx, sc)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	for _, row := range rows {
-		t.Log(row)
-	}
+		for _, row := range rows {
+			t.Log(row)
+		}
+		return nil
+	})
 }
