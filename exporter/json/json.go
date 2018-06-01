@@ -81,7 +81,7 @@ func (je *JsonExporter) ExportStruct(l datasource.Datasource, r datasource.Datas
 
 }
 
-func (je *JsonExporter) ExportJson(l datasource.Datasource, r datasource.Datasource) ([]byte, error) {
+func (je *JsonExporter) ExportJSON(l datasource.Datasource, r datasource.Datasource) ([]byte, error) {
 
 	diff, err := je.ExportStruct(l, r)
 	if err != nil {
