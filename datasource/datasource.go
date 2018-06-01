@@ -19,6 +19,15 @@ func (c *Column) String() string {
 	return fmt.Sprintf("%s %s", c.Name, c.Type)
 }
 
+func (c *Column) IsArrayType() bool {
+	switch c.Type {
+	case ColumnTypeBoolArray, ColumnTypeBytesArray, ColumnTypeDateArray, ColumnTypeDatetimeArray,
+		ColumnTypeFloatArray, ColumnTypeIntArray, ColumnTypeStringArray:
+		return true
+	}
+	return false
+}
+
 type RowValues map[string]*GenericColumnValue
 
 type Row struct {
