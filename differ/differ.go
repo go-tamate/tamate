@@ -24,6 +24,12 @@ type DiffRows struct {
 	Right []*datasource.Row `json:"right"`
 }
 
+type Diff struct {
+	Schema  *datasource.Schema `json:"schema"`
+	Columns *DiffColumns       `json:"columns"`
+	Rows    *DiffRows          `json:"rows"`
+}
+
 // Differ is diff between tables struct
 type Differ struct {
 	comparatorMap map[datasource.ColumnType]ValueComparator
