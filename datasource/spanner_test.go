@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"fmt"
-	"github.com/google/uuid"
 	"time"
 
 	"cloud.google.com/go/spanner"
@@ -17,7 +16,7 @@ import (
 const (
 	spannerTestDatabaseID   = "tamatest"
 	spannerTestTableName    = "Test"
-	spannerTestDataRowCount = 1
+	spannerTestDataRowCount = 100
 )
 
 type testStruct struct {
@@ -39,7 +38,7 @@ type testStruct struct {
 	BoolArrayTest        []bool
 }
 
-func SpannerTestCase(t *testing.T, fun func(*SpannerDatasource) error) {
+func spannerTestCase(t *testing.T, fun func(*spannerDatasource) error) {
 	dsnParent := os.Getenv("TAMATE_SPANNER_DSN_PARENT")
 	if dsnParent == "" {
 		t.Skip("env: TAMATE_SPANNER_DSN_PARENT not set")
@@ -114,12 +113,8 @@ CREATE TABLE %s (
 
 	var ms []*spanner.Mutation
 	for i := 0; i < spannerTestDataRowCount; i++ {
-		id, err := uuid.NewRandom()
-		if err != nil {
-			return err
-		}
 		ts := &testStruct{
-			ID:                   id.String(),
+			ID:                   fmt.Sprintf("ID%d", i),
 			StringTest:           fmt.Sprintf("testString%d", i),
 			AlwaysNullStringTest: spanner.NullString{Valid: false},
 			IntTest:              123456,
@@ -163,7 +158,7 @@ func afterSpanner(dsnParent string) error {
 }
 
 func TestSpanner_Get(t *testing.T) {
-	SpannerTestCase(t, func(ds *SpannerDatasource) error {
+	spannerTestCase(t, func(ds *spannerDatasource) error {
 		ctx := context.Background()
 		sc, err := ds.GetSchema(ctx, spannerTestTableName)
 		if err != nil {
@@ -183,8 +178,8 @@ func TestSpanner_Get(t *testing.T) {
 					t.Logf("%+v: %+v", key, val)
 				}
 			}
-			if _, err := uuid.Parse(row.Values["ID"].StringValue()); err != nil {
-				t.Fatalf("invalid uuid: %s.", row.Values["ID"].StringValue())
+			if row.Values["ID"].StringValue() != fmt.Sprintf("ID%d", i) {
+				t.Fatalf("ID must be %s, but actual: %+v.", fmt.Sprintf("ID%d", i), row.Values["ID"].Value)
 			}
 			if row.Values["StringTest"].StringValue() != fmt.Sprintf("testString%d", i) {
 				t.Fatalf("StringTest must be %s, but actual: %s .", fmt.Sprintf("testString%d", i), row.Values["StringTest"].StringValue())
