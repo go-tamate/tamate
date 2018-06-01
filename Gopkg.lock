@@ -46,12 +46,6 @@
   version = "v1.1.0"
 
 [[projects]]
-  name = "github.com/google/uuid"
-  packages = ["."]
-  revision = "064e2069ce9c359c118179501254f67d7d37ba24"
-  version = "0.2"
-
-[[projects]]
   name = "github.com/googleapis/gax-go"
   packages = ["."]
   revision = "317e0006254c44a0ac427cc52a0e083ff0b9622f"
@@ -212,6 +206,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "082545165057bc49e3530da64f961d07e4be49a245c02bc05aa1ccce6c1b3a20"
+  inputs-digest = "de333016c07b8b5c41db935b3a9d00f354e3c20944436c941c4cacfebbafdf8f"
   solver-name = "gps-cdcl"
   solver-version = 1

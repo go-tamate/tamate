@@ -45,8 +45,20 @@ func TestAsStringComparator(t *testing.T) {
 		v1 := newTmpGenericColumnValue(datasource.ColumnTypeStringArray, []string{"123", "456"})
 		v2 := newTmpGenericColumnValue(datasource.ColumnTypeIntArray, []int64{123, 456})
 		col := newTmpColumn(datasource.ColumnTypeStringArray)
+		t.Logf("%+v", v1.StringValue())
+		t.Logf("%+v", v2.StringValue())
 		if eq, err := cmp.Equal(col, v1, v2); err != nil || !eq {
-			t.Fatalf("[123, 456] (string) == [123, 456] (int64) must be true, but not equals")
+			t.Fatalf("['123', '456'] ([]string) == [123, 456] ([]int64) must be true, but not equals")
+		}
+	}
+
+	// []string (comma-separated)
+	{
+		v1 := newTmpGenericColumnValue(datasource.ColumnTypeString, "123,456,-789")
+		v2 := newTmpGenericColumnValue(datasource.ColumnTypeIntArray, []int64{123, 456, -789})
+		col := newTmpColumn(datasource.ColumnTypeIntArray)
+		if eq, err := cmp.Equal(col, v1, v2); err != nil || !eq {
+			t.Fatalf("'123,456,-789' (string) == [123, 456, -789] ([]int64) must be true, but not equals")
 		}
 	}
 }

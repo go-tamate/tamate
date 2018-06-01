@@ -2,7 +2,6 @@ package datasource
 
 import (
 	"context"
-	"os"
 	"testing"
 
 	"fmt"
@@ -10,14 +9,16 @@ import (
 
 	"cloud.google.com/go/spanner"
 	"cloud.google.com/go/spanner/admin/database/apiv1"
-	"github.com/google/uuid"
 	adminpb "google.golang.org/genproto/googleapis/spanner/admin/database/v1"
+	"os"
+	"reflect"
+	"strings"
 )
 
 const (
 	spannerTestDatabaseID   = "tamatest"
 	spannerTestTableName    = "Test"
-	spannerTestDataRowCount = 1
+	spannerTestDataRowCount = 100
 )
 
 type testStruct struct {
@@ -37,6 +38,33 @@ type testStruct struct {
 	DateArrayTest        []string
 	TimestampArrayTest   []time.Time
 	BoolArrayTest        []bool
+}
+
+func spannerTestCase(t *testing.T, fun func(*SpannerDatasource) error) {
+	dsnParent := os.Getenv("TAMATE_SPANNER_DSN_PARENT")
+	if dsnParent == "" {
+		t.Skip("env: TAMATE_SPANNER_DSN_PARENT not set")
+	}
+
+	if err := beforeSpanner(dsnParent); err != nil {
+		t.Fatal(err)
+	}
+	defer (func() {
+		if err := afterSpanner(dsnParent); err != nil {
+			t.Fatal(err)
+		}
+	})()
+
+	dsn := fmt.Sprintf("%s/databases/%s", dsnParent, spannerTestDatabaseID)
+	ds, err := NewSpannerDatasource(dsn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer ds.Close()
+
+	if err := fun(ds); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func beforeSpanner(dsnParent string) error {
@@ -87,12 +115,8 @@ CREATE TABLE %s (
 
 	var ms []*spanner.Mutation
 	for i := 0; i < spannerTestDataRowCount; i++ {
-		id, err := uuid.NewRandom()
-		if err != nil {
-			return err
-		}
 		ts := &testStruct{
-			ID:                   id.String(),
+			ID:                   fmt.Sprintf("ID%d", i),
 			StringTest:           fmt.Sprintf("testString%d", i),
 			AlwaysNullStringTest: spanner.NullString{Valid: false},
 			IntTest:              123456,
@@ -136,88 +160,52 @@ func afterSpanner(dsnParent string) error {
 }
 
 func TestSpanner_Get(t *testing.T) {
-	dsnParent := os.Getenv("TAMATE_SPANNER_DSN_PARENT")
-	if dsnParent == "" {
-		t.Skip("env: TAMATE_SPANNER_DSN_PARENT not set")
-	}
-
-	if err := beforeSpanner(dsnParent); err != nil {
-		t.Fatal(err)
-	}
-	defer (func() {
-		if err := afterSpanner(dsnParent); err != nil {
-			t.Fatal(err)
+	spannerTestCase(t, func(ds *SpannerDatasource) error {
+		ctx := context.Background()
+		sc, err := ds.GetSchema(ctx, spannerTestTableName)
+		if err != nil {
+			return err
 		}
-	})()
+		t.Logf("Schema: %+v", sc)
 
-	dsn := fmt.Sprintf("%s/databases/%s", dsnParent, spannerTestDatabaseID)
-	ds, err := NewSpannerDatasource(dsn)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer ds.Close()
+		rows, err := ds.GetRows(ctx, sc)
+		if err != nil {
+			return err
+		}
 
-	ctx := context.Background()
-	sc, err := ds.GetSchema(ctx, spannerTestTableName)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Logf("Schema: %+v", sc)
-
-	rows, err := ds.GetRows(ctx, sc)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	actualRowCount := 0
-	for i, row := range rows {
-		if i == 0 {
-			for key, val := range row.Values {
-				t.Logf("%+v: %+v", key, val)
+		actualRowCount := 0
+		for i, row := range rows {
+			if i == 0 {
+				for key, val := range row.Values {
+					t.Logf("%+v: %+v", key, val)
+				}
 			}
-		}
-		if _, err := uuid.Parse(row.Values["ID"].StringValue()); err != nil {
-			t.Fatalf("invalid uuid: %s.", row.Values["ID"].StringValue())
-		}
-		if row.Values["StringTest"].StringValue() != fmt.Sprintf("testString%d", i) {
-			t.Fatalf("StringTest must be %s, but actual: %s .", fmt.Sprintf("testString%d", i), row.Values["StringTest"].StringValue())
-		}
-		if row.Values["AlwaysNullStringTest"].Value != nil {
-			t.Fatalf("AlwaysNullStringTest must be nil, but %+v found", row.Values["AlwaysNullStringTest"].Value)
-		}
-		if row.Values["IntTest"].Value != int64(123456) {
-			t.Fatalf("IntTest value must be int64(123456), but actual: %+v.", row.Values["IntTest"].Value)
-		}
-		if row.Values["DateTest"].Value != time.Now().Format("2006-01-02") {
-			t.Fatalf("DateTest value must be yyyy-mm-dd format(%s), but actual: %+v).", time.Now().Format("2006-01-02"), row.Values["DateTest"].Value)
-		}
-		if row.Values["DateTest"].Column.Type != ColumnTypeDate {
-			t.Fatalf("DateTest ColumnType must be ColumnTypeDate(%d), but actual: %d.", ColumnTypeDate, row.Values["DateTest"].Column.Type)
-		}
-		// @todo Add Array type tests
-
-		// TODO: generic column value
-		/*
-				if row[4] != "123456.789" {
-					t.Fatalf("FloatTest value must be 123456.789, but actual: %s", row[4])
-				}
-			if _, err := time.Parse(time.RFC3339Nano, row[5]); err != nil {
-				t.Fatalf("TimestampTest must be '%s' format (actual: %s).", time.RFC3339Nano, row[5])
+			if !strings.HasPrefix(row.Values["ID"].StringValue(), "ID") {
+				t.Fatalf("ID must have prefix: ID, but actual: %+v.", row.Values["ID"].Value)
 			}
-			// TODO: generic column value
-				if row[7] != "false" {
-					t.Fatalf("BoolTest must be 'false', but actual: %s.", row[7])
-				}
-				expectedBase64 := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("testBytes%d", i)))
-				if row[7] != expectedBase64 {
-					t.Fatalf("BytesTest must be %s, but actual: %s.", expectedBase64, row[7])
-				}
-		*/
-
-		actualRowCount++
-	}
-
-	if actualRowCount != spannerTestDataRowCount {
-		t.Fatalf("row count must be %d, but actual: %d", spannerTestDataRowCount, actualRowCount)
-	}
+			if !strings.HasPrefix(row.Values["StringTest"].StringValue(), "testString") {
+				t.Fatalf("StringTest must have prefix: testString, but actual: %+v.", row.Values["StringTest"].Value)
+			}
+			if row.Values["AlwaysNullStringTest"].Value != nil {
+				t.Fatalf("AlwaysNullStringTest must be nil, but %+v found", row.Values["AlwaysNullStringTest"].Value)
+			}
+			if row.Values["IntTest"].Value != int64(123456) {
+				t.Fatalf("IntTest value must be int64(123456), but actual: %+v.", row.Values["IntTest"].Value)
+			}
+			if _, err := time.Parse("2006-01-02", row.Values["DateTest"].StringValue()); err != nil {
+				t.Fatalf("DateTest value must be yyyy-mm-dd format, but actual: %+v.", row.Values["DateTest"].Value)
+			}
+			if row.Values["DateTest"].Column.Type != ColumnTypeDate {
+				t.Fatalf("DateTest ColumnType must be ColumnTypeDate(%d), but actual: %d.", ColumnTypeDate, row.Values["DateTest"].Column.Type)
+			}
+			if !reflect.DeepEqual(row.Values["Int64ArrayTest"].Value, []int64{123, 456, -789}) {
+				t.Fatalf("Int64ArrayTest must be []int64{123, 456, -789}, but actual: %+v.", row.Values["Int64ArrayTest"].Value)
+			}
+			actualRowCount++
+		}
+		if actualRowCount != spannerTestDataRowCount {
+			t.Fatalf("row count must be %d, but actual: %d", spannerTestDataRowCount, actualRowCount)
+		}
+		return nil
+	})
 }

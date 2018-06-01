@@ -19,6 +19,15 @@ func (c *Column) String() string {
 	return fmt.Sprintf("%s %s", c.Name, c.Type)
 }
 
+func (c *Column) IsArrayType() bool {
+	switch c.Type {
+	case ColumnTypeBoolArray, ColumnTypeBytesArray, ColumnTypeDateArray, ColumnTypeDatetimeArray,
+		ColumnTypeFloatArray, ColumnTypeIntArray, ColumnTypeStringArray:
+		return true
+	}
+	return false
+}
+
 type RowValues map[string]*GenericColumnValue
 
 type Row struct {
@@ -65,16 +74,6 @@ func (sc *Schema) String() string {
 		sts = append(sts, c.String())
 	}
 	return fmt.Sprintf("%s(%s) PK=(%s)", sc.Name, strings.Join(sts, ", "), sc.PrimaryKey)
-}
-
-// TODO: composite primary key support
-func (sc *Schema) GetPrimaryKeyIndex() int {
-	for i, col := range sc.Columns {
-		if col.Name == sc.PrimaryKey.ColumnNames[0] {
-			return i
-		}
-	}
-	return -1
 }
 
 // GetColumnNames is return name list of columns

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/araddon/dateparse"
+	"reflect"
 	"strconv"
 	"strings"
 )
@@ -22,11 +23,19 @@ func NewStringGenericColumnValue(col *Column, s string) *GenericColumnValue {
 }
 
 func (cv *GenericColumnValue) StringValue() string {
-	switch cv.Column.Type {
-	// TODO: additional string reprensentation for specific value type
-	default:
-		return fmt.Sprintf("%v", cv.Value)
+	val := reflect.ValueOf(cv.Value)
+	if cv.Column.IsArrayType() {
+		kind := val.Kind()
+		if kind == reflect.Array || kind == reflect.Slice {
+			vlen := val.Len()
+			ss := make([]string, vlen)
+			for i := 0; i < vlen; i++ {
+				ss[i] = fmt.Sprintf("%v", val.Index(i).Interface())
+			}
+			return strings.Join(ss, ",")
+		}
 	}
+	return fmt.Sprintf("%v", cv.Value)
 }
 
 func (cv *GenericColumnValue) TimeValue() (time.Time, error) {
