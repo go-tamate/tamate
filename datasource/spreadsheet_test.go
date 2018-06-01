@@ -3,11 +3,12 @@ package datasource
 import (
 	"context"
 	"encoding/base64"
-	"fmt"
 	"golang.org/x/oauth2/google"
 	"net/http"
 	"os"
+	"strings"
 	"testing"
+	"time"
 )
 
 func newServiceAccountClient(ctx context.Context, jsonKey []byte) (*http.Client, error) {
@@ -21,6 +22,7 @@ func newServiceAccountClient(ctx context.Context, jsonKey []byte) (*http.Client,
 const (
 	testSpreadsheetID        = "1txJ42ua9uGqJYFO8ann-_A9v_jdowCA1pr6pbchRFvY"
 	testSpreadsheetTableName = "Test"
+	testSpreadsheetRowCount  = 100
 )
 
 func spreadsheetTestCase(t *testing.T, fun func(*SpreadsheetDatasource) error) {
@@ -67,10 +69,30 @@ func TestSpreadsheet_Get(t *testing.T) {
 			return err
 		}
 
+		actualRowCount := 0
 		for _, row := range rows {
-			if row.Values["AlwaysNullStringTest"].Value != nil {
-				return fmt.Errorf("AlwaysNullString value must be null, but actual: %+v", row.Values["AlwaysNullStringTest"].Value)
+			if !strings.HasPrefix(row.Values["ID"].StringValue(), "ID") {
+				t.Fatalf("ID must have prefix: ID, but actual: %+v.", row.Values["ID"].Value)
 			}
+			if !strings.HasPrefix(row.Values["StringTest"].StringValue(), "testString") {
+				t.Fatalf("StringTest must have prefix: testString, but actual: %+v.", row.Values["StringTest"].Value)
+			}
+			if row.Values["AlwaysNullStringTest"].Value != nil {
+				t.Fatalf("AlwaysNullStringTest must be nil, but actual: %+v.", row.Values["AlwaysNullStringTest"].Value)
+			}
+			if row.Values["IntTest"].Value != "123456" {
+				t.Fatalf("IntTest value must be '123456', but actual: %+v.", row.Values["IntTest"].Value)
+			}
+			if _, err := time.Parse("2006/01/02", row.Values["DateTest"].StringValue()); err != nil {
+				t.Fatalf("DateTest value must be yyyy-mm-dd format, but actual: %+v.", row.Values["DateTest"].Value)
+			}
+			if row.Values["Int64ArrayTest"].Value != "123,456,-789" {
+				t.Fatalf("Int64ArrayTest must be '123,456,-789', but actual: %+v.", row.Values["Int64ArrayTest"].Value)
+			}
+			actualRowCount++
+		}
+		if actualRowCount != testSpreadsheetRowCount {
+			t.Fatalf("spreadsheet rowCount must be %d, but actual: %d.", testSpreadsheetRowCount, actualRowCount)
 		}
 		return nil
 	})

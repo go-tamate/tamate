@@ -11,6 +11,8 @@ import (
 	"cloud.google.com/go/spanner/admin/database/apiv1"
 	adminpb "google.golang.org/genproto/googleapis/spanner/admin/database/v1"
 	"os"
+	"reflect"
+	"strings"
 )
 
 const (
@@ -38,7 +40,7 @@ type testStruct struct {
 	BoolArrayTest        []bool
 }
 
-func spannerTestCase(t *testing.T, fun func(*spannerDatasource) error) {
+func spannerTestCase(t *testing.T, fun func(*SpannerDatasource) error) {
 	dsnParent := os.Getenv("TAMATE_SPANNER_DSN_PARENT")
 	if dsnParent == "" {
 		t.Skip("env: TAMATE_SPANNER_DSN_PARENT not set")
@@ -158,7 +160,7 @@ func afterSpanner(dsnParent string) error {
 }
 
 func TestSpanner_Get(t *testing.T) {
-	spannerTestCase(t, func(ds *spannerDatasource) error {
+	spannerTestCase(t, func(ds *SpannerDatasource) error {
 		ctx := context.Background()
 		sc, err := ds.GetSchema(ctx, spannerTestTableName)
 		if err != nil {
@@ -178,11 +180,11 @@ func TestSpanner_Get(t *testing.T) {
 					t.Logf("%+v: %+v", key, val)
 				}
 			}
-			if row.Values["ID"].StringValue() != fmt.Sprintf("ID%d", i) {
-				t.Fatalf("ID must be %s, but actual: %+v.", fmt.Sprintf("ID%d", i), row.Values["ID"].Value)
+			if !strings.HasPrefix(row.Values["ID"].StringValue(), "ID") {
+				t.Fatalf("ID must have prefix: ID, but actual: %+v.", row.Values["ID"].Value)
 			}
-			if row.Values["StringTest"].StringValue() != fmt.Sprintf("testString%d", i) {
-				t.Fatalf("StringTest must be %s, but actual: %s .", fmt.Sprintf("testString%d", i), row.Values["StringTest"].StringValue())
+			if !strings.HasPrefix(row.Values["StringTest"].StringValue(), "testString") {
+				t.Fatalf("StringTest must have prefix: testString, but actual: %+v.", row.Values["StringTest"].Value)
 			}
 			if row.Values["AlwaysNullStringTest"].Value != nil {
 				t.Fatalf("AlwaysNullStringTest must be nil, but %+v found", row.Values["AlwaysNullStringTest"].Value)
@@ -190,11 +192,14 @@ func TestSpanner_Get(t *testing.T) {
 			if row.Values["IntTest"].Value != int64(123456) {
 				t.Fatalf("IntTest value must be int64(123456), but actual: %+v.", row.Values["IntTest"].Value)
 			}
-			if row.Values["DateTest"].Value != time.Now().Format("2006-01-02") {
-				t.Fatalf("DateTest value must be yyyy-mm-dd format(%s), but actual: %+v).", time.Now().Format("2006-01-02"), row.Values["DateTest"].Value)
+			if _, err := time.Parse("2006-01-02", row.Values["DateTest"].StringValue()); err != nil {
+				t.Fatalf("DateTest value must be yyyy-mm-dd format, but actual: %+v.", row.Values["DateTest"].Value)
 			}
 			if row.Values["DateTest"].Column.Type != ColumnTypeDate {
 				t.Fatalf("DateTest ColumnType must be ColumnTypeDate(%d), but actual: %d.", ColumnTypeDate, row.Values["DateTest"].Column.Type)
+			}
+			if !reflect.DeepEqual(row.Values["Int64ArrayTest"].Value, []int64{123, 456, -789}) {
+				t.Fatalf("Int64ArrayTest must be []int64{123, 456, -789}, but actual: %+v.", row.Values["Int64ArrayTest"].Value)
 			}
 			actualRowCount++
 		}

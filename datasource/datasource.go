@@ -67,16 +67,6 @@ func (sc *Schema) String() string {
 	return fmt.Sprintf("%s(%s) PK=(%s)", sc.Name, strings.Join(sts, ", "), sc.PrimaryKey)
 }
 
-// TODO: composite primary key support
-func (sc *Schema) GetPrimaryKeyIndex() int {
-	for i, col := range sc.Columns {
-		if col.Name == sc.PrimaryKey.ColumnNames[0] {
-			return i
-		}
-	}
-	return -1
-}
-
 // GetColumnNames is return name list of columns
 func (sc *Schema) GetColumnNames() []string {
 	var colNames []string
