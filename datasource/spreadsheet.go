@@ -10,19 +10,17 @@ import (
 
 type SpreadsheetDatasource struct {
 	SpreadsheetID  string `json:"spreadsheet_id"`
-	Ranges         string `json:"ranges"`
 	ColumnRowIndex int    `json:"column_row_index"`
 	sheetService   *sheets.Service
 }
 
-func NewSpreadsheetDatasource(client *http.Client, spreadsheetID string, ranges string, columnRowIndex int) (*SpreadsheetDatasource, error) {
+func NewSpreadsheetDatasource(client *http.Client, spreadsheetID string, columnRowIndex int) (*SpreadsheetDatasource, error) {
 	ss, err := sheets.New(client)
 	if err != nil {
 		return nil, err
 	}
 	return &SpreadsheetDatasource{
 		SpreadsheetID:  spreadsheetID,
-		Ranges:         ranges,
 		ColumnRowIndex: columnRowIndex,
 		sheetService:   ss,
 	}, nil
@@ -54,7 +52,7 @@ func (ds *SpreadsheetDatasource) GetAllSchema(ctx context.Context) ([]*Schema, e
 }
 
 func (ds *SpreadsheetDatasource) GetSchema(ctx context.Context, name string) (*Schema, error) {
-	readRange := name + "!" + ds.Ranges
+	readRange := name
 	response, err := ds.sheetService.Spreadsheets.Values.Get(ds.SpreadsheetID, readRange).Do()
 	if err != nil {
 		return nil, err
@@ -101,8 +99,7 @@ func (ds *SpreadsheetDatasource) SetSchema(ctx context.Context, schema *Schema) 
 		Values:         [][]interface{}{schemaValue},
 	}
 
-	// FIXME:
-	writeRange := schema.Name + "!" + fmt.Sprintf("A%d:XX", ds.ColumnRowIndex+1)
+	writeRange := schema.Name
 	if _, err := ds.sheetService.Spreadsheets.Values.Update(ds.SpreadsheetID, writeRange, valueRange).ValueInputOption("USER_ENTERED").Do(); err != nil {
 		return err
 	}
@@ -111,7 +108,7 @@ func (ds *SpreadsheetDatasource) SetSchema(ctx context.Context, schema *Schema) 
 
 // GetRows is get rows method
 func (ds *SpreadsheetDatasource) GetRows(ctx context.Context, schema *Schema) ([]*Row, error) {
-	readRange := schema.Name + "!" + ds.Ranges
+	readRange := schema.Name
 	response, err := ds.sheetService.Spreadsheets.Values.Get(ds.SpreadsheetID, readRange).Do()
 	if err != nil {
 		return nil, err
@@ -128,7 +125,12 @@ func (ds *SpreadsheetDatasource) GetRows(ctx context.Context, schema *Schema) ([
 			if !ok {
 				return nil, fmt.Errorf("cannot convert spreadsheet value to string: %+v", sr[i])
 			}
-			rowValues[col.Name] = NewStringGenericColumnValue(col, srt)
+			// 空文字は NULL とみなす
+			if srt == "" {
+				rowValues[col.Name] = &GenericColumnValue{Column: col, Value: nil}
+			} else {
+				rowValues[col.Name] = &GenericColumnValue{Column: col, Value: srt}
+			}
 		}
 		rows = append(rows, &Row{Values: rowValues})
 	}
@@ -159,8 +161,7 @@ func (ds *SpreadsheetDatasource) SetRows(ctx context.Context, schema *Schema, ro
 		Values:         sheetRows,
 	}
 
-	// FIXME:
-	writeRange := schema.Name + "!" + fmt.Sprintf("A%d:XX", ds.ColumnRowIndex+1)
+	writeRange := schema.Name
 	if _, err := ds.sheetService.Spreadsheets.Values.Update(ds.SpreadsheetID, writeRange, valueRange).ValueInputOption("USER_ENTERED").Do(); err != nil {
 		return err
 	}

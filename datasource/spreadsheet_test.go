@@ -3,6 +3,7 @@ package datasource
 import (
 	"context"
 	"encoding/base64"
+	"fmt"
 	"golang.org/x/oauth2/google"
 	"net/http"
 	"os"
@@ -18,8 +19,8 @@ func newServiceAccountClient(ctx context.Context, jsonKey []byte) (*http.Client,
 }
 
 const (
-	spreadsheetID = "1_QJnlgP9WI27KdJbWjFS8so1gjhXpEHizAQ5melyXEs"
-	tableName     = "ClassData"
+	testSpreadsheetID        = "1txJ42ua9uGqJYFO8ann-_A9v_jdowCA1pr6pbchRFvY"
+	testSpreadsheetTableName = "Test"
 )
 
 func spreadsheetTestCase(t *testing.T, fun func(*SpreadsheetDatasource) error) {
@@ -29,7 +30,7 @@ func spreadsheetTestCase(t *testing.T, fun func(*SpreadsheetDatasource) error) {
 		t.Fatal(err)
 	}
 
-	ds, err := NewSpreadsheetDatasource(client, spreadsheetID, "A1:Z100", 0)
+	ds, err := NewSpreadsheetDatasource(client, testSpreadsheetID, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -54,7 +55,7 @@ func getSpreadsheetClient(ctx context.Context, t *testing.T) (*http.Client, erro
 func TestSpreadsheet_Get(t *testing.T) {
 	spreadsheetTestCase(t, func(ds *SpreadsheetDatasource) error {
 		ctx := context.Background()
-		sc, err := ds.GetSchema(ctx, tableName)
+		sc, err := ds.GetSchema(ctx, testSpreadsheetTableName)
 		if err != nil {
 			return err
 		}
@@ -67,7 +68,9 @@ func TestSpreadsheet_Get(t *testing.T) {
 		}
 
 		for _, row := range rows {
-			t.Log(row)
+			if row.Values["AlwaysNullStringTest"].Value != nil {
+				return fmt.Errorf("AlwaysNullString value must be null, but actual: %+v", row.Values["AlwaysNullStringTest"].Value)
+			}
 		}
 		return nil
 	})
