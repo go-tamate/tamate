@@ -31,7 +31,7 @@ jobs:
           name: Install linters
           command: |
             curl -fSL https://github.com/haya14busa/reviewdog/releases/download/$REVIEWDOG_VERSION/reviewdog_linux_amd64 -o ./reviewdog && chmod +x ./reviewdog
-            go get github.com/golang/lint/golint
+            go get github.com/mgechev/revive
             go get honnef.co/go/tools/cmd/megacheck
             go get github.com/kisielk/errcheck
       - run: ./reviewdog -ci="circle-ci" -conf=.reviewdog.yml
