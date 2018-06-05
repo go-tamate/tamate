@@ -163,7 +163,7 @@ func rowsToPKMap(pk *datasource.Key, rows []*datasource.Row) (map[string]*dataso
 	for _, row := range rows {
 		values, ok := row.GroupByKey[pk]
 		if !ok {
-			return nil, fmt.Errorf("leftRows has no PK(%s) value", pk.String())
+			return nil, fmt.Errorf("rows has no PK(%s) value", pk.String())
 		}
 		var strvals []string
 		for _, v := range values {
