@@ -119,6 +119,7 @@ func (ds *SpreadsheetDatasource) GetRows(ctx context.Context, schema *Schema) ([
 			continue
 		}
 		rowValues := make(RowValues)
+		rowValuesGroupByKey := make(map[*Key][]*GenericColumnValue)
 		// TODO: correct order?
 		for i, col := range schema.Columns {
 			srt, ok := sr[i].(string)
@@ -126,13 +127,20 @@ func (ds *SpreadsheetDatasource) GetRows(ctx context.Context, schema *Schema) ([
 				return nil, fmt.Errorf("cannot convert spreadsheet value to string: %+v", sr[i])
 			}
 			// 空文字は NULL とみなす
+			var cv *GenericColumnValue
 			if srt == "" {
-				rowValues[col.Name] = &GenericColumnValue{Column: col, Value: nil}
+				cv = &GenericColumnValue{Column: col, Value: nil}
 			} else {
-				rowValues[col.Name] = &GenericColumnValue{Column: col, Value: srt}
+				cv = &GenericColumnValue{Column: col, Value: srt}
+			}
+			rowValues[col.Name] = cv
+			for _, name := range schema.PrimaryKey.ColumnNames {
+				if name == col.Name {
+					rowValuesGroupByKey[schema.PrimaryKey] = append(rowValuesGroupByKey[schema.PrimaryKey], cv)
+				}
 			}
 		}
-		rows = append(rows, &Row{Values: rowValues})
+		rows = append(rows, &Row{rowValuesGroupByKey, rowValues})
 	}
 	return rows, nil
 }

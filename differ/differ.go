@@ -2,12 +2,9 @@ package differ
 
 import (
 	"errors"
-
 	"fmt"
-
-	"strings"
-
 	"sort"
+	"strings"
 
 	"github.com/Mitu217/tamate/datasource"
 )

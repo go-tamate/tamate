@@ -2,7 +2,6 @@ package json
 
 import (
 	"context"
-
 	"encoding/json"
 
 	"github.com/Mitu217/tamate/datasource"
