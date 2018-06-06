@@ -1,12 +1,10 @@
 package differ
 
 import (
+	"context"
 	"testing"
 
-	"context"
-
 	"github.com/Mitu217/tamate/datasource"
-
 	"github.com/araddon/dateparse"
 )
 
