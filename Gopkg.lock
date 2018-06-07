@@ -26,6 +26,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/castaneai/spadmin"
+  packages = ["."]
+  revision = "2d5c434f1ce219bcd7e5316d8c1402123ad12d1f"
+
+[[projects]]
+  branch = "master"
   name = "github.com/go-sql-driver/mysql"
   packages = ["."]
   revision = "64db0f7ebe171b596aa9b26f39a79f7413a3b617"
@@ -206,6 +212,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "de333016c07b8b5c41db935b3a9d00f354e3c20944436c941c4cacfebbafdf8f"
+  inputs-digest = "30681abb6093a3218e3cadcc76d0564bd3c1b0333fd79c463d476a46b999be49"
   solver-name = "gps-cdcl"
   solver-version = 1
