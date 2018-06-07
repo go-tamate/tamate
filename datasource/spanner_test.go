@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/castaneai/spadmin"
+
 	"cloud.google.com/go/spanner"
-	"cloud.google.com/go/spanner/admin/database/apiv1"
-	adminpb "google.golang.org/genproto/googleapis/spanner/admin/database/v1"
 	"os"
 	"reflect"
 	"strings"
@@ -68,16 +68,7 @@ func spannerTestCase(t *testing.T, fun func(*SpannerDatasource) error) {
 }
 
 func beforeSpanner(dsnParent string) error {
-	ctx := context.Background()
-	c, err := database.NewDatabaseAdminClient(ctx)
-	if err != nil {
-		return err
-	}
-
-	req := &adminpb.CreateDatabaseRequest{
-		Parent:          dsnParent,
-		CreateStatement: "CREATE DATABASE " + spannerTestDatabaseID,
-		ExtraStatements: []string{fmt.Sprintf(`
+	stmts := []string{fmt.Sprintf(`
 CREATE TABLE %s (
   ID STRING(MAX) NOT NULL,
   StringTest STRING(MAX),
@@ -96,15 +87,15 @@ CREATE TABLE %s (
   TimestampArrayTest ARRAY<TIMESTAMP>,
   BoolArrayTest ARRAY<BOOL>,
 ) PRIMARY KEY(ID)
-`, spannerTestTableName)},
-	}
+`, spannerTestTableName)}
 
-	op, err := c.CreateDatabase(ctx, req)
+	admin, err := spadmin.NewClient(dsnParent)
 	if err != nil {
 		return err
 	}
 
-	if _, err := op.Wait(ctx); err != nil {
+	ctx := context.Background()
+	if err := admin.CreateDatabase(ctx, spannerTestDatabaseID, stmts); err != nil {
 		return err
 	}
 
@@ -147,16 +138,13 @@ CREATE TABLE %s (
 }
 
 func afterSpanner(dsnParent string) error {
-	ctx := context.Background()
-	c, err := database.NewDatabaseAdminClient(ctx)
+	admin, err := spadmin.NewClient(dsnParent)
 	if err != nil {
 		return err
 	}
 
-	req := &adminpb.DropDatabaseRequest{
-		Database: fmt.Sprintf("%s/databases/%s", dsnParent, spannerTestDatabaseID),
-	}
-	return c.DropDatabase(ctx, req)
+	ctx := context.Background()
+	return admin.DropDatabase(ctx, spannerTestDatabaseID)
 }
 
 func TestSpanner_Get(t *testing.T) {
