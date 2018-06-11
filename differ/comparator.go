@@ -14,14 +14,10 @@ type ValueComparator interface {
 type datetimeComparator struct{}
 
 func (cmp *datetimeComparator) Equal(col *datasource.Column, v1, v2 *datasource.GenericColumnValue) (bool, error) {
-	ltv, err := v1.TimeValue()
-	if err != nil {
-		return false, err
-	}
-	rtv, err := v2.TimeValue()
-	if err != nil {
-		return false, err
-	}
+	// If error occurred, empty time struct is returned.
+	// So we should just compare time.Time simply.
+	ltv, _ := v1.TimeValue()
+	rtv, _ := v2.TimeValue()
 	return ltv == rtv, nil
 }
 
