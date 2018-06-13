@@ -238,7 +238,7 @@ func (ds *SpannerDatasource) GetRows(ctx context.Context, schema *Schema) ([]*Ro
 			if err := row.ColumnByName(c.Name, &gval); err != nil {
 				return nil, err
 			}
-			cv, err := genericSpannerValueToTamateGenericColumnValue(gval, c)
+			cv, err := GenericSpannerValueToTamateGenericColumnValue(gval, c)
 			if err != nil {
 				return nil, err
 			}
@@ -254,7 +254,7 @@ func (ds *SpannerDatasource) GetRows(ctx context.Context, schema *Schema) ([]*Ro
 	return rows, nil
 }
 
-func genericSpannerValueToTamateGenericColumnValue(sp spanner.GenericColumnValue, col *Column) (*GenericColumnValue, error) {
+func GenericSpannerValueToTamateGenericColumnValue(sp spanner.GenericColumnValue, col *Column) (*GenericColumnValue, error) {
 	cv := &GenericColumnValue{Column: col}
 	switch sp.Type.GetCode() {
 	case sppb.TypeCode_STRING:
