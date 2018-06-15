@@ -60,7 +60,7 @@ func (ds *SpannerDatasource) createAllSchemaMap(ctx context.Context) (map[string
 			return nil, err
 		}
 
-		column, err := scanSchemaColumn(row)
+		column, err := ScanSchemaColumn(row)
 		if err != nil {
 			return nil, err
 		}
@@ -122,7 +122,7 @@ func (ds *SpannerDatasource) getPrimaryKey(ctx context.Context, tableName string
 	return pk, nil
 }
 
-func scanSchemaColumn(row *spanner.Row) (*Column, error) {
+func ScanSchemaColumn(row *spanner.Row) (*Column, error) {
 	var columnName string
 	var tableName string
 	var ordinalPosition int64
