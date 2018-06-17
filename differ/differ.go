@@ -72,7 +72,10 @@ func (d *Differ) DiffColumns(left, right *datasource.Schema) (*DiffColumns, erro
 		return nil, err
 	}
 
-	diff := &DiffColumns{}
+	diff := &DiffColumns{
+		Left:  []*datasource.Column{},
+		Right: []*datasource.Column{},
+	}
 	ldiff := &diff.Left
 	rdiff := &diff.Right
 	for i := 0; i < 2; i++ {
@@ -125,7 +128,10 @@ func (d *Differ) DiffRows(leftSchema, rightSchema *datasource.Schema, leftRows, 
 		return nil, err
 	}
 
-	diff := &DiffRows{}
+	diff := &DiffRows{
+		Left:  []*datasource.Row{},
+		Right: []*datasource.Row{},
+	}
 	ldiff := &diff.Left
 	rdiff := &diff.Right
 	for i := 0; i < 2; i++ {
