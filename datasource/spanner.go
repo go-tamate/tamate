@@ -333,7 +333,8 @@ func GenericSpannerValueToTamateGenericColumnValue(sp spanner.GenericColumnValue
 	case sppb.TypeCode_ARRAY:
 		// handle nil
 		if li := sp.Value.GetListValue(); li == nil {
-			return nil, nil
+			cv.Value = nil
+			return cv, nil
 		}
 		return spannerArrayToTamateGenericColumnValue(sp, col)
 	case sppb.TypeCode_STRUCT:
