@@ -1,13 +1,12 @@
 package datasource
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
-	"strings"
-
-	"context"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/go-sql-driver/mysql"
@@ -18,33 +17,30 @@ type MySQLDatasource struct {
 	db  *sql.DB
 }
 
-// NewMySQLDatasource is create MySQLDatasource instance method
 func NewMySQLDatasource(dsn string) (*MySQLDatasource, error) {
 	return &MySQLDatasource{
 		DSN: dsn,
 	}, nil
 }
 
-// Open is call by datasource when create instance
-func (h *MySQLDatasource) Open() error {
-	if h.db == nil {
-		db, err := sql.Open("mysql", h.DSN)
+func (ds *MySQLDatasource) Open() error {
+	if ds.db == nil {
+		db, err := sql.Open("mysql", ds.DSN)
 		if err != nil {
 			return err
 		}
 		if err := db.Ping(); err != nil {
 			return err
 		}
-		h.db = db
+		ds.db = db
 	}
 	return nil
 }
 
-// Close is call by datasource when free instance
-func (h *MySQLDatasource) Close() error {
-	if h.db != nil {
-		err := h.db.Close()
-		h.db = nil
+func (ds *MySQLDatasource) Close() error {
+	if ds.db != nil {
+		err := ds.db.Close()
+		ds.db = nil
 		if err != nil {
 			return err
 		}
@@ -52,10 +48,9 @@ func (h *MySQLDatasource) Close() error {
 	return nil
 }
 
-// GetSchemas is get all schemas method
-func (h *MySQLDatasource) createAllSchemaMap() (map[string]*Schema, error) {
+func (ds *MySQLDatasource) createAllSchemaMap() (map[string]*Schema, error) {
 	// get schemas
-	sqlRows, err := h.db.Query("SELECT TABLE_NAME, COLUMN_NAME, ORDINAL_POSITION, COLUMN_TYPE, COLUMN_KEY, IS_NULLABLE, EXTRA FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE()")
+	sqlRows, err := ds.db.Query("SELECT TABLE_NAME, COLUMN_NAME, ORDINAL_POSITION, COLUMN_TYPE, COLUMN_KEY, IS_NULLABLE, EXTRA FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE()")
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +102,6 @@ func (h *MySQLDatasource) createAllSchemaMap() (map[string]*Schema, error) {
 	return schemaMap, nil
 }
 
-// TODO: various MySQL types support
 func mysqlColumnTypeToValueType(ct string) (ColumnType, error) {
 	ct = strings.ToLower(ct)
 	if strings.HasPrefix(ct, "int") ||
@@ -142,8 +136,8 @@ func mysqlColumnTypeToValueType(ct string) (ColumnType, error) {
 	return ColumnTypeNull, fmt.Errorf("convertion not found for MySQL type: %s", ct)
 }
 
-func (h *MySQLDatasource) GetAllSchema(ctx context.Context) ([]*Schema, error) {
-	allMap, err := h.createAllSchemaMap()
+func (ds *MySQLDatasource) GetAllSchema(ctx context.Context) ([]*Schema, error) {
+	allMap, err := ds.createAllSchemaMap()
 	if err != nil {
 		return nil, err
 	}
@@ -155,9 +149,8 @@ func (h *MySQLDatasource) GetAllSchema(ctx context.Context) ([]*Schema, error) {
 	return all, nil
 }
 
-// GetSchema is get schema method
-func (h *MySQLDatasource) GetSchema(ctx context.Context, name string) (*Schema, error) {
-	all, err := h.createAllSchemaMap()
+func (ds *MySQLDatasource) GetSchema(ctx context.Context, name string) (*Schema, error) {
+	all, err := ds.createAllSchemaMap()
 	if err != nil {
 		return nil, err
 	}
@@ -169,15 +162,13 @@ func (h *MySQLDatasource) GetSchema(ctx context.Context, name string) (*Schema, 
 	return nil, errors.New("schema not found: " + name)
 }
 
-// SetSchema is set schema method
-func (h *MySQLDatasource) SetSchema(ctx context.Context, schema *Schema) error {
+func (ds *MySQLDatasource) SetSchema(ctx context.Context, schema *Schema) error {
 	return errors.New("not support SetSchema()")
 }
 
-// GetRows is get rows method
-func (h *MySQLDatasource) GetRows(ctx context.Context, schema *Schema) ([]*Row, error) {
+func (ds *MySQLDatasource) GetRows(ctx context.Context, schema *Schema) ([]*Row, error) {
 	// get data
-	sqlRows, err := h.db.Query(fmt.Sprintf("SELECT * FROM %s", schema.Name))
+	sqlRows, err := ds.db.Query(fmt.Sprintf("SELECT * FROM %s", schema.Name))
 	if err != nil {
 		return nil, err
 	}
@@ -185,34 +176,33 @@ func (h *MySQLDatasource) GetRows(ctx context.Context, schema *Schema) ([]*Row, 
 
 	var rows []*Row
 	for sqlRows.Next() {
-		row, err := scanRow(sqlRows, schema)
-		if err != nil {
+		rowValues := make(RowValues)
+		rowValuesGroupByKey := make(map[*Key][]*GenericColumnValue)
+		ptrs := make([]interface{}, len(schema.Columns))
+		for i, col := range schema.Columns {
+			dvp := reflect.New(colToMySQLType(col)).Interface()
+			ptrs[i] = dvp
+		}
+		if err := sqlRows.Scan(ptrs...); err != nil {
 			return nil, err
 		}
-		rows = append(rows, row)
+		for i, col := range schema.Columns {
+			v := reflect.ValueOf(ptrs[i]).Elem().Interface()
+			cv := &GenericColumnValue{Column: col, Value: v}
+			rowValues[col.Name] = cv
+			for _, name := range schema.PrimaryKey.ColumnNames {
+				if name == col.Name {
+					rowValuesGroupByKey[schema.PrimaryKey] = append(rowValuesGroupByKey[schema.PrimaryKey], cv)
+				}
+			}
+		}
+		rows = append(rows, &Row{rowValuesGroupByKey, rowValues})
 	}
 	return rows, nil
 }
 
-func scanRow(sqlRows *sql.Rows, sc *Schema) (*Row, error) {
-	rowValues := make(RowValues)
-	ptrs := make([]interface{}, len(sc.Columns))
-	i := 0
-	for _, col := range sc.Columns {
-		dvp := reflect.New(colToMySQLType(col)).Interface()
-		ptrs[i] = dvp
-		i++
-	}
-	if err := sqlRows.Scan(ptrs...); err != nil {
-		return nil, err
-	}
-	i = 0
-	for _, col := range sc.Columns {
-		v := reflect.ValueOf(ptrs[i]).Elem().Interface()
-		rowValues[col.Name] = &GenericColumnValue{Column: col, Value: v}
-		i++
-	}
-	return &Row{Values: rowValues}, nil
+func (ds *MySQLDatasource) SetRows(ctx context.Context, schema *Schema, rows []*Row) error {
+	return errors.New("MySQLDatasource does not support SetRows()")
 }
 
 func colToMySQLType(c *Column) reflect.Type {
@@ -247,9 +237,4 @@ func colToMySQLType(c *Column) reflect.Type {
 		return reflect.TypeOf([]byte{})
 	}
 	return reflect.TypeOf(nil)
-}
-
-// SetRows is set rows method
-func (h *MySQLDatasource) SetRows(ctx context.Context, schema *Schema, rows []*Row) error {
-	return errors.New("MySQLDatasource does not support SetRows()")
 }
