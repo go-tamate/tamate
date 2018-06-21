@@ -355,7 +355,7 @@ func GenericSpannerValueToTamateGenericColumnValue(sp spanner.GenericColumnValue
 
 func spannerArrayToTamateGenericColumnValue(sp spanner.GenericColumnValue, col *Column) (*GenericColumnValue, error) {
 	cv := &GenericColumnValue{Column: col}
-	var li []interface{}
+	li := make([]interface{}, 0)
 	switch sp.Type.ArrayElementType.GetCode() {
 	case sppb.TypeCode_STRING:
 		var s []spanner.NullString
@@ -462,9 +462,9 @@ func spannerArrayToTamateGenericColumnValue(sp spanner.GenericColumnValue, col *
 		}
 		cv.Value = li
 		return cv, nil
+	default:
+		return nil, errors.New("No spanner type matched")
 	}
-	// TODO: additional represents for various spanner types
-	return &GenericColumnValue{Column: col, Value: sp.Value.GetStringValue()}, nil
 }
 
 // SetRows is set rows method
@@ -474,7 +474,6 @@ func (ds *SpannerDatasource) SetRows(ctx context.Context, schema *Schema, rows [
 
 // ConvertGenericColumnValueToSpannerValue converts GenericColumnValue to Spanner Value
 func ConvertGenericColumnValueToSpannerValue(cv *GenericColumnValue) (interface{}, error) {
-
 	if cv.Column.NotNull && cv.Value == nil {
 		return nil, errors.New("this value must not be null")
 	}
@@ -542,7 +541,7 @@ func ConvertGenericColumnValueToSpannerValue(cv *GenericColumnValue) (interface{
 		if !cv.Column.NotNull && cv.Value == nil {
 			return nil, nil
 		}
-		var values []float64
+		values := make([]float64, 0)
 		if arr, ok := cv.Value.([]interface{}); ok {
 			for _, v := range arr {
 				if f, ok := v.(float64); ok {
@@ -560,7 +559,7 @@ func ConvertGenericColumnValueToSpannerValue(cv *GenericColumnValue) (interface{
 			return nil, nil
 		}
 		// Why this type assertion see int as float64?
-		var values []int64
+		values := make([]int64, 0)
 		if arr, ok := cv.Value.([]interface{}); ok {
 			for _, v := range arr {
 				if i, ok := v.(int64); ok {
@@ -579,7 +578,7 @@ func ConvertGenericColumnValueToSpannerValue(cv *GenericColumnValue) (interface{
 		if !cv.Column.NotNull && cv.Value == nil {
 			return nil, nil
 		}
-		var values []string
+		values := make([]string, 0)
 		if arr, ok := cv.Value.([]interface{}); ok {
 			for _, v := range arr {
 				if s, ok := v.(string); ok {
@@ -599,7 +598,7 @@ func ConvertGenericColumnValueToSpannerValue(cv *GenericColumnValue) (interface{
 		if !cv.Column.NotNull && cv.Value == nil {
 			return nil, nil
 		}
-		var values []time.Time
+		values := make([]time.Time, 0)
 		if arr, ok := cv.Value.([]interface{}); ok {
 			for _, v := range arr {
 				if s, ok := v.(string); ok {
@@ -620,7 +619,7 @@ func ConvertGenericColumnValueToSpannerValue(cv *GenericColumnValue) (interface{
 		if !cv.Column.NotNull && cv.Value == nil {
 			return nil, nil
 		}
-		var values []string
+		values := make([]string, 0)
 		if arr, ok := cv.Value.([]interface{}); ok {
 			for _, v := range arr {
 				if s, ok := v.(string); ok {
@@ -664,7 +663,7 @@ func ConvertGenericColumnValueToSpannerValue(cv *GenericColumnValue) (interface{
 		if !cv.Column.NotNull && cv.Value == nil {
 			return nil, nil
 		}
-		var values []bool
+		values := make([]bool, 0)
 		if arr, ok := cv.Value.([]interface{}); ok {
 			for _, v := range arr {
 				if b, ok := v.(bool); ok {
@@ -676,6 +675,7 @@ func ConvertGenericColumnValueToSpannerValue(cv *GenericColumnValue) (interface{
 			}
 			return values, nil
 		}
+		// TODO: support struct array
 		return nil, fmt.Errorf("failed to convert %v as array", cv.Value)
 	case ColumnTypeNull:
 		fallthrough
