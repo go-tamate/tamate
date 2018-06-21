@@ -13,6 +13,7 @@ import (
 	"os"
 	"reflect"
 	"strings"
+	"github.com/davecgh/go-spew/spew"
 )
 
 const (
@@ -186,8 +187,8 @@ func TestSpanner_Get(t *testing.T) {
 			if row.Values["DateTest"].Column.Type != ColumnTypeDate {
 				t.Fatalf("DateTest ColumnType must be ColumnTypeDate(%d), but actual: %d.", ColumnTypeDate, row.Values["DateTest"].Column.Type)
 			}
-			if !reflect.DeepEqual(row.Values["Int64ArrayTest"].Value, []int64{123, 456, -789}) {
-				t.Fatalf("Int64ArrayTest must be []int64{123, 456, -789}, but actual: %+v.", row.Values["Int64ArrayTest"].Value)
+			if !reflect.DeepEqual(row.Values["Int64ArrayTest"].Value, []interface{}{int64(123), int64(456), int64(-789)}) {
+				t.Fatalf("Int64ArrayTest must be []interface{}{123, 456, -789}, but actual: %+#v.", row.Values["Int64ArrayTest"].Value)
 			}
 			actualRowCount++
 		}
