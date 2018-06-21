@@ -258,79 +258,47 @@ func GenericSpannerValueToTamateGenericColumnValue(sp spanner.GenericColumnValue
 	cv := &GenericColumnValue{Column: col}
 	switch sp.Type.GetCode() {
 	case sppb.TypeCode_STRING:
-		if !cv.Column.NotNull {
-			var s spanner.NullString
-			if err := sp.Decode(&s); err != nil {
-				return nil, err
-			}
-			if s.Valid {
-				cv.Value = s.StringVal
-			} else {
-				cv.Value = nil
-			}
+		var s spanner.NullString
+		if err := sp.Decode(&s); err != nil {
+			return nil, err
+		}
+		if s.Valid {
+			cv.Value = s.StringVal
 		} else {
-			var s string
-			if err := sp.Decode(&s); err != nil {
-				return nil, err
-			}
-			cv.Value = s
+			cv.Value = nil
 		}
 		return cv, nil
 	case sppb.TypeCode_INT64:
-		if !cv.Column.NotNull {
-			var s spanner.NullInt64
-			if err := sp.Decode(&s); err != nil {
-				return nil, err
-			}
-			if s.Valid {
-				cv.Value = s.Int64
-			} else {
-				cv.Value = nil
-			}
+		var s spanner.NullInt64
+		if err := sp.Decode(&s); err != nil {
+			return nil, err
+		}
+		if s.Valid {
+			cv.Value = s.Int64
 		} else {
-			var s int64
-			if err := sp.Decode(&s); err != nil {
-				return nil, err
-			}
-			cv.Value = s
+			cv.Value = nil
 		}
 		return cv, nil
 	case sppb.TypeCode_FLOAT64:
-		if !cv.Column.NotNull {
-			var s spanner.NullFloat64
-			if err := sp.Decode(&s); err != nil {
-				return nil, err
-			}
-			if s.Valid {
-				cv.Value = s.Float64
-			} else {
-				cv.Value = nil
-			}
+		var s spanner.NullFloat64
+		if err := sp.Decode(&s); err != nil {
+			return nil, err
+		}
+		if s.Valid {
+			cv.Value = s.Float64
 		} else {
-			var s float64
-			if err := sp.Decode(&s); err != nil {
-				return nil, err
-			}
-			cv.Value = s
+			cv.Value = nil
 		}
 		return cv, nil
 	case sppb.TypeCode_BOOL:
-		if !cv.Column.NotNull {
-			var s spanner.NullBool
-			if err := sp.Decode(&s); err != nil {
-				return nil, err
-			}
-			if s.Valid {
-				cv.Value = s.Bool
-			} else {
-				cv.Value = nil
-			}
+		var s spanner.NullBool
+		if err := sp.Decode(&s); err != nil {
+			return nil, err
+		}
+		if s.Valid {
+			cv.Value = s.Bool
 		} else {
-			var s bool
-			if err := sp.Decode(&s); err != nil {
-				return nil, err
-			}
-			cv.Value = s
+			cv.Value = nil
 		}
 		return cv, nil
 	case sppb.TypeCode_BYTES:
@@ -341,122 +309,162 @@ func GenericSpannerValueToTamateGenericColumnValue(sp spanner.GenericColumnValue
 		cv.Value = s
 		return cv, nil
 	case sppb.TypeCode_DATE:
-		if !cv.Column.NotNull {
-			var s spanner.NullDate
-			if err := sp.Decode(&s); err != nil {
-				return nil, err
-			}
-			if s.Valid {
-				cv.Value = s.Date.String()
-			} else {
-				cv.Value = nil
-			}
+		var s spanner.NullDate
+		if err := sp.Decode(&s); err != nil {
+			return nil, err
+		}
+		if s.Valid {
+			cv.Value = s.Date.String()
 		} else {
-			var s string
-			if err := sp.Decode(&s); err != nil {
-				return nil, err
-			}
-			cv.Value = s
+			cv.Value = nil
 		}
 		return cv, nil
 	case sppb.TypeCode_TIMESTAMP:
-		if !cv.Column.NotNull {
-			var s spanner.NullTime
-			if err := sp.Decode(&s); err != nil {
-				return nil, err
-			}
-			if s.Valid {
-				cv.Value = s.Time
-			} else {
-				cv.Value = nil
-			}
+		var s spanner.NullTime
+		if err := sp.Decode(&s); err != nil {
+			return nil, err
+		}
+		if s.Valid {
+			cv.Value = s.Time
 		} else {
-			var s time.Time
-			if err := sp.Decode(&s); err != nil {
-				return nil, err
-			}
-			cv.Value = s
+			cv.Value = nil
 		}
 		return cv, nil
 	case sppb.TypeCode_ARRAY:
-		list := sp.Value.GetListValue()
-		if list == nil && cv.Column.NotNull {
-			return nil, errors.New("could not get list value")
-		}
-
-		// @todo Check if this can handle nil correctly
-		if list == nil {
+		// handle nil
+		if li := sp.Value.GetListValue(); li == nil {
 			cv.Value = nil
 			return cv, nil
 		}
-		listValues := list.GetValues()
-
-		// Handle empty array
-		if len(listValues) < 1 {
-			switch col.Type {
-			case ColumnTypeBoolArray:
-				cv.Value = []bool{}
-				return cv, nil
-			case ColumnTypeIntArray:
-				cv.Value = []int64{}
-				return cv, nil
-			case ColumnTypeFloatArray:
-				cv.Value = []float64{}
-				return cv, nil
-			case ColumnTypeDatetimeArray:
-				fallthrough
-			case ColumnTypeDateArray:
-				fallthrough
-			case ColumnTypeBytesArray:
-				fallthrough
-			case ColumnTypeStringArray:
-				cv.Value = []string{}
-				return cv, nil
-			}
-			return nil, errors.New("array is empty")
+		return spannerArrayToTamateGenericColumnValue(sp, col)
+	case sppb.TypeCode_STRUCT:
+		var s spanner.NullRow
+		if err := sp.Decode(&s); err != nil {
+			return nil, err
 		}
-
-		// @todo Find more better way and correct logic.
-		switch col.Type {
-		case ColumnTypeBoolArray:
-			var values []bool
-			for _, v := range listValues {
-				values = append(values, v.GetBoolValue())
-			}
-			cv.Value = values
-		case ColumnTypeFloatArray:
-			var values []float64
-			for _, v := range listValues {
-				values = append(values, v.GetNumberValue())
-			}
-			cv.Value = values
-		case ColumnTypeIntArray:
-			var values []int64
-			for _, v := range listValues {
-				n, err := strconv.ParseInt(v.GetStringValue(), 10, 64)
-				if err != nil {
-					return nil, err
-				}
-				values = append(values, n)
-			}
-			cv.Value = values
-		case ColumnTypeDatetimeArray:
-			fallthrough
-		case ColumnTypeDateArray:
-			fallthrough
-		case ColumnTypeBytesArray:
-			fallthrough
-		case ColumnTypeStringArray:
-			var values []string
-			for _, v := range listValues {
-				values = append(values, v.GetStringValue())
-			}
-			cv.Value = values
+		if s.Valid {
+			cv.Value = s.Row
+		} else {
+			cv.Value = nil
 		}
 		return cv, nil
 	}
 	// TODO: additional represents for various spanner types
 	return &GenericColumnValue{Column: col, Value: sp.Value.GetStringValue()}, nil
+}
+
+func spannerArrayToTamateGenericColumnValue(sp spanner.GenericColumnValue, col *Column) (*GenericColumnValue, error) {
+	cv := &GenericColumnValue{Column: col}
+	li := make([]interface{}, 0)
+	switch sp.Type.ArrayElementType.GetCode() {
+	case sppb.TypeCode_STRING:
+		var s []spanner.NullString
+		if err := sp.Decode(&s); err != nil {
+			return nil, err
+		}
+		for i := 0; i < len(s); i++ {
+			if s[i].Valid {
+				li = append(li, s[i].StringVal)
+			} else {
+				li = append(li, nil)
+			}
+		}
+		cv.Value = li
+		return cv, nil
+	case sppb.TypeCode_INT64:
+		var s []spanner.NullInt64
+		if err := sp.Decode(&s); err != nil {
+			return nil, err
+		}
+		for i := 0; i < len(s); i++ {
+			if s[i].Valid {
+				li = append(li, s[i].Int64)
+			} else {
+				li = append(li, nil)
+			}
+		}
+		cv.Value = li
+		return cv, nil
+	case sppb.TypeCode_FLOAT64:
+		var s []spanner.NullFloat64
+		if err := sp.Decode(&s); err != nil {
+			return nil, err
+		}
+		for i := 0; i < len(s); i++ {
+			if s[i].Valid {
+				li = append(li, s[i].Float64)
+			} else {
+				li = append(li, nil)
+			}
+		}
+		cv.Value = li
+		return cv, nil
+	case sppb.TypeCode_BOOL:
+		var s []spanner.NullBool
+		if err := sp.Decode(&s); err != nil {
+			return nil, err
+		}
+		for i := 0; i < len(s); i++ {
+			if s[i].Valid {
+				li = append(li, s[i].Bool)
+			} else {
+				li = append(li, nil)
+			}
+		}
+		cv.Value = li
+		return cv, nil
+	case sppb.TypeCode_BYTES:
+		var s [][]byte
+		if err := sp.Decode(&s); err != nil {
+			return nil, err
+		}
+		cv.Value = s
+		return cv, nil
+	case sppb.TypeCode_DATE:
+		var s []spanner.NullDate
+		if err := sp.Decode(&s); err != nil {
+			return nil, err
+		}
+		for i := 0; i < len(s); i++ {
+			if s[i].Valid {
+				li = append(li, s[i].Date.String())
+			} else {
+				li = append(li, nil)
+			}
+		}
+		cv.Value = li
+		return cv, nil
+	case sppb.TypeCode_TIMESTAMP:
+		var s []spanner.NullTime
+		if err := sp.Decode(&s); err != nil {
+			return nil, err
+		}
+		for i := 0; i < len(s); i++ {
+			if s[i].Valid {
+				li = append(li, s[i].Time)
+			} else {
+				li = append(li, nil)
+			}
+		}
+		cv.Value = li
+		return cv, nil
+	case sppb.TypeCode_STRUCT:
+		var s []spanner.NullRow
+		if err := sp.Decode(&s); err != nil {
+			return nil, err
+		}
+		for i := 0; i < len(s); i++ {
+			if s[i].Valid {
+				li = append(li, s[i].Row)
+			} else {
+				li = append(li, nil)
+			}
+		}
+		cv.Value = li
+		return cv, nil
+	default:
+		return nil, errors.New("No spanner type matched")
+	}
 }
 
 // SetRows is set rows method
@@ -466,7 +474,6 @@ func (ds *SpannerDatasource) SetRows(ctx context.Context, schema *Schema, rows [
 
 // ConvertGenericColumnValueToSpannerValue converts GenericColumnValue to Spanner Value
 func ConvertGenericColumnValueToSpannerValue(cv *GenericColumnValue) (interface{}, error) {
-
 	if cv.Column.NotNull && cv.Value == nil {
 		return nil, errors.New("this value must not be null")
 	}
@@ -534,7 +541,7 @@ func ConvertGenericColumnValueToSpannerValue(cv *GenericColumnValue) (interface{
 		if !cv.Column.NotNull && cv.Value == nil {
 			return nil, nil
 		}
-		var values []float64
+		values := make([]float64, 0)
 		if arr, ok := cv.Value.([]interface{}); ok {
 			for _, v := range arr {
 				if f, ok := v.(float64); ok {
@@ -552,7 +559,7 @@ func ConvertGenericColumnValueToSpannerValue(cv *GenericColumnValue) (interface{
 			return nil, nil
 		}
 		// Why this type assertion see int as float64?
-		var values []int64
+		values := make([]int64, 0)
 		if arr, ok := cv.Value.([]interface{}); ok {
 			for _, v := range arr {
 				if i, ok := v.(int64); ok {
@@ -571,7 +578,7 @@ func ConvertGenericColumnValueToSpannerValue(cv *GenericColumnValue) (interface{
 		if !cv.Column.NotNull && cv.Value == nil {
 			return nil, nil
 		}
-		var values []string
+		values := make([]string, 0)
 		if arr, ok := cv.Value.([]interface{}); ok {
 			for _, v := range arr {
 				if s, ok := v.(string); ok {
@@ -591,7 +598,7 @@ func ConvertGenericColumnValueToSpannerValue(cv *GenericColumnValue) (interface{
 		if !cv.Column.NotNull && cv.Value == nil {
 			return nil, nil
 		}
-		var values []time.Time
+		values := make([]time.Time, 0)
 		if arr, ok := cv.Value.([]interface{}); ok {
 			for _, v := range arr {
 				if s, ok := v.(string); ok {
@@ -612,7 +619,7 @@ func ConvertGenericColumnValueToSpannerValue(cv *GenericColumnValue) (interface{
 		if !cv.Column.NotNull && cv.Value == nil {
 			return nil, nil
 		}
-		var values []string
+		values := make([]string, 0)
 		if arr, ok := cv.Value.([]interface{}); ok {
 			for _, v := range arr {
 				if s, ok := v.(string); ok {
@@ -656,7 +663,7 @@ func ConvertGenericColumnValueToSpannerValue(cv *GenericColumnValue) (interface{
 		if !cv.Column.NotNull && cv.Value == nil {
 			return nil, nil
 		}
-		var values []bool
+		values := make([]bool, 0)
 		if arr, ok := cv.Value.([]interface{}); ok {
 			for _, v := range arr {
 				if b, ok := v.(bool); ok {
@@ -668,6 +675,7 @@ func ConvertGenericColumnValueToSpannerValue(cv *GenericColumnValue) (interface{
 			}
 			return values, nil
 		}
+		// TODO: support struct array
 		return nil, fmt.Errorf("failed to convert %v as array", cv.Value)
 	case ColumnTypeNull:
 		fallthrough
