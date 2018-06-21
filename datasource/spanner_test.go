@@ -9,11 +9,11 @@ import (
 
 	"github.com/castaneai/spadmin"
 
-	"cloud.google.com/go/spanner"
 	"os"
 	"reflect"
 	"strings"
-	"github.com/davecgh/go-spew/spew"
+
+	"cloud.google.com/go/spanner"
 )
 
 const (
