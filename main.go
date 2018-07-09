@@ -60,19 +60,22 @@ func main() {
 		ds := c.String("datasources")
 		f, err := os.Open(ds)
 		if err != nil {
-			return err
+			fmt.Println(err)
+			return nil
 		}
 		logger.Debug("open", zap.String("path", ds))
 
 		if err := json.NewDecoder(f).Decode(datasources); err != nil {
-			return err
+			fmt.Println(err)
+			return nil
 		}
 		logger.Debug("decode", zap.Any("datasources", datasources))
 		return nil
 	}
 	app.Action = func(c *cli.Context) error {
 		if c.NArg() < 2 {
-			return errors.New("must specify 2 datasources")
+			fmt.Println(errors.New("must specify 2 datasources"))
+			return nil
 		}
 
 		l := c.Args().Get(0)
@@ -84,7 +87,7 @@ func main() {
 		cols, rows, err := datasources.GetDiff(ctx, l, r)
 		if err != nil {
 			fmt.Println(err)
-			return err
+			return nil
 		}
 		logger.Debug("diff", zap.Any("columns", cols))
 		logger.Debug("diff", zap.Any("rows", rows))

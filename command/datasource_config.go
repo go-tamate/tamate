@@ -28,15 +28,12 @@ func (dsc *DatasourceConfig) GetDatasoruce(query string) (datasource.Datasource,
 	var ds datasource.Datasource
 	switch cfg["type"] {
 	case "csv":
-		return nil, errors.New("not support type: csv")
-		/*
-			csvDatasource, err := NewCSVDatasource(ds.Config)
-			if err != nil {
-				return nil, err
-			}
-			tamateDatasource = csvDatasource
-			break
-		*/
+		csv, err := datasource.NewCSVDatasource(cfg["root_path"].(string), int(cfg["column_row_index"].(float64)))
+		if err != nil {
+			return nil, err
+		}
+		ds = csv
+		break
 	case "spreadsheet":
 		return nil, errors.New("not support type: spreadsheet")
 		/*
@@ -97,6 +94,12 @@ func (dsc *DatasourceConfig) GetDiff(ctx context.Context, leftQuery string, righ
 		return nil, nil, err
 	}
 	dColumns, err := d.DiffColumns(leftSchema, rightSchema)
+	if err != nil {
+		return nil, nil, err
+	}
 	dRows, err := d.DiffRows(leftSchema, rightSchema, leftRows, rightRows)
+	if err != nil {
+		return nil, nil, err
+	}
 	return dColumns, dRows, nil
 }
