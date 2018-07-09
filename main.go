@@ -100,11 +100,27 @@ func main() {
 }
 
 func print(diffColumns *differ.DiffColumns, diffRows *differ.DiffRows) {
-	for i := range diffRows.Left {
-		fmt.Println(diffRows.Left[i].String())
+	fmt.Println("=== Columns ===")
+	if len(diffColumns.Left) > 0 || len(diffColumns.Right) > 0 {
+		for i := range diffColumns.Left {
+			fmt.Println("- " + diffColumns.Left[i].String())
+		}
+		for i := range diffColumns.Right {
+			fmt.Println("+ " + diffColumns.Right[i].String())
+		}
+	} else {
+		fmt.Println("empty diff")
 	}
-	fmt.Println("---")
-	for i := range diffRows.Right {
-		fmt.Println(diffRows.Right[i].String())
+	fmt.Println("")
+	fmt.Println("=== Rows ===")
+	if len(diffRows.Left) > 0 || len(diffRows.Right) > 0 {
+		for i := range diffRows.Left {
+			fmt.Println("- " + diffRows.Left[i].String())
+		}
+		for i := range diffRows.Right {
+			fmt.Println("+ " + diffRows.Right[i].String())
+		}
+	} else {
+		fmt.Println("empty diff")
 	}
 }
