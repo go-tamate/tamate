@@ -81,20 +81,27 @@ func main() {
 		logger.Debug("target", zap.String("right", r))
 
 		ctx := context.Background()
-		columns, rows, err := datasources.GetDiff(ctx, l, r)
+		cols, rows, err := datasources.GetDiff(ctx, l, r)
 		if err != nil {
 			fmt.Println(err)
 			return err
 		}
-		logger.Debug("diff", zap.Any("columns", columns))
+		logger.Debug("diff", zap.Any("columns", cols))
 		logger.Debug("diff", zap.Any("rows", rows))
 
+		print(cols, rows)
 		return nil
 	}
 	app.HideVersion = true // disable version flag
 	app.Run(os.Args)
 }
 
-func print(columns differ.DiffColumns, rows differ.DiffRows) error {
-	return nil
+func print(diffColumns *differ.DiffColumns, diffRows *differ.DiffRows) {
+	for i := range diffRows.Left {
+		fmt.Println(diffRows.Left[i].String())
+	}
+	fmt.Println("---")
+	for i := range diffRows.Right {
+		fmt.Println(diffRows.Right[i].String())
+	}
 }
