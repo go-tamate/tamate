@@ -87,7 +87,6 @@ func (sc *Schema) GetColumnNames() []string {
 
 // Datasource is read and write datasource interface
 type Datasource interface {
-	GetAllSchema(ctx context.Context) ([]*Schema, error)
 	GetSchema(ctx context.Context, name string) (*Schema, error)
 	SetSchema(ctx context.Context, sc *Schema) error
 	GetRows(ctx context.Context, sc *Schema) ([]*Row, error)

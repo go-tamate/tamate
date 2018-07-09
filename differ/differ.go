@@ -72,7 +72,10 @@ func (d *Differ) DiffColumns(left, right *datasource.Schema) (*DiffColumns, erro
 		return nil, err
 	}
 
-	diff := &DiffColumns{}
+	diff := &DiffColumns{
+		Left:  make([]*datasource.Column, 0),
+		Right: make([]*datasource.Column, 0),
+	}
 	ldiff := &diff.Left
 	rdiff := &diff.Right
 	for i := 0; i < 2; i++ {
@@ -115,7 +118,6 @@ func (d *Differ) DiffRows(leftSchema, rightSchema *datasource.Schema, leftRows, 
 	if leftSchema.PrimaryKey == nil || rightSchema.PrimaryKey == nil {
 		return nil, errors.New("Primary key required.")
 	}
-
 	lmap, err := rowsToPKMap(leftSchema.PrimaryKey, leftRows)
 	if err != nil {
 		return nil, err
@@ -125,7 +127,10 @@ func (d *Differ) DiffRows(leftSchema, rightSchema *datasource.Schema, leftRows, 
 		return nil, err
 	}
 
-	diff := &DiffRows{}
+	diff := &DiffRows{
+		Left:  make([]*datasource.Row, 0),
+		Right: make([]*datasource.Row, 0),
+	}
 	ldiff := &diff.Left
 	rdiff := &diff.Right
 	for i := 0; i < 2; i++ {
