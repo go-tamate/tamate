@@ -78,8 +78,7 @@ func (ds *MySQLDatasource) createAllSchemaMap() (map[string]*Schema, error) {
 		if strings.Contains(columnKey, "PRI") {
 			if schema.PrimaryKey == nil {
 				schema.PrimaryKey = &Key{
-					TableName: schema.Name,
-					KeyType:   KeyTypePrimary,
+					KeyType: KeyTypePrimary,
 				}
 			}
 			schema.PrimaryKey.ColumnNames = append(schema.PrimaryKey.ColumnNames, columnName)
@@ -177,7 +176,7 @@ func (ds *MySQLDatasource) GetRows(ctx context.Context, schema *Schema) ([]*Row,
 	var rows []*Row
 	for sqlRows.Next() {
 		rowValues := make(RowValues)
-		rowValuesGroupByKey := make(map[*Key][]*GenericColumnValue)
+		rowValuesGroupByKey := make(GroupByKey)
 		ptrs := make([]interface{}, len(schema.Columns))
 		for i, col := range schema.Columns {
 			dvp := reflect.New(colToMySQLType(col)).Interface()
@@ -192,7 +191,7 @@ func (ds *MySQLDatasource) GetRows(ctx context.Context, schema *Schema) ([]*Row,
 			rowValues[col.Name] = cv
 			for _, name := range schema.PrimaryKey.ColumnNames {
 				if name == col.Name {
-					rowValuesGroupByKey[schema.PrimaryKey] = append(rowValuesGroupByKey[schema.PrimaryKey], cv)
+					rowValuesGroupByKey[schema.PrimaryKey.String()] = append(rowValuesGroupByKey[schema.PrimaryKey.String()], cv)
 				}
 			}
 		}

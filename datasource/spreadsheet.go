@@ -119,7 +119,7 @@ func (ds *SpreadsheetDatasource) GetRows(ctx context.Context, schema *Schema) ([
 			continue
 		}
 		rowValues := make(RowValues)
-		rowValuesGroupByKey := make(map[*Key][]*GenericColumnValue)
+		rowValuesGroupByKey := make(GroupByKey)
 		// TODO: correct order?
 		for i, col := range schema.Columns {
 			srt, ok := sr[i].(string)
@@ -136,7 +136,7 @@ func (ds *SpreadsheetDatasource) GetRows(ctx context.Context, schema *Schema) ([
 			rowValues[col.Name] = cv
 			for _, name := range schema.PrimaryKey.ColumnNames {
 				if name == col.Name {
-					rowValuesGroupByKey[schema.PrimaryKey] = append(rowValuesGroupByKey[schema.PrimaryKey], cv)
+					rowValuesGroupByKey[schema.PrimaryKey.String()] = append(rowValuesGroupByKey[schema.PrimaryKey.String()], cv)
 				}
 			}
 		}

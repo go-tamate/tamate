@@ -24,7 +24,6 @@ func (ds *MockDatasource) GetSchema(ctx context.Context, name string) (*Schema, 
 	sc := &Schema{
 		Name: "mock",
 		PrimaryKey: &Key{
-			TableName:   "mock",
 			KeyType:     KeyTypePrimary,
 			ColumnNames: []string{"id", "name"},
 		},
@@ -47,7 +46,7 @@ func (ds *MockDatasource) GetRows(ctx context.Context, sc *Schema) ([]*Row, erro
 	var rows []*Row
 	for i := 0; i < 100; i++ {
 		values := make(map[string]*GenericColumnValue)
-		groupBykey := make(map[*Key][]*GenericColumnValue)
+		groupBykey := make(GroupByKey)
 		for _, col := range sc.Columns {
 			cv := &GenericColumnValue{Column: col}
 			switch col.Name {
@@ -66,7 +65,7 @@ func (ds *MockDatasource) GetRows(ctx context.Context, sc *Schema) ([]*Row, erro
 			values[col.Name] = cv
 			for _, name := range sc.PrimaryKey.ColumnNames {
 				if name == col.Name {
-					groupBykey[sc.PrimaryKey] = append(groupBykey[sc.PrimaryKey], values[col.Name])
+					groupBykey[sc.PrimaryKey.String()] = append(groupBykey[sc.PrimaryKey.String()], values[col.Name])
 				}
 			}
 		}

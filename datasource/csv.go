@@ -30,8 +30,7 @@ func (ds *CSVDatasource) GetSchema(ctx context.Context, schemaName string) (*Sch
 	schema := &Schema{
 		Name: schemaName,
 		PrimaryKey: &Key{
-			TableName: schemaName,
-			KeyType:   KeyTypePrimary,
+			KeyType: KeyTypePrimary,
 		},
 	}
 	for rowIndex := range values {
@@ -44,14 +43,16 @@ func (ds *CSVDatasource) GetSchema(ctx context.Context, schemaName string) (*Sch
 			if ret := reg.FindStringSubmatch(name); len(ret) == 2 {
 				name = ret[1]
 			}
-			columns[colIndex] = &Column{
-				Name: name,
-				Type: ColumnTypeString,
+			column := &Column{
+				Name:            name,
+				OrdinalPosition: colIndex,
+				Type:            ColumnTypeString,
 			}
 			// check primarykey
 			if values[rowIndex][colIndex] != name {
 				schema.PrimaryKey.ColumnNames = append(schema.PrimaryKey.ColumnNames, name)
 			}
+			columns[colIndex] = column
 		}
 		schema.Columns = columns
 		break
@@ -65,24 +66,27 @@ func (ds *CSVDatasource) GetRows(ctx context.Context, schema *Schema) ([]*Row, e
 		return nil, err
 	}
 
-	rows := make([]*Row, 0)
+	index := 0
+	rows := make([]*Row, len(values)-1)
 	for rowIndex := range values {
 		if rowIndex == ds.ColumnRowIndex {
 			continue
 		}
 		rowValues := make(RowValues)
-		groupByKey := make(map[*Key][]*GenericColumnValue)
+		groupByKey := make(GroupByKey)
 		for colIndex, col := range schema.Columns {
 			columnValue := NewStringGenericColumnValue(col, values[rowIndex][colIndex])
 			rowValues[col.Name] = columnValue
 			// grouping primarykey
 			for i := range schema.PrimaryKey.ColumnNames {
 				if schema.PrimaryKey.ColumnNames[i] == col.Name {
-					groupByKey[schema.PrimaryKey] = append(groupByKey[schema.PrimaryKey], columnValue)
+					key := schema.PrimaryKey.String()
+					groupByKey[key] = append(groupByKey[key], columnValue)
 				}
 			}
 		}
-		rows = append(rows, &Row{GroupByKey: groupByKey, Values: rowValues})
+		rows[index] = &Row{GroupByKey: groupByKey, Values: rowValues}
+		index++
 	}
 	return rows, nil
 }

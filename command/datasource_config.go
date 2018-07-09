@@ -97,7 +97,7 @@ func (dsc *DatasourceConfig) GetDiff(ctx context.Context, leftQuery string, righ
 	if err != nil {
 		return nil, nil, err
 	}
-	dRows, err := d.DiffRows(leftSchema, rightSchema, leftRows, rightRows)
+	dRows, err := d.DiffRows(leftSchema, leftRows, rightRows)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -2,17 +2,25 @@ package datasource
 
 import (
 	"fmt"
-	"time"
-
-	"github.com/araddon/dateparse"
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
+
+	"github.com/araddon/dateparse"
 )
 
 type GenericColumnValue struct {
 	Column *Column
 	Value  interface{}
+}
+
+func NewGenericColumnValue(col *Column) *GenericColumnValue {
+	switch col.Type {
+	case ColumnTypeString:
+		return NewStringGenericColumnValue(col, "")
+	}
+	return nil
 }
 
 func NewStringGenericColumnValue(col *Column, s string) *GenericColumnValue {
@@ -66,61 +74,4 @@ func (cv *GenericColumnValue) BoolValue() bool {
 		}
 	}
 	return false
-}
-
-type ColumnType int
-
-const (
-	ColumnTypeNull = ColumnType(iota)
-	ColumnTypeString
-	ColumnTypeInt
-	ColumnTypeFloat
-	ColumnTypeDatetime
-	ColumnTypeDate
-	ColumnTypeBytes
-	ColumnTypeBool
-	ColumnTypeStringArray
-	ColumnTypeIntArray
-	ColumnTypeFloatArray
-	ColumnTypeDatetimeArray
-	ColumnTypeDateArray
-	ColumnTypeBytesArray
-	ColumnTypeBoolArray
-)
-
-func (vt ColumnType) String() string {
-	switch vt {
-	case ColumnTypeNull:
-		return "<null>"
-	case ColumnTypeString:
-		return "string"
-	case ColumnTypeInt:
-		return "int"
-	case ColumnTypeFloat:
-		return "float"
-	case ColumnTypeDatetime:
-		return "datetime"
-	case ColumnTypeDate:
-		return "date"
-	case ColumnTypeBytes:
-		return "bytes"
-	case ColumnTypeBool:
-		return "bool"
-	case ColumnTypeStringArray:
-		return "array<string>"
-	case ColumnTypeIntArray:
-		return "array<int>"
-	case ColumnTypeFloatArray:
-		return "array<float>"
-	case ColumnTypeDatetimeArray:
-		return "array<datetime>"
-	case ColumnTypeDateArray:
-		return "array<date>"
-	case ColumnTypeBytesArray:
-		return "array<bytes>"
-	case ColumnTypeBoolArray:
-		return "array<bool>"
-	default:
-		return fmt.Sprintf("<unknown type: %d>", vt)
-	}
 }

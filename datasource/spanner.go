@@ -4,11 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-
+	"strconv"
 	"strings"
 	"time"
-
-	"strconv"
 
 	"cloud.google.com/go/spanner"
 	"google.golang.org/api/iterator"
@@ -115,7 +113,6 @@ func (ds *SpannerDatasource) getPrimaryKey(ctx context.Context, tableName string
 		if err := row.ColumnByName("COLUMN_NAME", &colName); err != nil {
 			return nil, err
 		}
-		pk.TableName = tableName
 		pk.KeyType = KeyTypePrimary
 		pk.ColumnNames = append(pk.ColumnNames, colName)
 	}
@@ -232,7 +229,7 @@ func (ds *SpannerDatasource) GetRows(ctx context.Context, schema *Schema) ([]*Ro
 		}
 
 		rowValues := make(RowValues)
-		rowValuesGroupByKey := make(map[*Key][]*GenericColumnValue)
+		rowValuesGroupByKey := make(GroupByKey)
 		for _, c := range schema.Columns {
 			var gval spanner.GenericColumnValue
 			if err := row.ColumnByName(c.Name, &gval); err != nil {
@@ -245,7 +242,7 @@ func (ds *SpannerDatasource) GetRows(ctx context.Context, schema *Schema) ([]*Ro
 			rowValues[c.Name] = cv
 			for _, name := range schema.PrimaryKey.ColumnNames {
 				if name == c.Name {
-					rowValuesGroupByKey[schema.PrimaryKey] = append(rowValuesGroupByKey[schema.PrimaryKey], cv)
+					rowValuesGroupByKey[schema.PrimaryKey.String()] = append(rowValuesGroupByKey[schema.PrimaryKey.String()], cv)
 				}
 			}
 		}
