@@ -71,10 +71,10 @@ func (je *JSONExporter) ExportStruct() (*differ.Diff, error) {
 	var diffRows *differ.DiffRows
 	var diffRowsError error
 	if je.diffDir == exporter.DiffDirectionLeftToRight {
-		diffRows, diffRowsError = df.DiffRows(leftSchema, rightSchema, leftRows, rightRows)
+		diffRows, diffRowsError = df.DiffRows(leftSchema, leftRows, rightRows)
 	}
 	if je.diffDir == exporter.DiffDirectionRightToLeft {
-		diffRows, diffRowsError = df.DiffRows(rightSchema, leftSchema, rightRows, leftRows)
+		diffRows, diffRowsError = df.DiffRows(rightSchema, rightRows, leftRows)
 	}
 	if diffRowsError != nil {
 		return nil, diffRowsError

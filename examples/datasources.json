@@ -1,0 +1,21 @@
+{
+    "datasources": [
+        {
+            "label": "csv",
+            "type": "csv",
+            "root_path": "examples/csv",
+            "column_row_index": 0
+        },
+        {
+            "label": "mysql",
+            "type": "mysql",
+            "dsn": "root:mysql@tcp(127.0.0.1:3306)/tamate"
+        },
+        {
+            "label": "spreadsheet",
+            "type": "spreadsheet",
+            "id": "1_Um82wSffMiMVqvRISAo348Ti8u51CLdV_kGN7TYDko",
+            "column_row_index": 0
+        }
+    ]
+}

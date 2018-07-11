@@ -3,135 +3,123 @@ package datasource
 import (
 	"context"
 	"encoding/csv"
-	"errors"
+	"fmt"
 	"os"
+	"regexp"
 )
 
-// CSVDatasource is datasource struct of csv
+var reg = regexp.MustCompile("\\((.+?)\\)")
+
+// CSVDatasource is datasource config for csv file
 type CSVDatasource struct {
-	URI            string `json:"uri"`
+	RootPath       string `json:"root_path"`
 	ColumnRowIndex int    `json:"column_row_index"`
 }
 
-// NewCSVDatasource is create CSVDatasource instance method
-func NewCSVDatasource(uri string, columnRowIndex int) (*CSVDatasource, error) {
+// NewCSVDatasource is create CSVDatasource instance
+func NewCSVDatasource(rootPath string, columnRowIndex int) (*CSVDatasource, error) {
+	if columnRowIndex > 0 {
+		return nil, fmt.Errorf("columnRowIndex is invalid value: %d", columnRowIndex)
+	}
 	return &CSVDatasource{
-		URI:            uri,
+		RootPath:       rootPath,
 		ColumnRowIndex: columnRowIndex,
 	}, nil
 }
 
-// GetSchemas is get all schemas method
-func (ds *CSVDatasource) createAllSchemaMap() (map[string]*Schema, error) {
-	schemaMap := make(map[string]*Schema)
-
-	schema := &Schema{
-		Name: ds.URI,
-	}
-	values, err := readCSVFromURI(ds.URI)
+// GetSchema is getting schema from csv file
+func (ds *CSVDatasource) GetSchema(ctx context.Context, name string) (*Schema, error) {
+	csvValues, err := readFromFile(ds.RootPath, name)
 	if err != nil {
 		return nil, err
 	}
-	schema.Columns = make([]*Column, len(values))
-	for i := range values {
-		if i == ds.ColumnRowIndex {
-			for j := range values[i] {
-				schema.Columns[i] = &Column{
-					Name: values[i][j],
-					Type: ColumnTypeString,
+	primaryKey := &Key{
+		KeyType: KeyTypePrimary,
+	}
+	cols := make([]*Column, 0)
+	for rowIndex := range csvValues {
+		if rowIndex != ds.ColumnRowIndex {
+			continue
+		}
+		for colIndex := range csvValues[rowIndex] {
+			colName := csvValues[rowIndex][colIndex]
+			if ret := reg.FindStringSubmatch(colName); len(ret) >= 2 {
+				colName = ret[1]
+				primaryKey.ColumnNames = append(primaryKey.ColumnNames, colName)
+			}
+			cols = append(cols, &Column{
+				Name:            colName,
+				OrdinalPosition: colIndex,
+				Type:            ColumnTypeString,
+			})
+		}
+		break
+	}
+	return &Schema{
+		Name:       name,
+		PrimaryKey: primaryKey,
+		Columns:    cols,
+	}, nil
+}
+
+// GetRows is getting rows from csv file
+func (ds *CSVDatasource) GetRows(ctx context.Context, schema *Schema) ([]*Row, error) {
+	csvValues, err := readFromFile(ds.RootPath, schema.Name)
+	if err != nil {
+		return nil, err
+	}
+	if len(csvValues) > ds.ColumnRowIndex {
+		valuesWithoutColumn := make([][]string, len(csvValues)-1)
+		for rowIndex, csvValue := range csvValues {
+			if rowIndex < ds.ColumnRowIndex {
+				valuesWithoutColumn[rowIndex] = csvValue
+			} else if rowIndex > ds.ColumnRowIndex {
+				valuesWithoutColumn[rowIndex-1] = csvValue
+			}
+		}
+		csvValues = valuesWithoutColumn
+	}
+	rows := make([]*Row, len(csvValues))
+	for rowIndex := range csvValues {
+		rowValues := make(RowValues, len(schema.Columns))
+		groupByKey := make(GroupByKey)
+		for colIndex, col := range schema.Columns {
+			colValue := NewStringGenericColumnValue(col, csvValues[rowIndex][colIndex])
+			rowValues[col.Name] = colValue
+			// grouping primarykey
+			for i := range schema.PrimaryKey.ColumnNames {
+				if schema.PrimaryKey.ColumnNames[i] == col.Name {
+					key := schema.PrimaryKey.String()
+					groupByKey[key] = append(groupByKey[key], colValue)
 				}
 			}
 		}
-	}
-	schemaMap[schema.Name] = schema
-	return schemaMap, nil
-}
-
-func (ds *CSVDatasource) GetAllSchema(ctx context.Context) ([]*Schema, error) {
-	allMap, err := ds.createAllSchemaMap()
-	if err != nil {
-		return nil, err
-	}
-
-	var all []*Schema
-	for _, sc := range allMap {
-		all = append(all, sc)
-	}
-	return all, nil
-}
-
-// GetSchema is get schema method
-func (ds *CSVDatasource) GetSchema(ctx context.Context, name string) (*Schema, error) {
-	schemas, err := ds.createAllSchemaMap()
-	if err != nil {
-		return nil, err
-	}
-	for _, sc := range schemas {
-		if sc.Name == name {
-			return sc, nil
-		}
-	}
-	return nil, errors.New("Schema not found: " + name)
-}
-
-// SetSchema is set schema method
-func (ds *CSVDatasource) SetSchema(ctx context.Context, schema *Schema) error {
-	rows, err := ds.GetRows(ctx, schema)
-	if err != nil {
-		return err
-	}
-	return ds.SetRows(ctx, schema, rows)
-}
-
-// GetRows is get rows method
-func (ds *CSVDatasource) GetRows(ctx context.Context, schema *Schema) ([]*Row, error) {
-	csvRows, err := readCSVFromURI(ds.URI)
-	if err != nil {
-		return nil, err
-	}
-
-	rows := make([]*Row, len(csvRows)-1)
-	for i, csvRow := range csvRows {
-		if i == ds.ColumnRowIndex {
-			continue
-		}
-
-		rowValues := make(RowValues)
-		for k, col := range schema.Columns {
-			rowValues[col.Name] = NewStringGenericColumnValue(col, csvRow[k])
-		}
-		rows = append(rows, &Row{Values: rowValues})
+		rows[rowIndex] = &Row{GroupByKey: groupByKey, Values: rowValues}
 	}
 	return rows, nil
 }
 
-// SetRows is set rows method
-func (ds *CSVDatasource) SetRows(ctx context.Context, schema *Schema, rows []*Row) error {
-	var csvRows [][]string
-	for i, row := range rows {
-		if i == ds.ColumnRowIndex {
-			csvRows = append(csvRows, schema.GetColumnNames())
-			continue
-		}
-		csvRow := make([]string, len(row.Values))
-		for k, cn := range schema.GetColumnNames() {
-			csvRow[k] = row.Values[cn].StringValue()
-		}
-		csvRows = append(csvRows, csvRow)
-	}
-	return writeCSV(ds.URI, csvRows)
+// SetSchema is setting schema to csv file
+func (ds *CSVDatasource) SetSchema(ctx context.Context, schema *Schema) error {
+	return fmt.Errorf("feature support")
 }
 
-func readCSVFromURI(uri string) ([][]string, error) {
-	r, err := os.Open(uri)
+// SetRows is setting rows to csv file
+func (ds *CSVDatasource) SetRows(ctx context.Context, schema *Schema, rows []*Row) error {
+	return fmt.Errorf("feature support")
+}
+
+func readFromFile(rootPath string, fileName string) ([][]string, error) {
+	filePath := fmt.Sprintf("%s/%s.csv", rootPath, fileName)
+	r, err := os.Open(filePath)
 	if err != nil {
 		return nil, err
 	}
 	defer r.Close()
-	return readCSV(csv.NewReader(r))
+	return read(csv.NewReader(r))
 }
 
-func readCSV(r *csv.Reader) ([][]string, error) {
+func read(r *csv.Reader) ([][]string, error) {
 	values, err := r.ReadAll()
 	if err != nil {
 		return nil, err
@@ -139,8 +127,9 @@ func readCSV(r *csv.Reader) ([][]string, error) {
 	return values, err
 }
 
-func writeCSV(uri string, values [][]string) error {
-	w, err := os.OpenFile(uri, os.O_WRONLY|os.O_CREATE, 0600)
+func writeToFile(rootPath string, fileName string, values [][]string) error {
+	filePath := fmt.Sprintf("%s/%s.csv", rootPath, fileName)
+	w, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE, 0600)
 	if err != nil {
 		return err
 	}
