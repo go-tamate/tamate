@@ -6,34 +6,61 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 
-	"github.com/Mitu217/tamate/command"
+	"github.com/Mitu217/tamate/datasource"
 	"github.com/Mitu217/tamate/differ"
 	"github.com/urfave/cli"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 )
 
-var logger *zap.Logger
+type datasourceConfig map[string]interface{}
+
+func (c datasourceConfig) GetDatasource() (datasource.Datasource, error) {
+	var ds datasource.Datasource
+	switch c["type"] {
+	case "csv":
+		csv, err := datasource.NewCSVDatasource(c["root_path"].(string), int(c["column_row_index"].(float64)))
+		if err != nil {
+			return nil, err
+		}
+		ds = csv
+		break
+	case "spreadsheet":
+		return nil, errors.New("not support type: spreadsheet")
+		/*
+			spreadsheet, err := datasource.NewSpreadsheetDatasource()
+			if err != nil {
+				return nil, err
+			}
+			ds = spreadsheet
+			break
+		*/
+	case "mysql":
+		mysql, err := datasource.NewMySQLDatasource(c["dsn"].(string))
+		if err != nil {
+			return nil, err
+		}
+		if err := mysql.Open(); err != nil {
+			return nil, err
+		}
+		ds = mysql
+		break
+	case "spanner":
+		return nil, errors.New("not support type: spanner")
+	default:
+		return nil, errors.New("invalid type: " + c["type"].(string))
+	}
+	return ds, nil
+}
+
+/*
+ * Main
+ */
 
 func main() {
-	// logger
-	atom := zap.NewAtomicLevel() // default: Info
-	encoderCfg := zap.NewProductionEncoderConfig()
-	encoderCfg.LevelKey = "" // don't show log-level
-	encoderCfg.TimeKey = ""  // don't show timestamp
-	logger = zap.New(zapcore.NewCore(
-		zapcore.NewJSONEncoder(encoderCfg),
-		zapcore.Lock(os.Stdout),
-		atom,
-	))
-	defer logger.Sync()
-
-	// input params
-	verbose := false
-	datasources := &command.DatasourceConfig{
-		Configs: make([]map[string]interface{}, 0),
-	}
+	d := &struct {
+		DatasourceConfigs []datasourceConfig `json:"datasources"`
+	}{}
 
 	// start app
 	app := cli.NewApp()
@@ -52,24 +79,16 @@ func main() {
 		},
 	}
 	app.Before = func(c *cli.Context) error {
-		verbose = c.Bool("verbose")
-		if verbose {
-			atom.SetLevel(zap.DebugLevel) // show verbose log
-		}
-
 		ds := c.String("datasources")
 		f, err := os.Open(ds)
 		if err != nil {
 			fmt.Println(err)
 			return nil
 		}
-		logger.Debug("open", zap.String("path", ds))
-
-		if err := json.NewDecoder(f).Decode(datasources); err != nil {
+		if err := json.NewDecoder(f).Decode(d); err != nil {
 			fmt.Println(err)
 			return nil
 		}
-		logger.Debug("decode", zap.Any("datasources", datasources))
 		return nil
 	}
 	app.Action = func(c *cli.Context) error {
@@ -78,25 +97,94 @@ func main() {
 			return nil
 		}
 
-		l := c.Args().Get(0)
-		r := c.Args().Get(1)
-		logger.Debug("target", zap.String("left", l))
-		logger.Debug("target", zap.String("right", r))
-
-		ctx := context.Background()
-		cols, rows, err := datasources.GetDiff(ctx, l, r)
+		lds, err := getDatasource(d.DatasourceConfigs, c.Args().Get(0))
 		if err != nil {
 			fmt.Println(err)
 			return nil
 		}
-		logger.Debug("diff", zap.Any("columns", cols))
-		logger.Debug("diff", zap.Any("rows", rows))
+		lscn, err := getSchemaName(c.Args().Get(0))
+		if err != nil {
+			fmt.Println(err)
+			return nil
+		}
+		rds, err := getDatasource(d.DatasourceConfigs, c.Args().Get(1))
+		if err != nil {
+			fmt.Println(err)
+			return nil
+		}
+		rscn, err := getSchemaName(c.Args().Get(1))
+		if err != nil {
+			fmt.Println(err)
+			return nil
+		}
+
+		ctx := context.Background()
+		cols, rows, err := diff(ctx, lds, rds, lscn, rscn)
+		if err != nil {
+			fmt.Println(err)
+			return nil
+		}
 
 		print(cols, rows)
 		return nil
 	}
 	app.HideVersion = true // disable version flag
 	app.Run(os.Args)
+}
+
+func getDatasource(datasourceConfigs []datasourceConfig, query string) (datasource.Datasource, error) {
+	q := strings.Split(query, "/")
+	for i := range datasourceConfigs {
+		if datasourceConfigs[i]["label"] == q[0] {
+			return datasourceConfigs[i].GetDatasource()
+		}
+	}
+	return nil, errors.New("undefined " + query + " in datasource config")
+}
+
+func getSchemaName(query string) (string, error) {
+	q := strings.Split(query, "/")
+	if len(q) < 2 {
+		return "", fmt.Errorf("%+v is invalid query", query)
+	}
+	return q[1], nil
+}
+
+/*
+ * Actions
+ */
+
+func diff(ctx context.Context, lds, rds datasource.Datasource, leftSchemaName, rightSchemaName string) (*differ.DiffColumns, *differ.DiffRows, error) {
+	leftSchema, err := lds.GetSchema(ctx, leftSchemaName)
+	if err != nil {
+		return nil, nil, err
+	}
+	leftRows, err := lds.GetRows(ctx, leftSchema)
+	if err != nil {
+		return nil, nil, err
+	}
+	rightSchema, err := rds.GetSchema(ctx, rightSchemaName)
+	if err != nil {
+		return nil, nil, err
+	}
+	rightRows, err := rds.GetRows(ctx, rightSchema)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	d, err := differ.NewDiffer()
+	if err != nil {
+		return nil, nil, err
+	}
+	dColumns, err := d.DiffColumns(leftSchema, rightSchema)
+	if err != nil {
+		return nil, nil, err
+	}
+	dRows, err := d.DiffRows(leftSchema, leftRows, rightRows)
+	if err != nil {
+		return nil, nil, err
+	}
+	return dColumns, dRows, nil
 }
 
 func print(diffColumns *differ.DiffColumns, diffRows *differ.DiffRows) {
