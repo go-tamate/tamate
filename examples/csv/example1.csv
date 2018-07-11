@@ -1,5 +1,5 @@
-(id),name,age,point
-1,hana,16,100
-2,tamate,15,80
-3,kamuri,15,80
-4,eiko,15,80
+(id),name,age
+1,hana,16
+2,tamate,15
+3,kamuri,15
+4,eiko,15
