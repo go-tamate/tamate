@@ -31,15 +31,15 @@ func TestDiffer_DiffRows(t *testing.T) {
 			ColumnNames: []string{"id"},
 		},
 	}
-	gbkl1 := make(map[*datasource.Key][]*datasource.GenericColumnValue)
-	gbkl1[scl.PrimaryKey] = []*datasource.GenericColumnValue{
+	gbkl1 := make(datasource.GroupByKey)
+	gbkl1[scl.PrimaryKey.String()] = []*datasource.GenericColumnValue{
 		{
 			Column: &datasource.Column{Type: datasource.ColumnTypeString},
 			Value:  "id0",
 		},
 	}
-	gbkl2 := make(map[*datasource.Key][]*datasource.GenericColumnValue)
-	gbkl2[scl.PrimaryKey] = []*datasource.GenericColumnValue{
+	gbkl2 := make(datasource.GroupByKey)
+	gbkl2[scl.PrimaryKey.String()] = []*datasource.GenericColumnValue{
 		{
 			Column: &datasource.Column{Type: datasource.ColumnTypeString},
 			Value:  "id1",
@@ -60,29 +60,29 @@ func TestDiffer_DiffRows(t *testing.T) {
 			ColumnNames: []string{"id"},
 		},
 	}
-	gbkr1 := make(map[*datasource.Key][]*datasource.GenericColumnValue)
-	gbkr1[scr.PrimaryKey] = []*datasource.GenericColumnValue{
+	gbkr1 := make(datasource.GroupByKey)
+	gbkr1[scr.PrimaryKey.String()] = []*datasource.GenericColumnValue{
 		{
 			Column: &datasource.Column{Type: datasource.ColumnTypeString},
 			Value:  "id0",
 		},
 	}
-	gbkr2 := make(map[*datasource.Key][]*datasource.GenericColumnValue)
-	gbkr2[scr.PrimaryKey] = []*datasource.GenericColumnValue{
+	gbkr2 := make(datasource.GroupByKey)
+	gbkr2[scr.PrimaryKey.String()] = []*datasource.GenericColumnValue{
 		{
 			Column: &datasource.Column{Type: datasource.ColumnTypeString},
 			Value:  "id1",
 		},
 	}
-	gbkr3 := make(map[*datasource.Key][]*datasource.GenericColumnValue)
-	gbkr3[scr.PrimaryKey] = []*datasource.GenericColumnValue{
+	gbkr3 := make(datasource.GroupByKey)
+	gbkr3[scr.PrimaryKey.String()] = []*datasource.GenericColumnValue{
 		{
 			Column: &datasource.Column{Type: datasource.ColumnTypeString},
 			Value:  "id2",
 		},
 	}
-	gbkr4 := make(map[*datasource.Key][]*datasource.GenericColumnValue)
-	gbkr4[scr.PrimaryKey] = []*datasource.GenericColumnValue{
+	gbkr4 := make(datasource.GroupByKey)
+	gbkr4[scr.PrimaryKey.String()] = []*datasource.GenericColumnValue{
 		{
 			Column: &datasource.Column{Type: datasource.ColumnTypeString},
 			Value:  "id3",
@@ -102,7 +102,7 @@ func TestDiffer_DiffRows(t *testing.T) {
 
 	// the same (no diff)
 	{
-		diff, err := differ.DiffRows(scl, scl, leftRows, leftRows)
+		diff, err := differ.DiffRows(scl, leftRows, leftRows)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -112,16 +112,8 @@ func TestDiffer_DiffRows(t *testing.T) {
 		}
 	}
 
-	// wrong schema is chosen
 	{
-		_, err := differ.DiffRows(scl, scr, leftRows, leftRows)
-		if err == nil {
-			t.Fatal(err)
-		}
-	}
-
-	{
-		diff, err := differ.DiffRows(scl, scr, leftRows, rightRows)
+		diff, err := differ.DiffRows(scl, leftRows, rightRows)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -149,8 +141,8 @@ func TestDiffer_DiffRows_CompositeKey(t *testing.T) {
 			ColumnNames: []string{"id", "name"},
 		},
 	}
-	gbkl1 := make(map[*datasource.Key][]*datasource.GenericColumnValue)
-	gbkl1[scl.PrimaryKey] = []*datasource.GenericColumnValue{
+	gbkl1 := make(datasource.GroupByKey)
+	gbkl1[scl.PrimaryKey.String()] = []*datasource.GenericColumnValue{
 		{
 			Column: &datasource.Column{Type: datasource.ColumnTypeString},
 			Value:  "id0",
@@ -160,8 +152,8 @@ func TestDiffer_DiffRows_CompositeKey(t *testing.T) {
 			Value:  "name0",
 		},
 	}
-	gbkl2 := make(map[*datasource.Key][]*datasource.GenericColumnValue)
-	gbkl2[scl.PrimaryKey] = []*datasource.GenericColumnValue{
+	gbkl2 := make(datasource.GroupByKey)
+	gbkl2[scl.PrimaryKey.String()] = []*datasource.GenericColumnValue{
 		{
 			Column: &datasource.Column{Type: datasource.ColumnTypeString},
 			Value:  "id1",
@@ -187,8 +179,8 @@ func TestDiffer_DiffRows_CompositeKey(t *testing.T) {
 			ColumnNames: []string{"id", "name"},
 		},
 	}
-	gbkr1 := make(map[*datasource.Key][]*datasource.GenericColumnValue)
-	gbkr1[scr.PrimaryKey] = []*datasource.GenericColumnValue{
+	gbkr1 := make(datasource.GroupByKey)
+	gbkr1[scr.PrimaryKey.String()] = []*datasource.GenericColumnValue{
 		{
 			Column: &datasource.Column{Type: datasource.ColumnTypeString},
 			Value:  "id0",
@@ -198,8 +190,8 @@ func TestDiffer_DiffRows_CompositeKey(t *testing.T) {
 			Value:  "name0",
 		},
 	}
-	gbkr2 := make(map[*datasource.Key][]*datasource.GenericColumnValue)
-	gbkr2[scr.PrimaryKey] = []*datasource.GenericColumnValue{
+	gbkr2 := make(datasource.GroupByKey)
+	gbkr2[scr.PrimaryKey.String()] = []*datasource.GenericColumnValue{
 		{
 			Column: &datasource.Column{Type: datasource.ColumnTypeString},
 			Value:  "id1",
@@ -209,8 +201,8 @@ func TestDiffer_DiffRows_CompositeKey(t *testing.T) {
 			Value:  "name1",
 		},
 	}
-	gbkr3 := make(map[*datasource.Key][]*datasource.GenericColumnValue)
-	gbkr3[scr.PrimaryKey] = []*datasource.GenericColumnValue{
+	gbkr3 := make(datasource.GroupByKey)
+	gbkr3[scr.PrimaryKey.String()] = []*datasource.GenericColumnValue{
 		{
 			Column: &datasource.Column{Type: datasource.ColumnTypeString},
 			Value:  "id2",
@@ -220,8 +212,8 @@ func TestDiffer_DiffRows_CompositeKey(t *testing.T) {
 			Value:  "name2",
 		},
 	}
-	gbkr4 := make(map[*datasource.Key][]*datasource.GenericColumnValue)
-	gbkr4[scr.PrimaryKey] = []*datasource.GenericColumnValue{
+	gbkr4 := make(datasource.GroupByKey)
+	gbkr4[scr.PrimaryKey.String()] = []*datasource.GenericColumnValue{
 		{
 			Column: &datasource.Column{Type: datasource.ColumnTypeString},
 			Value:  "id3",
@@ -245,7 +237,7 @@ func TestDiffer_DiffRows_CompositeKey(t *testing.T) {
 
 	// the same (no diff)
 	{
-		diff, err := differ.DiffRows(scl, scl, leftRows, leftRows)
+		diff, err := differ.DiffRows(scl, leftRows, leftRows)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -256,7 +248,7 @@ func TestDiffer_DiffRows_CompositeKey(t *testing.T) {
 	}
 
 	{
-		diff, err := differ.DiffRows(scl, scr, leftRows, rightRows)
+		diff, err := differ.DiffRows(scl, leftRows, rightRows)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -349,7 +341,7 @@ func TestDiffer_DiffDatetimeFormatStringColumn(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	diff, err := differ.DiffRows(scl, scr, leftRows, rightRows)
+	diff, err := differ.DiffRows(scl, leftRows, rightRows)
 	if err != nil {
 		t.Fatal(err)
 	}
