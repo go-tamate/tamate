@@ -2,14 +2,25 @@ package datasource
 
 import (
 	"context"
+	"log"
+	"os"
+	"strings"
 	"testing"
 )
 
 const (
-	TestRootPath       = "../examples/csv"
-	TestFileName       = "example1"
+	TestRootPath       = "./"
+	TestFileName       = "sample"
 	TestColumnRowIndex = 0
 )
+
+var testData = `
+	(id),name,age
+	1,hana,16
+	2,tamate,15
+	3,kamuri,15
+	4,eiko,15
+`
 
 const (
 	IndexID = iota
@@ -17,9 +28,33 @@ const (
 	IndexAge
 )
 
+func SetupCSVDatasourceTest(t *testing.T) (func(), error) {
+	r := strings.NewReader(testData)
+	csvValues, err := read(r)
+	if err != nil {
+		return nil, err
+	}
+	if err := writeToFile(TestRootPath, TestFileName, csvValues); err != nil {
+		return nil, err
+	}
+	return func() {
+		if err := os.Remove(TestRootPath + "/" + TestFileName); err != nil {
+			log.Println(err)
+		}
+	}, nil
+}
+
 func TestCSVDatasource_Get(t *testing.T) {
+	TearDown, err := SetupCSVDatasourceTest(t)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer TearDown()
+
 	ctx := context.Background()
-	csvValues, err := readFromFile(TestRootPath, TestFileName)
+
+	r := strings.NewReader(testData)
+	csvValues, err := read(r)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -62,4 +97,6 @@ func TestCSVDatasource_Get(t *testing.T) {
 			t.Fatalf("rows[%d].Values['age'] must be %+v, but actual: %+v", i, row.Values["age"].Value, csvValues[csvIndex][IndexAge])
 		}
 	}
+
+	//after()
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/csv"
 	"fmt"
+	"io"
 	"os"
 	"regexp"
 )
@@ -116,11 +117,11 @@ func readFromFile(rootPath string, fileName string) ([][]string, error) {
 		return nil, err
 	}
 	defer r.Close()
-	return read(csv.NewReader(r))
+	return read(r)
 }
 
-func read(r *csv.Reader) ([][]string, error) {
-	values, err := r.ReadAll()
+func read(r io.Reader) ([][]string, error) {
+	values, err := csv.NewReader(r).ReadAll()
 	if err != nil {
 		return nil, err
 	}
@@ -134,9 +135,9 @@ func writeToFile(rootPath string, fileName string, values [][]string) error {
 		return err
 	}
 	defer w.Close()
-	return write(csv.NewWriter(w), values)
+	return write(w, values)
 }
 
-func write(w *csv.Writer, values [][]string) error {
-	return w.WriteAll(values)
+func write(w io.Writer, values [][]string) error {
+	return csv.NewWriter(w).WriteAll(values)
 }
