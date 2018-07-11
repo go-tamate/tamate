@@ -12,17 +12,20 @@ import (
 	"github.com/go-sql-driver/mysql"
 )
 
+// MySQLDatasource is datasource config for MySQL DB
 type MySQLDatasource struct {
 	DSN string `json:"dsn"`
 	db  *sql.DB
 }
 
+// NewMySQLDatasource is create MySQLDatasource instance
 func NewMySQLDatasource(dsn string) (*MySQLDatasource, error) {
 	return &MySQLDatasource{
 		DSN: dsn,
 	}, nil
 }
 
+// Open is open connection
 func (ds *MySQLDatasource) Open() error {
 	if ds.db == nil {
 		db, err := sql.Open("mysql", ds.DSN)
@@ -37,6 +40,7 @@ func (ds *MySQLDatasource) Open() error {
 	return nil
 }
 
+// Close is close connection
 func (ds *MySQLDatasource) Close() error {
 	if ds.db != nil {
 		err := ds.db.Close()
@@ -48,7 +52,67 @@ func (ds *MySQLDatasource) Close() error {
 	return nil
 }
 
-func (ds *MySQLDatasource) createAllSchemaMap() (map[string]*Schema, error) {
+// GetSchema is getting schema from MySQL DB
+func (ds *MySQLDatasource) GetSchema(ctx context.Context, name string) (*Schema, error) {
+	schemaMap, err := ds.getSchemaMap()
+	if err != nil {
+		return nil, err
+	}
+	for scName, sc := range schemaMap {
+		if scName == name {
+			return sc, nil
+		}
+	}
+	return nil, errors.New("schema not found: " + name)
+}
+
+// GetRows is getting rows from MySQL DB
+func (ds *MySQLDatasource) GetRows(ctx context.Context, schema *Schema) ([]*Row, error) {
+	result, err := ds.db.Query(fmt.Sprintf("SELECT * FROM %s", schema.Name))
+	if err != nil {
+		return nil, err
+	}
+	defer result.Close()
+
+	var rows []*Row
+	for result.Next() {
+		rowValues := make(RowValues, len(schema.Columns))
+		rowValuesGroupByKey := make(GroupByKey)
+		ptrs := make([]interface{}, len(schema.Columns))
+		for i, col := range schema.Columns {
+			ptr := reflect.New(colToMySQLType(col)).Interface()
+			ptrs[i] = ptr
+		}
+		if err := result.Scan(ptrs...); err != nil {
+			return nil, err
+		}
+		for i, col := range schema.Columns {
+			val := reflect.ValueOf(ptrs[i]).Elem().Interface()
+			colValue := &GenericColumnValue{Column: col, Value: val}
+			rowValues[col.Name] = colValue
+			for i := range schema.PrimaryKey.ColumnNames {
+				if schema.PrimaryKey.ColumnNames[i] == col.Name {
+					key := schema.PrimaryKey.String()
+					rowValuesGroupByKey[key] = append(rowValuesGroupByKey[key], colValue)
+				}
+			}
+		}
+		rows = append(rows, &Row{GroupByKey: rowValuesGroupByKey, Values: rowValues})
+	}
+	return rows, nil
+}
+
+// SetSchema is setting schema to MySQL DB
+func (ds *MySQLDatasource) SetSchema(ctx context.Context, schema *Schema) error {
+	return fmt.Errorf("feature support")
+}
+
+// SetRows is setting rows to MySQL DB
+func (ds *MySQLDatasource) SetRows(ctx context.Context, schema *Schema, rows []*Row) error {
+	return fmt.Errorf("feature support")
+}
+
+func (ds *MySQLDatasource) getSchemaMap() (map[string]*Schema, error) {
 	// get schemas
 	sqlRows, err := ds.db.Query("SELECT TABLE_NAME, COLUMN_NAME, ORDINAL_POSITION, COLUMN_TYPE, COLUMN_KEY, IS_NULLABLE, EXTRA FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE()")
 	if err != nil {
@@ -133,75 +197,6 @@ func mysqlColumnTypeToValueType(ct string) (ColumnType, error) {
 		return ColumnTypeBytes, nil
 	}
 	return ColumnTypeNull, fmt.Errorf("convertion not found for MySQL type: %s", ct)
-}
-
-func (ds *MySQLDatasource) GetAllSchema(ctx context.Context) ([]*Schema, error) {
-	allMap, err := ds.createAllSchemaMap()
-	if err != nil {
-		return nil, err
-	}
-
-	var all []*Schema
-	for _, sc := range allMap {
-		all = append(all, sc)
-	}
-	return all, nil
-}
-
-func (ds *MySQLDatasource) GetSchema(ctx context.Context, name string) (*Schema, error) {
-	all, err := ds.createAllSchemaMap()
-	if err != nil {
-		return nil, err
-	}
-	for scName, sc := range all {
-		if scName == name {
-			return sc, nil
-		}
-	}
-	return nil, errors.New("schema not found: " + name)
-}
-
-func (ds *MySQLDatasource) SetSchema(ctx context.Context, schema *Schema) error {
-	return errors.New("not support SetSchema()")
-}
-
-func (ds *MySQLDatasource) GetRows(ctx context.Context, schema *Schema) ([]*Row, error) {
-	// get data
-	sqlRows, err := ds.db.Query(fmt.Sprintf("SELECT * FROM %s", schema.Name))
-	if err != nil {
-		return nil, err
-	}
-	defer sqlRows.Close()
-
-	var rows []*Row
-	for sqlRows.Next() {
-		rowValues := make(RowValues)
-		rowValuesGroupByKey := make(GroupByKey)
-		ptrs := make([]interface{}, len(schema.Columns))
-		for i, col := range schema.Columns {
-			dvp := reflect.New(colToMySQLType(col)).Interface()
-			ptrs[i] = dvp
-		}
-		if err := sqlRows.Scan(ptrs...); err != nil {
-			return nil, err
-		}
-		for i, col := range schema.Columns {
-			v := reflect.ValueOf(ptrs[i]).Elem().Interface()
-			cv := &GenericColumnValue{Column: col, Value: v}
-			rowValues[col.Name] = cv
-			for _, name := range schema.PrimaryKey.ColumnNames {
-				if name == col.Name {
-					rowValuesGroupByKey[schema.PrimaryKey.String()] = append(rowValuesGroupByKey[schema.PrimaryKey.String()], cv)
-				}
-			}
-		}
-		rows = append(rows, &Row{rowValuesGroupByKey, rowValues})
-	}
-	return rows, nil
-}
-
-func (ds *MySQLDatasource) SetRows(ctx context.Context, schema *Schema, rows []*Row) error {
-	return errors.New("MySQLDatasource does not support SetRows()")
 }
 
 func colToMySQLType(c *Column) reflect.Type {
