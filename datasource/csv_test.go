@@ -5,9 +5,11 @@ import (
 	"testing"
 )
 
-const TestRootPath = "../examples/csv"
-const TestFileName = "example1"
-const TestColumnRowIndex = 0
+const (
+	TestRootPath       = "../examples/csv"
+	TestFileName       = "example1"
+	TestColumnRowIndex = 0
+)
 
 const (
 	IndexID = iota
@@ -60,8 +62,4 @@ func TestCSVDatasource_Get(t *testing.T) {
 			t.Fatalf("rows[%d].Values['age'] must be %+v, but actual: %+v", i, row.Values["age"].Value, csvValues[csvIndex][IndexAge])
 		}
 	}
-}
-
-func TestCSVDatasource_Set(t *testing.T) {
-	t.Skip()
 }

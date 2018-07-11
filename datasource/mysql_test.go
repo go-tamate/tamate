@@ -1,21 +1,74 @@
 package datasource
 
 import (
+	"context"
 	"database/sql"
+	"fmt"
 	"log"
+	"os"
+	"reflect"
 	"testing"
 
 	// mysql driver
-	"context"
-	"fmt"
 	_ "github.com/go-sql-driver/mysql"
-	"os"
-	"reflect"
 )
 
 const (
 	mysqlTestDataRowCount = 100
 )
+
+func TestMySQLDatasource_Get(t *testing.T) {
+	dsn := os.Getenv("TAMATE_MYSQL_DSN")
+	if dsn == "" {
+		t.Skip("env: TAMATE_MYSQL_DSN not set")
+	}
+
+	before(dsn)
+
+	ds, err := NewMySQLDatasource(dsn + "tamatest")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer ds.Close()
+
+	if err := ds.Open(); err != nil {
+		t.Fatal(err)
+	}
+
+	ctx := context.Background()
+	sc, err := ds.GetSchema(ctx, "example")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(sc.PrimaryKey.ColumnNames) != 1 || sc.PrimaryKey.ColumnNames[0] != "id" {
+		t.Fatal("PK must be [id]")
+	}
+
+	if len(sc.Columns) != 2 || sc.Columns[1].Name != "name" || sc.Columns[1].Type != ColumnTypeString {
+		t.Fatal("Columns[1] must be string-type 'name'")
+	}
+
+	rows, err := ds.GetRows(ctx, sc)
+	if err != nil {
+		t.Fatalf("GetRows failed: %+v", err)
+	}
+
+	if len(rows) != mysqlTestDataRowCount {
+		t.Fatalf("len(rows.Value) must be %d", mysqlTestDataRowCount)
+	}
+
+	for i := 0; i < mysqlTestDataRowCount; i++ {
+		if rows[i].Values["id"].Value != int64(i) {
+			t.Fatalf("rows[%d].Values['id'] must be %d, but actual: %+v (type: %+v)", i, i, rows[i].Values["id"].Value, reflect.TypeOf(rows[i].Values["id"].Value))
+		}
+		if rows[i].Values["name"].Value != fmt.Sprintf("name%d", i) {
+			t.Fatalf("rows[%d].Values['name'] must be 'name%d'", i, i)
+		}
+	}
+
+	after(dsn)
+}
 
 func before(dsn string) {
 	db, err := sql.Open("mysql", dsn)
@@ -53,53 +106,14 @@ func insertTestData(db *sql.DB) error {
 	return nil
 }
 
-func TestMySQLDatasource_Get(t *testing.T) {
-	dsn := os.Getenv("TAMATE_MYSQL_DSN")
-	if dsn == "" {
-		t.Skip("env: TAMATE_MYSQL_DSN not set")
-	}
-
-	before(dsn)
-	ds, err := NewMySQLDatasource(dsn + "tamatest")
+func after(dsn string) {
+	db, err := sql.Open("mysql", dsn)
 	if err != nil {
-		t.Fatal(err)
+		log.Fatal(err)
 	}
-	defer ds.Close()
+	defer db.Close()
 
-	if err := ds.Open(); err != nil {
-		t.Fatal(err)
-	}
-
-	ctx := context.Background()
-	sc, err := ds.GetSchema(ctx, "example")
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Logf("%+v", sc)
-
-	if len(sc.PrimaryKey.ColumnNames) != 1 || sc.PrimaryKey.ColumnNames[0] != "id" {
-		t.Fatal("PK must be [id]")
-	}
-
-	if len(sc.Columns) != 2 || sc.Columns[1].Name != "name" || sc.Columns[1].Type != ColumnTypeString {
-		t.Fatal("Columns[1] must be string-type 'name'")
-	}
-
-	rows, err := ds.GetRows(ctx, sc)
-	if err != nil {
-		t.Fatalf("GetRows failed: %+v", err)
-	}
-
-	if len(rows) != mysqlTestDataRowCount {
-		t.Fatalf("len(rows.Value) must be %d", mysqlTestDataRowCount)
-	}
-
-	for i := 0; i < mysqlTestDataRowCount; i++ {
-		if rows[i].Values["id"].Value != int64(i) {
-			t.Fatalf("rows[%d].Values['id'] must be %d, but actual: %+v (type: %+v)", i, i, rows[i].Values["id"].Value, reflect.TypeOf(rows[i].Values["id"].Value))
-		}
-		if rows[i].Values["name"].Value != fmt.Sprintf("name%d", i) {
-			t.Fatalf("rows[%d].Values['name'] must be 'name%d'", i, i)
-		}
+	if _, err := db.Exec("DROP DATABASE IF EXISTS `tamatest`"); err != nil {
+		log.Fatal(err)
 	}
 }
