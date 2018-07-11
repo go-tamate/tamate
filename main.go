@@ -24,7 +24,6 @@ func (c datasourceConfig) GetDatasource() (datasource.Datasource, error) {
 			return nil, err
 		}
 		ds = csv
-		break
 	case "spreadsheet":
 		return nil, errors.New("not support type: spreadsheet")
 		/*
@@ -33,7 +32,6 @@ func (c datasourceConfig) GetDatasource() (datasource.Datasource, error) {
 				return nil, err
 			}
 			ds = spreadsheet
-			break
 		*/
 	case "mysql":
 		mysql, err := datasource.NewMySQLDatasource(c["dsn"].(string))
@@ -44,7 +42,6 @@ func (c datasourceConfig) GetDatasource() (datasource.Datasource, error) {
 			return nil, err
 		}
 		ds = mysql
-		break
 	case "spanner":
 		return nil, errors.New("not support type: spanner")
 	default:
