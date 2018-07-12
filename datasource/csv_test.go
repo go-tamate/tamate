@@ -38,7 +38,7 @@ func SetupCSVDatasourceTest(t *testing.T) (func(), error) {
 		return nil, err
 	}
 	return func() {
-		if err := os.Remove(TestRootPath + "/" + TestFileName); err != nil {
+		if err := os.Remove(TestRootPath + TestFileName + ".csv"); err != nil {
 			log.Println(err)
 		}
 	}, nil
