@@ -8,12 +8,6 @@ import (
 	"github.com/Mitu217/tamate/datasource"
 )
 
-type Diff struct {
-	Schema  *datasource.Schema `json:"schema"`
-	Columns *DiffColumns       `json:"columns"`
-	Rows    *DiffRows          `json:"rows"`
-}
-
 type DiffColumns struct {
 	Left  []*datasource.Column `json:"left"`
 	Right []*datasource.Column `json:"right"`
