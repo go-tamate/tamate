@@ -101,15 +101,15 @@ func TestSpreadsheet_Connect(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	sheetId := os.Getenv("TAMATE_TEST_SPREADSHEET_SHEET_ID")
+	sheetID := os.Getenv("TAMATE_TEST_SPREADSHEET_SHEET_ID")
 	sheetName := os.Getenv("TAMATE_TEST_SPREADSHEET_SHEET_NAME")
-	if sheetId == "" {
+	if sheetID == "" {
 		t.Skip("env: TAMATE_TEST_SPREADSHEET_SHEET_ID not set")
 	}
-	if sheetId == "" {
+	if sheetName == "" {
 		t.Skip("env: TAMATE_TEST_SPREADSHEET_SHEET_NAME not set")
 	}
-	ds, err := NewGoogleSpreadsheetDatasource(client, sheetId, TestSpreadsheetColumnRowIndex)
+	ds, err := NewGoogleSpreadsheetDatasource(client, sheetID, TestSpreadsheetColumnRowIndex)
 	if err != nil {
 		t.Fatal(err)
 	}
