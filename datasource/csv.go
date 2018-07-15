@@ -9,8 +9,6 @@ import (
 	"regexp"
 )
 
-var reg = regexp.MustCompile("\\((.+?)\\)")
-
 // CSVDatasource is datasource config for csv file
 type CSVDatasource struct {
 	RootPath       string `json:"root_path"`
@@ -19,7 +17,7 @@ type CSVDatasource struct {
 
 // NewCSVDatasource is create CSVDatasource instance
 func NewCSVDatasource(rootPath string, columnRowIndex int) (*CSVDatasource, error) {
-	if columnRowIndex > 0 {
+	if columnRowIndex < 0 {
 		return nil, fmt.Errorf("columnRowIndex is invalid value: %d", columnRowIndex)
 	}
 	return &CSVDatasource{
@@ -30,7 +28,7 @@ func NewCSVDatasource(rootPath string, columnRowIndex int) (*CSVDatasource, erro
 
 // GetSchema is getting schema from csv file
 func (ds *CSVDatasource) GetSchema(ctx context.Context, name string) (*Schema, error) {
-	csvValues, err := readFromFile(ds.RootPath, name)
+	values, err := readFromFile(ds.RootPath, name)
 	if err != nil {
 		return nil, err
 	}
@@ -38,12 +36,14 @@ func (ds *CSVDatasource) GetSchema(ctx context.Context, name string) (*Schema, e
 		KeyType: KeyTypePrimary,
 	}
 	cols := make([]*Column, 0)
-	for rowIndex := range csvValues {
+	for rowIndex, row := range values {
 		if rowIndex != ds.ColumnRowIndex {
 			continue
 		}
-		for colIndex := range csvValues[rowIndex] {
-			colName := csvValues[rowIndex][colIndex]
+		for colIndex := range row {
+			colName := row[colIndex]
+			// check primarykey
+			reg := regexp.MustCompile("\\((.+?)\\)")
 			if ret := reg.FindStringSubmatch(colName); len(ret) >= 2 {
 				colName = ret[1]
 				primaryKey.ColumnNames = append(primaryKey.ColumnNames, colName)
@@ -65,27 +65,27 @@ func (ds *CSVDatasource) GetSchema(ctx context.Context, name string) (*Schema, e
 
 // GetRows is getting rows from csv file
 func (ds *CSVDatasource) GetRows(ctx context.Context, schema *Schema) ([]*Row, error) {
-	csvValues, err := readFromFile(ds.RootPath, schema.Name)
+	values, err := readFromFile(ds.RootPath, schema.Name)
 	if err != nil {
 		return nil, err
 	}
-	if len(csvValues) > ds.ColumnRowIndex {
-		valuesWithoutColumn := make([][]string, len(csvValues)-1)
-		for rowIndex, csvValue := range csvValues {
+	if len(values) > ds.ColumnRowIndex {
+		valuesWithoutColumn := make([][]string, len(values)-1)
+		for rowIndex, row := range values {
 			if rowIndex < ds.ColumnRowIndex {
-				valuesWithoutColumn[rowIndex] = csvValue
+				valuesWithoutColumn[rowIndex] = row
 			} else if rowIndex > ds.ColumnRowIndex {
-				valuesWithoutColumn[rowIndex-1] = csvValue
+				valuesWithoutColumn[rowIndex-1] = row
 			}
 		}
-		csvValues = valuesWithoutColumn
+		values = valuesWithoutColumn
 	}
-	rows := make([]*Row, len(csvValues))
-	for rowIndex := range csvValues {
+	rows := make([]*Row, len(values))
+	for rowIndex, row := range values {
 		rowValues := make(RowValues, len(schema.Columns))
 		groupByKey := make(GroupByKey)
 		for colIndex, col := range schema.Columns {
-			colValue := NewStringGenericColumnValue(col, csvValues[rowIndex][colIndex])
+			colValue := NewStringGenericColumnValue(col, row[colIndex])
 			rowValues[col.Name] = colValue
 			// grouping primarykey
 			for i := range schema.PrimaryKey.ColumnNames {
