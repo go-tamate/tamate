@@ -11,15 +11,15 @@ import (
 )
 
 type SpreadsheetService interface {
-	Get(ctx context.Context, spreadSheetId string, sheetName string) ([][]interface{}, error)
+	Get(ctx context.Context, spreadsheetID string, sheetName string) ([][]interface{}, error)
 }
 
 type googleSpreadsheetService struct {
 	spreadsheetService *sheets.SpreadsheetsService
 }
 
-func (s *googleSpreadsheetService) Get(ctx context.Context, spreadSheetId string, sheetName string) ([][]interface{}, error) {
-	valueRange, err := s.spreadsheetService.Values.Get(spreadSheetId, sheetName).Context(ctx).Do()
+func (s *googleSpreadsheetService) Get(ctx context.Context, spreadsheetID string, sheetName string) ([][]interface{}, error) {
+	valueRange, err := s.spreadsheetService.Values.Get(spreadsheetID, sheetName).Context(ctx).Do()
 	if err != nil {
 		return nil, err
 	}
@@ -37,30 +37,30 @@ func NewGoogleSpreadsheetService(c *http.Client) (SpreadsheetService, error) {
 }
 
 type SpreadsheetDatasource struct {
-	SpreadSheetID  string `json:"spreadsheet_id"`
+	SpreadsheetID  string `json:"spreadsheet_id"`
 	ColumnRowIndex int    `json:"column_row_index"`
 	service        SpreadsheetService
 }
 
 // NewSpreadsheetDatasource is return SpreadsheetDatasource instance
-func NewSpreadsheetDatasource(service SpreadsheetService, spreadsheetId string, columnRowIndex int) (*SpreadsheetDatasource, error) {
+func NewSpreadsheetDatasource(service SpreadsheetService, spreadsheetID string, columnRowIndex int) (*SpreadsheetDatasource, error) {
 	if columnRowIndex < 0 {
 		return nil, fmt.Errorf("columnRowIndex is invalid value: %d", columnRowIndex)
 	}
 	return &SpreadsheetDatasource{
-		SpreadSheetID:  spreadsheetId,
+		SpreadsheetID:  spreadsheetID,
 		ColumnRowIndex: columnRowIndex,
 		service:        service,
 	}, nil
 }
 
 // NewGoogleSpreadsheetDatasource is return SpreadsheetDatasource for google instance
-func NewGoogleSpreadsheetDatasource(client *http.Client, spreadsheetId string, columnRowIndex int) (*SpreadsheetDatasource, error) {
+func NewGoogleSpreadsheetDatasource(client *http.Client, spreadsheetID string, columnRowIndex int) (*SpreadsheetDatasource, error) {
 	service, err := NewGoogleSpreadsheetService(client)
 	if err != nil {
 		return nil, err
 	}
-	return NewSpreadsheetDatasource(service, spreadsheetId, columnRowIndex)
+	return NewSpreadsheetDatasource(service, spreadsheetID, columnRowIndex)
 }
 
 // GetSchema is getting schema from spreadsheet
@@ -153,5 +153,5 @@ func (ds *SpreadsheetDatasource) SetRows(ctx context.Context, schema *Schema, ro
 }
 
 func (ds *SpreadsheetDatasource) getValues(ctx context.Context, sheetName string) ([][]interface{}, error) {
-	return ds.service.Get(ctx, ds.SpreadSheetID, sheetName)
+	return ds.service.Get(ctx, ds.SpreadsheetID, sheetName)
 }

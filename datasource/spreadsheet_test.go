@@ -32,7 +32,7 @@ func getSpreadsheetTestData() [][]interface{} {
 
 type TestSpreadsheetService struct{}
 
-func (s *TestSpreadsheetService) Get(ctx context.Context, spreadSheetId string, sheetName string) ([][]interface{}, error) {
+func (s *TestSpreadsheetService) Get(ctx context.Context, spreadsheetID string, sheetName string) ([][]interface{}, error) {
 	return getSpreadsheetTestData(), nil
 }
 
