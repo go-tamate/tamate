@@ -36,21 +36,7 @@ func (s *TestSpreadsheetService) Get(ctx context.Context, spreadsheetID string, 
 	return getSpreadsheetTestData(), nil
 }
 
-func setupSpreadsheetDatasourceTest(t *testing.T) (func(), error) {
-	encJsonKey := os.Getenv("TAMATE_SPREADSHEET_SERVICE_ACCOUNT_JSON_BASE64")
-	if encJsonKey != "" {
-		//t.Skip("env: TAMATE_SPREADSHEET_SERVICE_ACCOUNT_JSON_BASE64 not set")
-	}
-	return func() {}, nil
-}
-
 func TestSpreadsheet_Get(t *testing.T) {
-	TearDown, err := setupSpreadsheetDatasourceTest(t)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer TearDown()
-
 	ctx := context.Background()
 
 	spreadsheetValues := getSpreadsheetTestData()
