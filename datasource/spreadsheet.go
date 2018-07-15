@@ -78,7 +78,10 @@ func (ds *SpreadsheetDatasource) GetSchema(ctx context.Context, name string) (*S
 			continue
 		}
 		for colIndex := range row {
-			colName := row[colIndex].(string)
+			colName, ok := row[colIndex].(string)
+			if !ok {
+				return nil, errors.New("interface conversion: interface {} is not string")
+			}
 			// check primarykey
 			reg := regexp.MustCompile("\\((.+?)\\)")
 			if res := reg.FindStringSubmatch(colName); len(res) >= 2 {

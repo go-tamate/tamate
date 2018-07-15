@@ -57,6 +57,9 @@ func TestSpreadsheet_Get(t *testing.T) {
 
 	service := &TestSpreadsheetService{}
 	ds, err := NewSpreadsheetDatasource(service, "", TestSpreadsheetColumnRowIndex)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	sc, err := ds.GetSchema(ctx, "")
 	if err != nil {
