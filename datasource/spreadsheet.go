@@ -2,176 +2,159 @@ package datasource
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
+	"regexp"
 
 	"google.golang.org/api/sheets/v4"
 )
 
+type SpreadsheetService interface {
+	Get(ctx context.Context, spreadsheetID string, sheetName string) ([][]interface{}, error)
+}
+
+type googleSpreadsheetService struct {
+	spreadsheetService *sheets.SpreadsheetsService
+}
+
+func (s *googleSpreadsheetService) Get(ctx context.Context, spreadsheetID string, sheetName string) ([][]interface{}, error) {
+	valueRange, err := s.spreadsheetService.Values.Get(spreadsheetID, sheetName).Context(ctx).Do()
+	if err != nil {
+		return nil, err
+	}
+	return valueRange.Values, nil
+}
+
+func NewGoogleSpreadsheetService(c *http.Client) (SpreadsheetService, error) {
+	service, err := sheets.New(c)
+	if err != nil {
+		return nil, err
+	}
+	return &googleSpreadsheetService{
+		spreadsheetService: service.Spreadsheets,
+	}, nil
+}
+
 type SpreadsheetDatasource struct {
 	SpreadsheetID  string `json:"spreadsheet_id"`
 	ColumnRowIndex int    `json:"column_row_index"`
-	sheetService   *sheets.Service
+	service        SpreadsheetService
 }
 
-func NewSpreadsheetDatasource(client *http.Client, spreadsheetID string, columnRowIndex int) (*SpreadsheetDatasource, error) {
-	ss, err := sheets.New(client)
-	if err != nil {
-		return nil, err
+// NewSpreadsheetDatasource is return SpreadsheetDatasource instance
+func NewSpreadsheetDatasource(service SpreadsheetService, spreadsheetID string, columnRowIndex int) (*SpreadsheetDatasource, error) {
+	if columnRowIndex < 0 {
+		return nil, fmt.Errorf("columnRowIndex is invalid value: %d", columnRowIndex)
 	}
 	return &SpreadsheetDatasource{
 		SpreadsheetID:  spreadsheetID,
 		ColumnRowIndex: columnRowIndex,
-		sheetService:   ss,
+		service:        service,
 	}, nil
 }
 
-func (ds *SpreadsheetDatasource) GetAllSchema(ctx context.Context) ([]*Schema, error) {
-	var schemas []*Schema
-	spreadsheet, err := ds.sheetService.Spreadsheets.Get(ds.SpreadsheetID).Do()
+// NewGoogleSpreadsheetDatasource is return SpreadsheetDatasource for google instance
+func NewGoogleSpreadsheetDatasource(client *http.Client, spreadsheetID string, columnRowIndex int) (*SpreadsheetDatasource, error) {
+	service, err := NewGoogleSpreadsheetService(client)
 	if err != nil {
 		return nil, err
 	}
-	for _, sheet := range spreadsheet.Sheets {
-		if sheet.Properties.Hidden {
-			// ignore hidden sheet
-			continue
-		}
-		sheetName := sheet.Properties.Title
-		schema, err := ds.GetSchema(ctx, sheetName)
-		if err != nil {
-			return nil, err
-		}
-		// when not define schema row
-		if schema == nil {
-			continue
-		}
-		schemas = append(schemas, schema)
-	}
-	return schemas, nil
+	return NewSpreadsheetDatasource(service, spreadsheetID, columnRowIndex)
 }
 
+// GetSchema is getting schema from spreadsheet
 func (ds *SpreadsheetDatasource) GetSchema(ctx context.Context, name string) (*Schema, error) {
-	readRange := name
-	response, err := ds.sheetService.Spreadsheets.Values.Get(ds.SpreadsheetID, readRange).Do()
+	values, err := ds.getValues(ctx, name)
 	if err != nil {
 		return nil, err
 	}
-	for i, row := range response.Values {
-		if i == ds.ColumnRowIndex {
-			columns := make([]*Column, len(row))
-			for i := range row {
-				columns[i] = &Column{
-					Name: row[i].(string),
-					Type: ColumnTypeString,
-				}
-			}
-			pk, err := choosePrimaryKey(columns)
-			if err != nil {
-				return nil, err
-			}
-			return &Schema{
-				Name:       name,
-				Columns:    columns,
-				PrimaryKey: pk,
-			}, nil
-		}
+	primaryKey := &Key{
+		KeyType: KeyTypePrimary,
 	}
-	return nil, nil
-}
-
-func choosePrimaryKey(columns []*Column) (*Key, error) {
-	// TODO: primary key choosing algorightm for spreadsheet
-	return &Key{
-		KeyType:     KeyTypePrimary,
-		ColumnNames: []string{columns[0].Name},
+	cols := make([]*Column, 0)
+	for rowIndex, row := range values {
+		if rowIndex != ds.ColumnRowIndex {
+			continue
+		}
+		for colIndex := range row {
+			colName, ok := row[colIndex].(string)
+			if !ok {
+				return nil, errors.New("interface conversion: interface {} is not string")
+			}
+			// check primarykey
+			reg := regexp.MustCompile("\\((.+?)\\)")
+			if res := reg.FindStringSubmatch(colName); len(res) >= 2 {
+				colName = res[1]
+				primaryKey.ColumnNames = append(primaryKey.ColumnNames, colName)
+			}
+			cols = append(cols, &Column{
+				Name:            colName,
+				OrdinalPosition: colIndex,
+				Type:            ColumnTypeString,
+			})
+		}
+		break
+	}
+	return &Schema{
+		Name:       name,
+		PrimaryKey: primaryKey,
+		Columns:    cols,
 	}, nil
 }
 
-// SetSchema is set schema method
-func (ds *SpreadsheetDatasource) SetSchema(ctx context.Context, schema *Schema) error {
-	schemaValue := make([]interface{}, len(schema.Columns))
-	for i := range schema.Columns {
-		schemaValue[i] = schema.Columns[i].Name
-	}
-	valueRange := &sheets.ValueRange{
-		MajorDimension: "ROWS",
-		Values:         [][]interface{}{schemaValue},
-	}
-
-	writeRange := schema.Name
-	if _, err := ds.sheetService.Spreadsheets.Values.Update(ds.SpreadsheetID, writeRange, valueRange).ValueInputOption("USER_ENTERED").Do(); err != nil {
-		return err
-	}
-	return nil
-}
-
-// GetRows is get rows method
+// GetRows is getting rows from spreadsheet
 func (ds *SpreadsheetDatasource) GetRows(ctx context.Context, schema *Schema) ([]*Row, error) {
-	readRange := schema.Name
-	response, err := ds.sheetService.Spreadsheets.Values.Get(ds.SpreadsheetID, readRange).Do()
+	values, err := ds.getValues(ctx, schema.Name)
 	if err != nil {
 		return nil, err
 	}
-	var rows []*Row
-	for i, sr := range response.Values {
-		if i == ds.ColumnRowIndex {
-			continue
+	if len(values) > ds.ColumnRowIndex {
+		valuesWithoutColumn := make([][]interface{}, len(values)-1)
+		for rowIndex, row := range values {
+			if rowIndex < ds.ColumnRowIndex {
+				valuesWithoutColumn[rowIndex] = row
+			} else if rowIndex > ds.ColumnRowIndex {
+				valuesWithoutColumn[rowIndex-1] = row
+			}
 		}
-		rowValues := make(RowValues)
-		rowValuesGroupByKey := make(GroupByKey)
-		// TODO: correct order?
-		for i, col := range schema.Columns {
-			srt, ok := sr[i].(string)
-			if !ok {
-				return nil, fmt.Errorf("cannot convert spreadsheet value to string: %+v", sr[i])
-			}
-			// 空文字は NULL とみなす
-			var cv *GenericColumnValue
-			if srt == "" {
-				cv = &GenericColumnValue{Column: col, Value: nil}
+		values = valuesWithoutColumn
+	}
+	rows := make([]*Row, len(values))
+	for rowIndex, row := range values {
+		rowValues := make(RowValues, len(schema.Columns))
+		groupByKey := make(GroupByKey)
+		for colIndex, col := range schema.Columns {
+			var colValue *GenericColumnValue
+			if colIndex < len(row) {
+				colValue = NewStringGenericColumnValue(col, row[colIndex].(string))
 			} else {
-				cv = &GenericColumnValue{Column: col, Value: srt}
+				colValue = NewStringGenericColumnValue(col, "")
 			}
-			rowValues[col.Name] = cv
-			for _, name := range schema.PrimaryKey.ColumnNames {
-				if name == col.Name {
-					rowValuesGroupByKey[schema.PrimaryKey.String()] = append(rowValuesGroupByKey[schema.PrimaryKey.String()], cv)
+			rowValues[col.Name] = colValue
+			// grouping primarykey
+			for i := range schema.PrimaryKey.ColumnNames {
+				if schema.PrimaryKey.ColumnNames[i] == col.Name {
+					key := schema.PrimaryKey.String()
+					groupByKey[key] = append(groupByKey[key], colValue)
 				}
 			}
 		}
-		rows = append(rows, &Row{rowValuesGroupByKey, rowValues})
+		rows[rowIndex] = &Row{GroupByKey: groupByKey, Values: rowValues}
 	}
 	return rows, nil
 }
 
+// SetSchema is set schema method
+func (ds *SpreadsheetDatasource) SetSchema(ctx context.Context, schema *Schema) error {
+	return errors.New("feature support")
+}
+
 // SetRows is set rows method
 func (ds *SpreadsheetDatasource) SetRows(ctx context.Context, schema *Schema, rows []*Row) error {
-	sheetRows := make([][]interface{}, len(rows))
-	colLen := len(schema.Columns)
+	return errors.New("feature support")
+}
 
-	ri := 0
-	for si := 0; si < len(rows)+1; si++ {
-		sheetRow := make([]interface{}, colLen)
-		for k, cn := range schema.GetColumnNames() {
-			if si == ds.ColumnRowIndex {
-				sheetRow[k] = cn
-			} else {
-				sheetRow[k] = rows[ri].Values[cn].StringValue()
-				ri++
-			}
-		}
-		sheetRows = append(sheetRows, sheetRow)
-	}
-
-	valueRange := &sheets.ValueRange{
-		MajorDimension: "ROWS",
-		Values:         sheetRows,
-	}
-
-	writeRange := schema.Name
-	if _, err := ds.sheetService.Spreadsheets.Values.Update(ds.SpreadsheetID, writeRange, valueRange).ValueInputOption("USER_ENTERED").Do(); err != nil {
-		return err
-	}
-	return nil
+func (ds *SpreadsheetDatasource) getValues(ctx context.Context, sheetName string) ([][]interface{}, error) {
+	return ds.service.Get(ctx, ds.SpreadsheetID, sheetName)
 }

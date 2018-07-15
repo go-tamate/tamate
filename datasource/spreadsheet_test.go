@@ -3,13 +3,113 @@ package datasource
 import (
 	"context"
 	"encoding/base64"
-	"golang.org/x/oauth2/google"
 	"net/http"
 	"os"
-	"strings"
 	"testing"
-	"time"
+
+	"golang.org/x/oauth2/google"
 )
+
+const (
+	TestSpreadsheetColumnRowIndex = 0
+)
+
+const (
+	TestSpreadsheetIndexID = iota
+	TestSpreadsheetIndexName
+	TestSpreadsheetIndexAge
+)
+
+func getSpreadsheetTestData() [][]interface{} {
+	return [][]interface{}{
+		[]interface{}{"(id)", "name", "age"},
+		[]interface{}{"1", "hana", "16"},
+		[]interface{}{"2", "tamate", "15"},
+		[]interface{}{"3", "kamuri", "15"},
+		[]interface{}{"4", "eiko", "15"},
+	}
+}
+
+type TestSpreadsheetService struct{}
+
+func (s *TestSpreadsheetService) Get(ctx context.Context, spreadsheetID string, sheetName string) ([][]interface{}, error) {
+	return getSpreadsheetTestData(), nil
+}
+
+func TestSpreadsheet_Get(t *testing.T) {
+	ctx := context.Background()
+
+	spreadsheetValues := getSpreadsheetTestData()
+
+	service := &TestSpreadsheetService{}
+	ds, err := NewSpreadsheetDatasource(service, "", TestSpreadsheetColumnRowIndex)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sc, err := ds.GetSchema(ctx, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sc.Columns[TestSpreadsheetIndexID].Name != "id" {
+		t.Fatalf("sc.Columns[%d].Name must be %+v, but actual: %+v", TestSpreadsheetIndexID, "id", sc.Columns[TestSpreadsheetIndexID].Name)
+	}
+	if sc.Columns[TestSpreadsheetIndexName].Name != "name" {
+		t.Fatalf("sc.Columns[%d].Name must be %+v, but actual: %+v", TestSpreadsheetIndexName, "name", sc.Columns[TestSpreadsheetIndexName].Name)
+	}
+	if sc.Columns[TestSpreadsheetIndexAge].Name != "age" {
+		t.Fatalf("sc.Columns[%d].Name must be %+v, but actual: %+v", TestSpreadsheetIndexAge, "age", sc.Columns[TestSpreadsheetIndexAge].Name)
+	}
+
+	rows, err := ds.GetRows(ctx, sc)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for i, row := range rows {
+		index := i
+		if index >= ds.ColumnRowIndex {
+			index++
+		}
+		if row.Values["id"].Value != spreadsheetValues[index][TestSpreadsheetIndexID] {
+			t.Fatalf("rows[%d].Values['id'] must be %+v, but actual: %+v", i, row.Values["id"].Value, spreadsheetValues[index][TestSpreadsheetIndexID])
+		}
+		if row.Values["name"].Value != spreadsheetValues[index][TestSpreadsheetIndexName] {
+			t.Fatalf("rows[%d].Values['name'] must be %+v, but actual: %+v", i, row.Values["name"].Value, spreadsheetValues[index][TestSpreadsheetIndexName])
+		}
+		if row.Values["age"].Value != spreadsheetValues[index][TestSpreadsheetIndexAge] {
+			t.Fatalf("rows[%d].Values['age'] must be %+v, but actual: %+v", i, row.Values["age"].Value, spreadsheetValues[index][TestSpreadsheetIndexAge])
+		}
+	}
+}
+
+func TestSpreadsheet_Connect(t *testing.T) {
+	ctx := context.Background()
+	client, err := getSpreadsheetClient(ctx, t)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sheetID := os.Getenv("TAMATE_TEST_SPREADSHEET_SHEET_ID")
+	sheetName := os.Getenv("TAMATE_TEST_SPREADSHEET_SHEET_NAME")
+	if sheetID == "" {
+		t.Skip("env: TAMATE_TEST_SPREADSHEET_SHEET_ID not set")
+	}
+	if sheetName == "" {
+		t.Skip("env: TAMATE_TEST_SPREADSHEET_SHEET_NAME not set")
+	}
+	ds, err := NewGoogleSpreadsheetDatasource(client, sheetID, TestSpreadsheetColumnRowIndex)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sc, err := ds.GetSchema(ctx, sheetName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ds.GetRows(ctx, sc); err != nil {
+		t.Fatal(err)
+	}
+}
 
 func newServiceAccountClient(ctx context.Context, jsonKey []byte) (*http.Client, error) {
 	conf, err := google.JWTConfigFromJSON(jsonKey, "https://www.googleapis.com/auth/spreadsheets")
@@ -17,28 +117,6 @@ func newServiceAccountClient(ctx context.Context, jsonKey []byte) (*http.Client,
 		return nil, err
 	}
 	return conf.Client(ctx), nil
-}
-
-const (
-	testSpreadsheetID        = "1txJ42ua9uGqJYFO8ann-_A9v_jdowCA1pr6pbchRFvY"
-	testSpreadsheetTableName = "Test"
-	testSpreadsheetRowCount  = 100
-)
-
-func spreadsheetTestCase(t *testing.T, fun func(*SpreadsheetDatasource) error) {
-	ctx := context.Background()
-	client, err := getSpreadsheetClient(ctx, t)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	ds, err := NewSpreadsheetDatasource(client, testSpreadsheetID, 0)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := fun(ds); err != nil {
-		t.Fatal(err)
-	}
 }
 
 func getSpreadsheetClient(ctx context.Context, t *testing.T) (*http.Client, error) {
@@ -52,48 +130,4 @@ func getSpreadsheetClient(ctx context.Context, t *testing.T) (*http.Client, erro
 		return nil, err
 	}
 	return newServiceAccountClient(ctx, jsonKey)
-}
-
-func TestSpreadsheet_Get(t *testing.T) {
-	spreadsheetTestCase(t, func(ds *SpreadsheetDatasource) error {
-		ctx := context.Background()
-		sc, err := ds.GetSchema(ctx, testSpreadsheetTableName)
-		if err != nil {
-			return err
-		}
-
-		t.Logf("Schema: %+v", sc)
-
-		rows, err := ds.GetRows(ctx, sc)
-		if err != nil {
-			return err
-		}
-
-		actualRowCount := 0
-		for _, row := range rows {
-			if !strings.HasPrefix(row.Values["ID"].StringValue(), "ID") {
-				t.Fatalf("ID must have prefix: ID, but actual: %+v.", row.Values["ID"].Value)
-			}
-			if !strings.HasPrefix(row.Values["StringTest"].StringValue(), "testString") {
-				t.Fatalf("StringTest must have prefix: testString, but actual: %+v.", row.Values["StringTest"].Value)
-			}
-			if row.Values["AlwaysNullStringTest"].Value != nil {
-				t.Fatalf("AlwaysNullStringTest must be nil, but actual: %+v.", row.Values["AlwaysNullStringTest"].Value)
-			}
-			if row.Values["IntTest"].Value != "123456" {
-				t.Fatalf("IntTest value must be '123456', but actual: %+v.", row.Values["IntTest"].Value)
-			}
-			if _, err := time.Parse("2006/01/02", row.Values["DateTest"].StringValue()); err != nil {
-				t.Fatalf("DateTest value must be yyyy-mm-dd format, but actual: %+v.", row.Values["DateTest"].Value)
-			}
-			if row.Values["Int64ArrayTest"].Value != "123,456,-789" {
-				t.Fatalf("Int64ArrayTest must be '123,456,-789', but actual: %+v.", row.Values["Int64ArrayTest"].Value)
-			}
-			actualRowCount++
-		}
-		if actualRowCount != testSpreadsheetRowCount {
-			t.Fatalf("spreadsheet rowCount must be %d, but actual: %d.", testSpreadsheetRowCount, actualRowCount)
-		}
-		return nil
-	})
 }
