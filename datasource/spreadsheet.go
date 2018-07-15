@@ -26,7 +26,7 @@ func (s *googleSpreadsheetService) Get(ctx context.Context, spreadsheetID string
 	return valueRange.Values, nil
 }
 
-func NewGoogleSpreadsheetService(c *http.Client) (SpreadsheetService, error) {
+func newGoogleSpreadsheetService(c *http.Client) (SpreadsheetService, error) {
 	service, err := sheets.New(c)
 	if err != nil {
 		return nil, err
@@ -56,7 +56,7 @@ func NewSpreadsheetDatasource(service SpreadsheetService, spreadsheetID string, 
 
 // NewGoogleSpreadsheetDatasource is return SpreadsheetDatasource for google instance
 func NewGoogleSpreadsheetDatasource(client *http.Client, spreadsheetID string, columnRowIndex int) (*SpreadsheetDatasource, error) {
-	service, err := NewGoogleSpreadsheetService(client)
+	service, err := newGoogleSpreadsheetService(client)
 	if err != nil {
 		return nil, err
 	}
