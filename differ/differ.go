@@ -192,14 +192,14 @@ func (d *Differ) isSameRow(left, right *datasource.Row) (bool, error) {
 		if !rhas {
 			return false, nil
 		}
-		if equal, err := d.valueEqual(lval, rval); !equal || err != nil {
+		if equal, err := d.ValueEqual(lval, rval); !equal || err != nil {
 			return false, err
 		}
 	}
 	return true, nil
 }
 
-func (d *Differ) valueEqual(lv, rv *datasource.GenericColumnValue) (bool, error) {
+func (d *Differ) ValueEqual(lv, rv *datasource.GenericColumnValue) (bool, error) {
 	if cmp, has := d.comparatorMap[lv.Column.Type]; has {
 		return cmp.Equal(lv.Column, lv, rv)
 	}
