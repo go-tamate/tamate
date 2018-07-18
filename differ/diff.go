@@ -7,35 +7,17 @@ import (
 )
 
 type Diff struct {
-	Schema      *datasource.Schema
-	DiffColumns *DiffColumns
-	DiffRows    *DiffRows
+	Schema      *datasource.Schema `json:"schema"`
+	DiffColumns *DiffColumns       `json:"diff_columns"`
+	DiffRows    *DiffRows          `json:"diff_rows"`
 }
 
 func (d *Diff) ExportJSON() ([]byte, error) {
-	v := struct {
-		Schema      *datasource.Schema `json:"schema"`
-		DiffColumns *DiffColumns       `json:"diff_columns"`
-		DIffRows    *DiffRows          `json:"diff_rows"`
-	}{
-		Schema:      d.Schema,
-		DiffColumns: d.DiffColumns,
-		DIffRows:    d.DiffRows,
-	}
-	return json.Marshal(v)
+	return json.Marshal(d)
 }
 
 func (d *Diff) ExportPrettyJSON() ([]byte, error) {
-	v := struct {
-		Schema      *datasource.Schema `json:"schema"`
-		DiffColumns *DiffColumns       `json:"diff_columns"`
-		DIffRows    *DiffRows          `json:"diff_rows"`
-	}{
-		Schema:      d.Schema,
-		DiffColumns: d.DiffColumns,
-		DIffRows:    d.DiffRows,
-	}
-	return json.MarshalIndent(v, "", "  ")
+	return json.MarshalIndent(d, "", "  ")
 }
 
 func (d *Diff) ExportSQL() ([]byte, error) {
