@@ -110,11 +110,11 @@ func isSameColumn(left, right *datasource.Column) bool {
  */
 
 func (d *Differ) DiffRows(schema *datasource.Schema, leftRows, rightRows []*datasource.Row) (*DiffRows, error) {
-	lmap, err := rowsToPrimaryKeyMap(schema, leftRows)
+	lmap, err := RowsToPrimaryKeyMap(schema, leftRows)
 	if err != nil {
 		return nil, err
 	}
-	rmap, err := rowsToPrimaryKeyMap(schema, rightRows)
+	rmap, err := RowsToPrimaryKeyMap(schema, rightRows)
 	if err != nil {
 		return nil, err
 	}
@@ -133,7 +133,7 @@ func (d *Differ) DiffRows(schema *datasource.Schema, leftRows, rightRows []*data
 				continue
 			}
 			if i == 0 { // only once
-				same, err := d.isSameRow(lrow, rrow)
+				same, err := d.IsSameRow(lrow, rrow)
 				if err != nil {
 					return nil, err
 				}
