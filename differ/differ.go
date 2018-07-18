@@ -150,7 +150,7 @@ func (d *Differ) DiffRows(schema *datasource.Schema, leftRows, rightRows []*data
 	return diff, nil
 }
 
-func rowsToPrimaryKeyMap(schema *datasource.Schema, rows []*datasource.Row) (map[string]*datasource.Row, error) {
+func RowsToPrimaryKeyMap(schema *datasource.Schema, rows []*datasource.Row) (map[string]*datasource.Row, error) {
 	primaryKeyString := schema.PrimaryKey.String()
 	primaryKeyMap := make(map[string]*datasource.Row, len(rows))
 	for _, row := range rows {
@@ -186,7 +186,7 @@ func rowsToPrimaryKeyMap(schema *datasource.Schema, rows []*datasource.Row) (map
 	return primaryKeyMap, nil
 }
 
-func (d *Differ) isSameRow(left, right *datasource.Row) (bool, error) {
+func (d *Differ) IsSameRow(left, right *datasource.Row) (bool, error) {
 	for cn, lval := range left.Values {
 		rval, rhas := right.Values[cn]
 		if !rhas {
