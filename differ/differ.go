@@ -99,7 +99,6 @@ func columnsToNameMap(cols []*datasource.Column) (map[string]*datasource.Column,
 
 func isSameColumn(left, right *datasource.Column) bool {
 	return left.Name == right.Name &&
-		left.OrdinalPosition == right.OrdinalPosition &&
 		left.Type == right.Type &&
 		left.NotNull == right.NotNull &&
 		left.AutoIncrement == right.AutoIncrement
