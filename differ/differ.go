@@ -19,7 +19,8 @@ type DiffRows struct {
 }
 
 type Differ struct {
-	comparatorMap map[datasource.ColumnType]ValueComparator
+	comparatorMap     map[datasource.ColumnType]ValueComparator
+	ignoreColumnNames []string
 }
 
 func createDefaultComparatorMap() map[datasource.ColumnType]ValueComparator {
@@ -33,7 +34,7 @@ func createDefaultComparatorMap() map[datasource.ColumnType]ValueComparator {
 	cm[datasource.ColumnTypeFloat] = &asStringComparator{}
 	cm[datasource.ColumnTypeDate] = &asStringComparator{}
 
-	// @todo Implement type optimized comparator
+	// TODO: Implement type optimized comparator
 	cm[datasource.ColumnTypeStringArray] = &asStringComparator{}
 	cm[datasource.ColumnTypeBytesArray] = &asStringComparator{}
 	cm[datasource.ColumnTypeFloatArray] = &asStringComparator{}
@@ -45,9 +46,24 @@ func createDefaultComparatorMap() map[datasource.ColumnType]ValueComparator {
 	return cm
 }
 
-func NewDiffer() (*Differ, error) {
-	d := &Differ{comparatorMap: createDefaultComparatorMap()}
+func NewDiffer(opts ...Option) (*Differ, error) {
+	d := &Differ{
+		comparatorMap:     createDefaultComparatorMap(),
+		ignoreColumnNames: make([]string, 0),
+	}
+	for _, opt := range opts {
+		opt(d)
+	}
 	return d, nil
+}
+
+func (d *Differ) shouldIgnore(colName string) bool {
+	for _, ignoreColName := range d.ignoreColumnNames {
+		if ignoreColName == colName {
+			return true
+		}
+	}
+	return false
 }
 
 /*
@@ -72,6 +88,9 @@ func (d *Differ) DiffColumns(left, right *datasource.Schema) (*DiffColumns, erro
 	rdiff := &diff.Right
 	for i := 0; i < 2; i++ {
 		for lcn, lcol := range lmap {
+			if d.shouldIgnore(lcn) {
+				continue
+			}
 			rcol, rhas := rmap[lcn]
 			if !rhas {
 				*ldiff = append(*ldiff, lcol)
@@ -187,6 +206,9 @@ func RowsToPrimaryKeyMap(schema *datasource.Schema, rows []*datasource.Row) (map
 
 func (d *Differ) IsSameRow(left, right *datasource.Row) (bool, error) {
 	for cn, lval := range left.Values {
+		if d.shouldIgnore(cn) {
+			continue
+		}
 		rval, rhas := right.Values[cn]
 		if !rhas {
 			return false, nil
@@ -203,4 +225,9 @@ func (d *Differ) ValueEqual(lv, rv *datasource.GenericColumnValue) (bool, error)
 		return cmp.Equal(lv.Column, lv, rv)
 	}
 	return lv.Value == rv.Value, nil
+}
+
+func (d *Differ) SetIgnoreColumnName(name string) error {
+	d.ignoreColumnNames = append(d.ignoreColumnNames, name)
+	return nil
 }
