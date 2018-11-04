@@ -6,26 +6,28 @@
 
 [![CircleCI](https://circleci.com/gh/Mitu217/tamate.svg?style=svg)](https://circleci.com/gh/Mitu217/tamate)
 
-Reading and Getting diffs between table-based data (CSV, SQL, Google Spreadsheets, etc...)
+Getting diffs between table-based data.
 
-## Install
+![Summary](https://user-images.githubusercontent.com/3307063/47960958-54827080-e045-11e8-9aaf-6831dbc1cedf.png)
+
+## Installation
 
 ```sh
-go get github.com/Mitu217/tamate/...
+$ go get -u github.com/Mitu217/tamate
 ```
-
-## Usage
 
 ## Contribution
 
-### Requirements for development
+## Development
+
+### Requirements
 
 - [dep](https://github.com/golang/dep)
 
 ### Getting started
 
 ```sh
-go get github.com/Mitu217/tamate/...
+go get github.com/Mitu217/tamate
 cd $GOPATH/src/github.com/Mitu217/tamate
 dep ensure
 
