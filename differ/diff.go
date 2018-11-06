@@ -12,6 +12,10 @@ type Diff struct {
 	DiffRows    *DiffRows          `json:"diff_rows"`
 }
 
+func (d *Diff) HasDiff() bool {
+	return d.DiffColumns.HasDiff() || d.DiffRows.HasDiff()
+}
+
 func (d *Diff) ExportJSON() ([]byte, error) {
 	return json.Marshal(d)
 }
