@@ -13,9 +13,17 @@ type DiffColumns struct {
 	Right []*datasource.Column `json:"right"`
 }
 
+func (dc *DiffColumns) HasDiff() bool {
+	return len(dc.Left) > 0 || len(dc.Right) > 0
+}
+
 type DiffRows struct {
 	Left  []*datasource.Row `json:"left"`
 	Right []*datasource.Row `json:"right"`
+}
+
+func (dr *DiffRows) HasDiff() bool {
+	return len(dr.Left) > 0 || len(dr.Right) > 0
 }
 
 type Differ struct {
