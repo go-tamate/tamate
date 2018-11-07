@@ -196,7 +196,7 @@ func mysqlColumnTypeToValueType(ct string) (ColumnType, error) {
 	if strings.HasPrefix(ct, "blob") {
 		return ColumnTypeBytes, nil
 	}
-	return ColumnTypeNull, fmt.Errorf("convertion not found for MySQL type: %s", ct)
+	return ColumnTypeNull, fmt.Errorf("conversion not found for MySQL type: %s", ct)
 }
 
 func colToMySQLType(c *Column) reflect.Type {

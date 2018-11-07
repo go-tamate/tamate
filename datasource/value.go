@@ -10,7 +10,7 @@ import (
 	"github.com/araddon/dateparse"
 )
 
-// TOOD: rename GenericRowValue?
+// TODO: rename GenericRowValue?
 type GenericColumnValue struct {
 	Column *Column
 	Value  interface{}
