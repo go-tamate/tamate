@@ -5,7 +5,6 @@ import (
 )
 
 type Diff struct {
-	Schema      *datasource.Schema
 	DiffColumns *DiffColumns
 	DiffRows    *DiffRows
 }
