@@ -2,30 +2,9 @@ package differ
 
 import (
 	"encoding/json"
-	"fmt"
-	"sort"
-	"strings"
 
 	"github.com/Mitu217/tamate/datasource"
 )
-
-type DiffColumns struct {
-	Left  []*datasource.Column `json:"left"`
-	Right []*datasource.Column `json:"right"`
-}
-
-func (dc *DiffColumns) HasDiff() bool {
-	return len(dc.Left) > 0 || len(dc.Right) > 0
-}
-
-type DiffRows struct {
-	Left  []*datasource.Row `json:"left"`
-	Right []*datasource.Row `json:"right"`
-}
-
-func (dr *DiffRows) HasDiff() bool {
-	return len(dr.Left) > 0 || len(dr.Right) > 0
-}
 
 type Diff struct {
 	Schema      *datasource.Schema `json:"schema"`
@@ -46,215 +25,55 @@ func (d *Diff) ExportPrettyJSON() ([]byte, error) {
 }
 
 type Differ struct {
-	comparatorMap     map[datasource.ColumnType]ValueComparator
-	ignoreColumnNames []string
-}
-
-func createDefaultComparatorMap() map[datasource.ColumnType]ValueComparator {
-	cm := make(map[datasource.ColumnType]ValueComparator)
-	cm[datasource.ColumnTypeDatetime] = &datetimeComparator{}
-	cm[datasource.ColumnTypeBool] = &boolComparator{}
-	cm[datasource.ColumnTypeBytes] = &bytesComparator{}
-
-	cm[datasource.ColumnTypeString] = &asStringComparator{}
-	cm[datasource.ColumnTypeInt] = &asStringComparator{}
-	cm[datasource.ColumnTypeFloat] = &asStringComparator{}
-	cm[datasource.ColumnTypeDate] = &asStringComparator{}
-
-	// TODO: Implement type optimized comparator
-	cm[datasource.ColumnTypeStringArray] = &asStringComparator{}
-	cm[datasource.ColumnTypeBytesArray] = &asStringComparator{}
-	cm[datasource.ColumnTypeFloatArray] = &asStringComparator{}
-	cm[datasource.ColumnTypeIntArray] = &asStringComparator{}
-	cm[datasource.ColumnTypeDateArray] = &asStringComparator{}
-	cm[datasource.ColumnTypeDatetimeArray] = &asStringComparator{}
-	cm[datasource.ColumnTypeBoolArray] = &asStringComparator{}
-
-	return cm
+	column *columnDiffer
+	row    *rowDiffer
 }
 
 func NewDiffer(opts ...Option) (*Differ, error) {
-	d := &Differ{
-		comparatorMap:     createDefaultComparatorMap(),
-		ignoreColumnNames: make([]string, 0),
+	colDiffer, err := newColumnDiffer()
+	if err != nil {
+		return nil, err
 	}
+	rowDiffer, err := newRowDiffer()
+	if err != nil {
+		return nil, err
+	}
+	d := &Differ{
+		column: colDiffer,
+		row:    rowDiffer,
+	}
+
 	for _, opt := range opts {
 		opt(d)
 	}
 	return d, nil
 }
 
-func (d *Differ) shouldIgnore(colName string) bool {
-	for _, ignoreColName := range d.ignoreColumnNames {
-		if ignoreColName == colName {
-			return true
-		}
-	}
-	return false
-}
-
-/*
- * Columns
- */
-
-func (d *Differ) DiffColumns(left, right *datasource.Schema) (*DiffColumns, error) {
-	lmap, err := columnsToNameMap(left.Columns)
-	if err != nil {
-		return nil, err
-	}
-	rmap, err := columnsToNameMap(right.Columns)
-	if err != nil {
-		return nil, err
-	}
-
-	diff := &DiffColumns{
-		Left:  make([]*datasource.Column, 0),
-		Right: make([]*datasource.Column, 0),
-	}
-	ldiff := &diff.Left
-	rdiff := &diff.Right
-	for i := 0; i < 2; i++ {
-		for lcn, lcol := range lmap {
-			if d.shouldIgnore(lcn) {
-				continue
-			}
-			rcol, rhas := rmap[lcn]
-			if !rhas {
-				*ldiff = append(*ldiff, lcol)
-				continue
-			}
-			if i == 0 && !isSameColumn(lcol, rcol) {
-				*ldiff = append(*ldiff, lcol)
-				*rdiff = append(*rdiff, rcol)
-			}
-		}
-		// swap ref to (left/right)
-		lmap, rmap = rmap, lmap
-		ldiff, rdiff = rdiff, ldiff
-	}
-	return diff, nil
-}
-
-func columnsToNameMap(cols []*datasource.Column) (map[string]*datasource.Column, error) {
-	colMap := make(map[string]*datasource.Column, len(cols))
-	for _, col := range cols {
-		colMap[col.Name] = col
-	}
-	return colMap, nil
-}
-
-func isSameColumn(left, right *datasource.Column) bool {
-	return left.Name == right.Name &&
-		left.Type == right.Type &&
-		left.NotNull == right.NotNull &&
-		left.AutoIncrement == right.AutoIncrement
-}
-
-/*
- * Rows
- */
-
-func (d *Differ) DiffRows(schema *datasource.Schema, leftRows, rightRows []*datasource.Row) (*DiffRows, error) {
-	lmap, err := RowsToPrimaryKeyMap(schema, leftRows)
-	if err != nil {
-		return nil, err
-	}
-	rmap, err := RowsToPrimaryKeyMap(schema, rightRows)
-	if err != nil {
-		return nil, err
-	}
-
-	diff := &DiffRows{
-		Left:  make([]*datasource.Row, 0),
-		Right: make([]*datasource.Row, 0),
-	}
-	ldiff := &diff.Left
-	rdiff := &diff.Right
-	for i := 0; i < 2; i++ {
-		for pkv, lrow := range lmap {
-			rrow, rhas := rmap[pkv]
-			if !rhas {
-				*ldiff = append(*ldiff, lrow)
-				continue
-			}
-			if i == 0 { // only once
-				same, err := d.IsSameRow(lrow, rrow)
-				if err != nil {
-					return nil, err
-				}
-				if !same {
-					*ldiff = append(*ldiff, lrow)
-					*rdiff = append(*rdiff, rrow)
-				}
-			}
-		}
-		// swap ref to (left/right)
-		lmap, rmap = rmap, lmap
-		ldiff, rdiff = rdiff, ldiff
-	}
-	return diff, nil
-}
-
-func RowsToPrimaryKeyMap(schema *datasource.Schema, rows []*datasource.Row) (map[string]*datasource.Row, error) {
-	primaryKeyString := schema.PrimaryKey.String()
-	primaryKeyMap := make(map[string]*datasource.Row, len(rows))
-	for _, row := range rows {
-		columnValues, ok := row.GroupByKey[primaryKeyString]
-		if !ok {
-			return nil, fmt.Errorf("rows has no PK(%s) value", primaryKeyString)
-		}
-		var primaryValues []string
-		for _, columnValue := range columnValues {
-			primaryValues = append(primaryValues, columnValue.StringValue())
-		}
-		sort.Strings(primaryValues)
-		k := strings.Join(primaryValues, "_")
-
-		// completion column
-		resRow := &datasource.Row{
-			GroupByKey: row.GroupByKey,
-			Values:     make(datasource.RowValues),
-		}
-		for _, column := range schema.Columns {
-			for rowColumnName, columnValues := range row.Values {
-				if rowColumnName == column.Name {
-					resRow.Values[column.Name] = columnValues
-					break
-				}
-			}
-			if _, has := resRow.Values[column.Name]; !has {
-				resRow.Values[column.Name] = datasource.NewGenericColumnValue(column)
-			}
-		}
-		primaryKeyMap[k] = resRow
-	}
-	return primaryKeyMap, nil
-}
-
-func (d *Differ) IsSameRow(left, right *datasource.Row) (bool, error) {
-	for cn, lval := range left.Values {
-		if d.shouldIgnore(cn) {
-			continue
-		}
-		rval, rhas := right.Values[cn]
-		if !rhas {
-			return false, nil
-		}
-		if equal, err := d.ValueEqual(lval, rval); !equal || err != nil {
-			return false, err
-		}
-	}
-	return true, nil
-}
-
-func (d *Differ) ValueEqual(lv, rv *datasource.GenericColumnValue) (bool, error) {
-	if cmp, has := d.comparatorMap[lv.Column.Type]; has {
-		return cmp.Equal(lv.Column, lv, rv)
-	}
-	return lv.Value == rv.Value, nil
-}
-
-func (d *Differ) SetIgnoreColumnName(name string) error {
-	d.ignoreColumnNames = append(d.ignoreColumnNames, name)
+func (d *Differ) setIgnoreColumnName(name string) error {
+	d.column.setIgnoreColumnName(name)
+	d.row.setIgnoreColumnName(name)
 	return nil
+}
+
+func (d *Differ) Diff(schema1, schema2 *datasource.Schema, rows1, rows2 []*datasource.Row) (*Diff, error) {
+	dcols, err := d.DiffColumns(schema1, schema2)
+	if err != nil {
+		return nil, err
+	}
+	drows, err := d.DiffRows(schema1, rows1, rows2)
+	if err != nil {
+		return nil, err
+	}
+	return &Diff{
+		DiffColumns: dcols,
+		DiffRows:    drows,
+	}, nil
+}
+
+func (d *Differ) DiffColumns(schema1, schema2 *datasource.Schema) (*DiffColumns, error) {
+	return d.column.diff(schema1, schema2)
+}
+
+func (d *Differ) DiffRows(schema1 *datasource.Schema, rows1, rows2 []*datasource.Row) (*DiffRows, error) {
+	return d.row.diff(schema1, rows1, rows2)
 }
