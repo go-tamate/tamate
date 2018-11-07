@@ -37,8 +37,8 @@ func newGoogleSpreadsheetService(c *http.Client) (SpreadsheetService, error) {
 }
 
 type SpreadsheetDatasource struct {
-	SpreadsheetID  string `json:"spreadsheet_id"`
-	ColumnRowIndex int    `json:"column_row_index"`
+	SpreadsheetID  string
+	ColumnRowIndex int
 	service        SpreadsheetService
 }
 

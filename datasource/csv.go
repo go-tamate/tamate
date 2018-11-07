@@ -11,8 +11,8 @@ import (
 
 // CSVDatasource is datasource config for csv file
 type CSVDatasource struct {
-	RootPath       string `json:"root_path"`
-	ColumnRowIndex int    `json:"column_row_index"`
+	RootPath       string
+	ColumnRowIndex int
 }
 
 // NewCSVDatasource is create CSVDatasource instance

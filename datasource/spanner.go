@@ -14,7 +14,7 @@ import (
 )
 
 type SpannerDatasource struct {
-	DSN           string `json:"dsn"`
+	DSN           string
 	spannerClient *spanner.Client
 }
 

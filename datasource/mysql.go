@@ -14,7 +14,7 @@ import (
 
 // MySQLDatasource is datasource config for MySQL DB
 type MySQLDatasource struct {
-	DSN string `json:"dsn"`
+	DSN string
 	db  *sql.DB
 }
 
