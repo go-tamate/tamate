@@ -32,8 +32,8 @@ func createDefaultComparatorMap() map[datasource.ColumnType]ValueComparator {
 }
 
 type DiffRows struct {
-	Left  []*datasource.Row `json:"left"`
-	Right []*datasource.Row `json:"right"`
+	Left  []*datasource.Row
+	Right []*datasource.Row
 }
 
 func (dr *DiffRows) HasDiff() bool {

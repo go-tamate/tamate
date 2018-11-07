@@ -3,8 +3,8 @@ package differ
 import "github.com/Mitu217/tamate/datasource"
 
 type DiffColumns struct {
-	Left  []*datasource.Column `json:"left"`
-	Right []*datasource.Column `json:"right"`
+	Left  []*datasource.Column
+	Right []*datasource.Column
 }
 
 func (dc *DiffColumns) HasDiff() bool {
