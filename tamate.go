@@ -39,7 +39,6 @@ func Diff(ctx context.Context, lds, rds datasource.Datasource, leftSchemaName, r
 		return nil, err
 	}
 	return &differ.Diff{
-		Schema:      leftSchema,
 		DiffColumns: diffColumns,
 		DiffRows:    diffRows,
 	}, nil
