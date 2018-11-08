@@ -8,29 +8,6 @@ import (
 	"github.com/Mitu217/tamate/datasource"
 )
 
-func createDefaultComparatorMap() map[datasource.ColumnType]ValueComparator {
-	cm := make(map[datasource.ColumnType]ValueComparator)
-	cm[datasource.ColumnTypeDatetime] = &datetimeComparator{}
-	cm[datasource.ColumnTypeBool] = &boolComparator{}
-	cm[datasource.ColumnTypeBytes] = &bytesComparator{}
-
-	cm[datasource.ColumnTypeString] = &asStringComparator{}
-	cm[datasource.ColumnTypeInt] = &asStringComparator{}
-	cm[datasource.ColumnTypeFloat] = &asStringComparator{}
-	cm[datasource.ColumnTypeDate] = &asStringComparator{}
-
-	// TODO: Implement type optimized comparator
-	cm[datasource.ColumnTypeStringArray] = &asStringComparator{}
-	cm[datasource.ColumnTypeBytesArray] = &asStringComparator{}
-	cm[datasource.ColumnTypeFloatArray] = &asStringComparator{}
-	cm[datasource.ColumnTypeIntArray] = &asStringComparator{}
-	cm[datasource.ColumnTypeDateArray] = &asStringComparator{}
-	cm[datasource.ColumnTypeDatetimeArray] = &asStringComparator{}
-	cm[datasource.ColumnTypeBoolArray] = &asStringComparator{}
-
-	return cm
-}
-
 type DiffRows struct {
 	Left  []*datasource.Row
 	Right []*datasource.Row
@@ -41,13 +18,13 @@ func (dr *DiffRows) HasDiff() bool {
 }
 
 type rowDiffer struct {
-	comparatorMap     map[datasource.ColumnType]ValueComparator
+	comparatorMap     ComparatorMap
 	ignoreColumnNames []string
 }
 
 func newRowDiffer() (*rowDiffer, error) {
 	return &rowDiffer{
-		comparatorMap:     createDefaultComparatorMap(),
+		comparatorMap:     NewComparatorMap(),
 		ignoreColumnNames: make([]string, 0),
 	}, nil
 }
@@ -134,7 +111,7 @@ func RowsToPrimaryKeyMap(schema *datasource.Schema, rows []*datasource.Row) (map
 				}
 			}
 			if _, has := resRow.Values[column.Name]; !has {
-				resRow.Values[column.Name] = datasource.NewGenericColumnValue(column)
+				resRow.Values[column.Name] = datasource.NewGenericColumnValue(column, "")
 			}
 		}
 		primaryKeyMap[k] = resRow
@@ -158,9 +135,6 @@ func (rd *rowDiffer) IsSameRow(left, right *datasource.Row) (bool, error) {
 	return true, nil
 }
 
-func (rd *rowDiffer) ValueEqual(lv, rv *datasource.GenericColumnValue) (bool, error) {
-	if cmp, has := rd.comparatorMap[lv.Column.Type]; has {
-		return cmp.Equal(lv.Column, lv, rv)
-	}
-	return lv.Value == rv.Value, nil
+func (rd *rowDiffer) ValueEqual(lval, rval *datasource.GenericColumnValue) (bool, error) {
+	return rd.comparatorMap.Equal(lval, rval)
 }

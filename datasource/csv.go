@@ -85,7 +85,7 @@ func (ds *CSVDatasource) GetRows(ctx context.Context, schema *Schema) ([]*Row, e
 		rowValues := make(RowValues, len(schema.Columns))
 		groupByKey := make(GroupByKey)
 		for colIndex, col := range schema.Columns {
-			colValue := NewStringGenericColumnValue(col, row[colIndex])
+			colValue := NewGenericColumnValue(col, row[colIndex])
 			rowValues[col.Name] = colValue
 			// grouping primarykey
 			for i := range schema.PrimaryKey.ColumnNames {

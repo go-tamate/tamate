@@ -73,6 +73,7 @@ func TestDiffer_DiffRows_IgnoreColumnNames(t *testing.T) {
 		Columns: []*datasource.Column{
 			{Name: "id", Type: datasource.ColumnTypeString},
 			{Name: "name", Type: datasource.ColumnTypeString},
+			{Name: "old", Type: datasource.ColumnTypeString},
 		},
 		PrimaryKey: &datasource.Key{
 			KeyType:     datasource.KeyTypePrimary,

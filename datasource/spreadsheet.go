@@ -127,9 +127,9 @@ func (ds *SpreadsheetDatasource) GetRows(ctx context.Context, schema *Schema) ([
 		for colIndex, col := range schema.Columns {
 			var colValue *GenericColumnValue
 			if colIndex < len(row) {
-				colValue = NewStringGenericColumnValue(col, row[colIndex].(string))
+				colValue = NewGenericColumnValue(col, row[colIndex].(string))
 			} else {
-				colValue = NewStringGenericColumnValue(col, "")
+				colValue = NewGenericColumnValue(col, "")
 			}
 			rowValues[col.Name] = colValue
 			// grouping primarykey

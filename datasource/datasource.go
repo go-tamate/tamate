@@ -178,18 +178,10 @@ type GenericColumnValue struct {
 	Value  interface{}
 }
 
-func NewGenericColumnValue(col *Column) *GenericColumnValue {
-	switch col.Type {
-	case ColumnTypeString:
-		return NewStringGenericColumnValue(col, "")
-	}
-	return nil
-}
-
-func NewStringGenericColumnValue(col *Column, s string) *GenericColumnValue {
+func NewGenericColumnValue(column *Column, value interface{}) *GenericColumnValue {
 	return &GenericColumnValue{
-		Column: col,
-		Value:  s,
+		Column: column,
+		Value:  value,
 	}
 }
 
