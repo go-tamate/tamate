@@ -18,20 +18,9 @@ $ go get -u github.com/Mitu217/tamate
 
 ## Contribution
 
-## Development
-
-### Requirements
-
-- [dep](https://github.com/golang/dep)
-
-### Getting started
+### Run tests
 
 ```sh
-go get github.com/Mitu217/tamate
-cd $GOPATH/src/github.com/Mitu217/tamate
-dep ensure
-
-# Run unit tests
 go test ./...
 ```
 
