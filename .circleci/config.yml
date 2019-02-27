@@ -3,8 +3,9 @@ jobs:
   build:
     working_directory: /go/src/github.com/Mitu217/tamate
     docker:
-      - image: circleci/golang:1.9
+      - image: circleci/golang:1.12
         environment:
+          - GO111MODULE: "on"
           - REVIEWDOG_VERSION: 0.9.8
           - TAMATE_MYSQL_DSN: "root:example@tcp(localhost:3306)/"
       - image: circleci/mysql:5.7
@@ -13,20 +14,13 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          key: gopkg-{{ .Branch }}-{{ checksum "Gopkg.lock" }}
-          paths:
-            - /go/src/github.com/Mitu217/tamate/vendor
+          key: gomod-{{ .Branch }}-{{ checksum "go.mod" }}
       - run:
-          name: Download libraries
-          command: |
-            if [ ! -d /go/src/github.com/Mitu217/tamate/vendor ]; then
-              go get -u github.com/golang/dep/cmd/dep
-              dep ensure -v
-            fi
+          command: go mod download
       - save_cache:
-          key: gopkg-{{ .Branch }}-{{ checksum "Gopkg.lock" }}
+          key: gomod-{{ .Branch }}-{{ checksum "go.mod" }}
           paths:
-            - /go/src/github.com/Mitu217/tamate/vendor
+            - /go/pkg/mod/cache
       - run:
           name: Install linters
           command: |
