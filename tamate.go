@@ -14,19 +14,17 @@ var (
 )
 
 type DataSource struct {
-	connector driver.Connector
+	connector  driver.Connector
+	driverConn driver.Conn
+	stop       func()
 }
 
-func (ds *DataSource) Export(dataSource *DataSource) error {
-	return nil
+func (ds *DataSource) DriverConn() driver.Conn {
+	return ds.driverConn
 }
 
-func (ds *DataSource) Import(dataSource *DataSource) error {
-	return nil
-}
-
-func (ds *DataSource) Diff(datasource *DataSource) error {
-	return nil
+func (ds *DataSource) Close() error {
+	return ds.driverConn.Close()
 }
 
 func Register(name string, driver driver.Driver) {
@@ -41,6 +39,19 @@ func Register(name string, driver driver.Driver) {
 	drivers[name] = driver
 }
 
+type dsnConnector struct {
+	dsn    string
+	driver driver.Driver
+}
+
+func (c *dsnConnector) Connect(ctx context.Context) (driver.Conn, error) {
+	return c.driver.Open(ctx, c.dsn)
+}
+
+func (c *dsnConnector) Driver() driver.Driver {
+	return c.driver
+}
+
 func Open(name string, dsn string) (*DataSource, error) {
 	driversMu.RLock()
 	driveri, ok := drivers[name]
@@ -52,30 +63,20 @@ func Open(name string, dsn string) (*DataSource, error) {
 	return OpenDataSource(&dsnConnector{dsn: dsn, driver: driveri}), nil
 }
 
-type dsnConnector struct {
-	dsn    string
-	driver driver.Driver
-}
-
-func (c *dsnConnector) Connect(ctx context.Context) (driver.Conn, error) {
-	return c.driver.Open(ctx, c.dsn)
-}
-
 func OpenDataSource(connector driver.Connector) *DataSource {
-	//ctx, cancel := context.WithCancel(context.Background())
-	datasource := &DataSource{
+	ctx, cancel := context.WithCancel(context.Background())
+
+	dataSource := &DataSource{
 		connector: connector,
-		/*
-			openerCh:     make(chan struct{}, connectionRequestQueueSize),
-			resetterCh:   make(chan *driverConn, 50),
-			lastPut:      make(map[*driverConn]string),
-			connRequests: make(map[uint64]chan connRequest),
-			stop:         cancel,
-		*/
+		stop:      cancel,
 	}
 
-	//go db.connectionOpener(ctx)
-	//go db.connectionResetter(ctx)
+	// TODO: goroutine safe
+	driverConn, err := connector.Connect(ctx)
+	if err != nil {
+		panic(err)
+	}
 
-	return datasource
+	dataSource.driverConn = driverConn
+	return dataSource
 }

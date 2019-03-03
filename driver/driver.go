@@ -17,4 +17,5 @@ type Conn interface {
 
 type Connector interface {
 	Connect(context.Context) (Conn, error)
+	Driver() Driver
 }
