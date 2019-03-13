@@ -17,8 +17,8 @@ func (c *csvConn) Close() error {
 	return nil
 }
 
-func (cc *csvConn) GetSchema(ctx context.Context, fileName string) (*driver.Schema, error) {
-	values, err := readFromFile(cc.rootPath, fileName)
+func (c *csvConn) GetSchema(ctx context.Context, fileName string) (*driver.Schema, error) {
+	values, err := readFromFile(c.rootPath, fileName)
 	if err != nil {
 		return nil, err
 	}
@@ -27,7 +27,7 @@ func (cc *csvConn) GetSchema(ctx context.Context, fileName string) (*driver.Sche
 	}
 	cols := make([]*driver.Column, 0)
 	for rowIndex, row := range values {
-		if rowIndex != cc.columnRowIndex {
+		if rowIndex != c.columnRowIndex {
 			continue
 		}
 		for colIndex := range row {
@@ -53,46 +53,49 @@ func (cc *csvConn) GetSchema(ctx context.Context, fileName string) (*driver.Sche
 	}, nil
 }
 
-func (cc *csvConn) SetSchema(ctx context.Context, schema *driver.Schema) error {
+func (c *csvConn) SetSchema(ctx context.Context, name string, schema *driver.Schema) error {
 	return fmt.Errorf("feature support")
 }
 
-func (cc *csvConn) GetRows(ctx context.Context, schema *driver.Schema) ([]*driver.Row, error) {
-	values, err := readFromFile(cc.rootPath, schema.Name)
+func (c *csvConn) GetRows(ctx context.Context, name string) ([]*driver.Row, error) {
+	values, err := readFromFile(c.rootPath, name)
 	if err != nil {
 		return nil, err
 	}
-	if len(values) > cc.columnRowIndex {
+	if len(values) > c.columnRowIndex {
 		valuesWithoutColumn := make([][]string, len(values)-1)
 		for rowIndex, row := range values {
-			if rowIndex < cc.columnRowIndex {
+			if rowIndex < c.columnRowIndex {
 				valuesWithoutColumn[rowIndex] = row
-			} else if rowIndex > cc.columnRowIndex {
+			} else if rowIndex > c.columnRowIndex {
 				valuesWithoutColumn[rowIndex-1] = row
 			}
 		}
 		values = valuesWithoutColumn
 	}
-	rows := make([]*driver.Row, len(values))
-	for rowIndex, row := range values {
-		rowValues := make(driver.RowValues, len(schema.Columns))
-		groupByKey := make(driver.GroupByKey)
-		for colIndex, col := range schema.Columns {
-			colValue := driver.NewGenericColumnValue(col, row[colIndex])
-			rowValues[col.Name] = colValue
-			// grouping primarykey
-			for i := range schema.PrimaryKey.ColumnNames {
-				if schema.PrimaryKey.ColumnNames[i] == col.Name {
-					key := schema.PrimaryKey.String()
-					groupByKey[key] = append(groupByKey[key], colValue)
+	/*
+		rows := make([]*driver.Row, len(values))
+		for rowIndex, row := range values {
+			rowValues := make(driver.RowValues, len(schema.Columns))
+			groupByKey := make(driver.GroupByKey)
+			for colIndex, col := range schema.Columns {
+				colValue := driver.NewGenericColumnValue(col, row[colIndex])
+				rowValues[col.Name] = colValue
+				// grouping primarykey
+				for i := range schema.PrimaryKey.ColumnNames {
+					if schema.PrimaryKey.ColumnNames[i] == col.Name {
+						key := schema.PrimaryKey.String()
+						groupByKey[key] = append(groupByKey[key], colValue)
+					}
 				}
 			}
+			rows[rowIndex] = &driver.Row{GroupByKey: groupByKey, Values: rowValues}
 		}
-		rows[rowIndex] = &driver.Row{GroupByKey: groupByKey, Values: rowValues}
-	}
-	return rows, nil
+		return rows, nil
+	*/
+	return nil, nil
 }
 
-func (cc *csvConn) SetRows(ctx context.Context, scehma *driver.Schema, rows []*driver.Row) error {
+func (c *csvConn) SetRows(ctx context.Context, name string, rows []*driver.Row) error {
 	return fmt.Errorf("feature support")
 }

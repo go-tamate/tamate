@@ -14,7 +14,7 @@ type csvDriver struct{}
 func (ds *csvDriver) Open(ctx context.Context, dsn string) (driver.Conn, error) {
 	cc := &csvConn{
 		rootPath:       dsn,
-		columnRowIndex: 0,
+		columnRowIndex: 0, // TODO: Get from dsn
 	}
 	return cc, nil
 }

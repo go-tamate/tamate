@@ -3,7 +3,6 @@ package csv
 import (
 	"context"
 	"log"
-	"strings"
 	"testing"
 
 	"github.com/Mitu217/tamate/driver"
@@ -25,14 +24,17 @@ func Test_GetSchema(t *testing.T) {
 			(id),name,age
 		`
 	)
-	err := createCSVFile(rootDir, fileName, testData)
+	err := createFile(rootDir, fileName, testData)
 	assert.NoError(t, err)
-	defer delete(rootDir, fileName)
+	defer func() {
+		cerr := deleteFile(rootDir, fileName)
+		assert.NoError(t, cerr)
+	}()
 
 	ds, err := tamate.Open(driverName, rootDir)
 	if assert.NoError(t, err) {
 		ctx := context.Background()
-		schema, err := ds.DriverConn().GetSchema(ctx, fileName)
+		schema, err := ds.GetSchema(ctx, fileName)
 		if assert.NoError(t, err) {
 			columns := schema.Columns
 			assert.Equal(t, driver.ColumnTypeString, columns[0].Type)
@@ -61,9 +63,12 @@ func Test_SetSchema(t *testing.T) {
 			(id),name,from
 		`
 	)
-	err := createCSVFile(rootDir, fileName, beforeData)
+	err := createFile(rootDir, fileName, beforeData)
 	assert.NoError(t, err)
-	defer delete(rootDir, fileName)
+	defer func() {
+		cerr := deleteFile(rootDir, fileName)
+		assert.NoError(t, cerr)
+	}()
 
 	log.Println(afterData)
 }
@@ -77,10 +82,12 @@ func Test_GetRows(t *testing.T) {
 			1,hana,16
 		`
 	)
-	err := createCSVFile(rootDir, fileName, testData)
+	err := createFile(rootDir, fileName, testData)
 	assert.NoError(t, err)
-	defer delete(rootDir, fileName)
-
+	defer func() {
+		cerr := deleteFile(rootDir, fileName)
+		assert.NoError(t, cerr)
+	}()
 }
 
 func Test_SetRows(t *testing.T) {
@@ -96,18 +103,12 @@ func Test_SetRows(t *testing.T) {
 			1,tamate,15
 		`
 	)
-	err := createCSVFile(rootDir, fileName, beforeData)
+	err := createFile(rootDir, fileName, beforeData)
 	assert.NoError(t, err)
-	defer delete(rootDir, fileName)
+	defer func() {
+		cerr := deleteFile(rootDir, fileName)
+		assert.NoError(t, cerr)
+	}()
 
 	log.Println(afterData)
-}
-
-func createCSVFile(rootDir, fileName, data string) error {
-	r := strings.NewReader(data)
-	values, err := read(r)
-	if err != nil {
-		return err
-	}
-	return writeToFile(rootDir, fileName, values)
 }

@@ -2,10 +2,26 @@ package csv
 
 import (
 	"encoding/csv"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 )
+
+func createFile(rootDir, fileName, data string) error {
+	r := strings.NewReader(data)
+	values, err := read(r)
+	if err != nil {
+		return err
+	}
+	return writeToFile(rootDir, fileName, values)
+}
+
+func deleteFile(rootDir, fileName string) error {
+	path := joinPath(rootDir, fileName)
+	return os.Remove(path)
+}
 
 func readFromFile(rootDir, fileName string) ([][]string, error) {
 	path := joinPath(rootDir, fileName)
@@ -13,13 +29,23 @@ func readFromFile(rootDir, fileName string) ([][]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer r.Close()
+	defer func() {
+		cerr := r.Close()
+		if cerr == nil {
+			return
+		}
+		err = fmt.Errorf("Failed to close: %v, the original error was %v", cerr, err)
+	}()
 	return read(r)
 }
 
 func read(r io.Reader) ([][]string, error) {
 	reader := csv.NewReader(r)
+
+	// Set FieldsPerRecord to a negative to avoid "wrong number of fields in line" error
+	// https://golang.org/pkg/encoding/csv/
 	reader.FieldsPerRecord = -1
+
 	values, err := reader.ReadAll()
 	if err != nil {
 		return nil, err
@@ -33,17 +59,18 @@ func writeToFile(rootDir, fileName string, values [][]string) error {
 	if err != nil {
 		return err
 	}
-	defer w.Close()
+	defer func() {
+		cerr := w.Close()
+		if cerr == nil {
+			return
+		}
+		err = fmt.Errorf("Failed to close: %v, the original error was %v", cerr, err)
+	}()
 	return write(w, values)
 }
 
 func write(w io.Writer, values [][]string) error {
 	return csv.NewWriter(w).WriteAll(values)
-}
-
-func delete(rootDir, fileName string) error {
-	path := joinPath(rootDir, fileName)
-	return os.Remove(path)
 }
 
 func joinPath(rootDir, fileName string) string {
