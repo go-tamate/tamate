@@ -70,7 +70,10 @@ func TestOpen(t *testing.T) {
 	Register(driverName, driver)
 
 	ds, err := Open(driverName, dsn)
-	defer ds.Close()
+	defer func() {
+		cerr := ds.Close()
+		assert.NoError(t, cerr)
+	}()
 	if assert.NoError(t, err) {
 		// Check if it matches the registered one
 		assert.Equal(t, driver, ds.connector.Driver())
@@ -97,7 +100,10 @@ func TestGetSchema(t *testing.T) {
 
 	Register(driverName, driver)
 	ds, err := Open(driverName, dsn)
-	defer ds.Close()
+	defer func() {
+		cerr := ds.Close()
+		assert.NoError(t, cerr)
+	}()
 	if assert.NoError(t, err) {
 		schema, err := ds.GetSchema(ctx, schemaName)
 		if assert.NoError(t, err) {
@@ -124,7 +130,10 @@ func TestSetSchema(t *testing.T) {
 
 	Register(driverName, driver)
 	ds, err := Open(driverName, dsn)
-	defer ds.Close()
+	defer func() {
+		cerr := ds.Close()
+		assert.NoError(t, cerr)
+	}()
 	if assert.NoError(t, err) {
 		err := ds.SetSchema(ctx, schemaName, fakeSchema)
 		if assert.NoError(t, err) {
@@ -151,7 +160,10 @@ func TestGetRows(t *testing.T) {
 
 	Register(driverName, driver)
 	ds, err := Open(driverName, dsn)
-	defer ds.Close()
+	defer func() {
+		cerr := ds.Close()
+		assert.NoError(t, cerr)
+	}()
 	if assert.NoError(t, err) {
 		rows, err := ds.GetRows(ctx, schemaName)
 		if assert.NoError(t, err) {
@@ -176,7 +188,10 @@ func TestSetRows(t *testing.T) {
 
 	Register(driverName, driver)
 	ds, err := Open(driverName, dsn)
-	defer ds.Close()
+	defer func() {
+		cerr := ds.Close()
+		assert.NoError(t, cerr)
+	}()
 	if assert.NoError(t, err) {
 		err := ds.SetRows(ctx, schemaName, fakeRows)
 		if assert.NoError(t, err) {
