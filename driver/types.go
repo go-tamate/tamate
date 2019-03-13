@@ -3,7 +3,6 @@ package driver
 import (
 	"fmt"
 	"reflect"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -20,6 +19,13 @@ const (
 	ColumnTypeDate
 	ColumnTypeBytes
 	ColumnTypeBool
+	ColumnTypeStringArray
+	ColumnTypeIntArray
+	ColumnTypeFloatArray
+	ColumnTypeDatetimeArray
+	ColumnTypeDateArray
+	ColumnTypeBytesArray
+	ColumnTypeBoolArray
 )
 
 type ColumnType int
@@ -42,18 +48,45 @@ func (ct ColumnType) String() string {
 		return "bytes"
 	case ColumnTypeBool:
 		return "bool"
+	case ColumnTypeStringArray:
+		return "array<string>"
+	case ColumnTypeIntArray:
+		return "array<int>"
+	case ColumnTypeFloatArray:
+		return "array<float>"
+	case ColumnTypeDatetimeArray:
+		return "array<datetime>"
+	case ColumnTypeDateArray:
+		return "array<date>"
+	case ColumnTypeBytesArray:
+		return "array<bytes>"
+	case ColumnTypeBoolArray:
+		return "array<bool>"
 	default:
 		return fmt.Sprintf("<unknown type: %d>", ct)
 	}
+}
+
+func (ct ColumnType) IsArray() bool {
+	return strings.Index(ct.String(), "array") > -1
 }
 
 type Column struct {
 	Name            string
 	OrdinalPosition int
 	Type            ColumnType
-	Array           bool
 	NotNull         bool
 	AutoIncrement   bool
+}
+
+func NewColumn(name string, ordinalPosition int, columnType ColumnType, notNull bool, authIncrement bool) *Column {
+	return &Column{
+		Name:            name,
+		OrdinalPosition: ordinalPosition,
+		Type:            columnType,
+		NotNull:         notNull,
+		AutoIncrement:   authIncrement,
+	}
 }
 
 func (c *Column) String() string {
@@ -72,9 +105,14 @@ func NewGenericColumnValue(column *Column, value interface{}) *GenericColumnValu
 	}
 }
 
+// Deprecated:
 func (cv *GenericColumnValue) StringValue() string {
+	return cv.String()
+}
+
+func (cv *GenericColumnValue) String() string {
 	val := reflect.ValueOf(cv.Value)
-	if cv.Column.Array {
+	if cv.Column.Type.IsArray() {
 		kind := val.Kind()
 		if kind == reflect.Array || kind == reflect.Slice {
 			vlen := val.Len()
@@ -82,33 +120,46 @@ func (cv *GenericColumnValue) StringValue() string {
 			for i := 0; i < vlen; i++ {
 				ss[i] = fmt.Sprintf("%v", val.Index(i).Interface())
 			}
-			return strings.Join(ss, ",")
+			return "[" + strings.Join(ss, ", ") + "]"
 		}
 	}
 	return fmt.Sprintf("%v", cv.Value)
 }
 
+// Deprecated:
 func (cv *GenericColumnValue) TimeValue() (time.Time, error) {
+	return cv.Time(), nil
+}
+
+func (cv *GenericColumnValue) Time() time.Time {
 	switch cv.Value.(type) {
 	case time.Time:
-		return cv.Value.(time.Time), nil
+		return cv.Value.(time.Time)
 	default:
-		tv, err := dateparse.ParseAny(cv.StringValue())
+		tv, err := dateparse.ParseAny(cv.String())
 		if err != nil {
-			return time.Time{}, err
+			return time.Time{}
 		}
-		return tv, nil
+		return tv
 	}
 }
 
+// Deprecated:
 func (cv *GenericColumnValue) BoolValue() bool {
+	return cv.Bool()
+}
+
+func (cv *GenericColumnValue) Bool() bool {
 	switch cv.Value.(type) {
 	case bool:
 		return cv.Value.(bool)
 	default:
-		s := cv.StringValue()
+		s := cv.String()
 		if strings.ToLower(s) == "true" {
 			return true
+		}
+		if strings.ToLower(s) == "false" {
+			return false
 		}
 		num, err := strconv.Atoi(s)
 		if err == nil {
@@ -130,45 +181,9 @@ type Row struct {
 func (r *Row) String() string {
 	var sentences []string
 	for key := range r.Values {
-		sentences = append(sentences, fmt.Sprintf("%s: %+v", key, r.Values[key].StringValue()))
+		sentences = append(sentences, fmt.Sprintf("%s: %+v", key, r.Values[key].String()))
 	}
 	return "{" + strings.Join(sentences, ", ") + "}"
-}
-
-func RowsToPrimaryKeyMap(schema *Schema, rows []*Row) (map[string]*Row, error) {
-	primaryKeyString := schema.PrimaryKey.String()
-	primaryKeyMap := make(map[string]*Row, len(rows))
-	for _, row := range rows {
-		columnValues, ok := row.GroupByKey[primaryKeyString]
-		if !ok {
-			return nil, fmt.Errorf("rows has no PK(%s) value", primaryKeyString)
-		}
-		var primaryValues []string
-		for _, columnValue := range columnValues {
-			primaryValues = append(primaryValues, columnValue.StringValue())
-		}
-		sort.Strings(primaryValues)
-		k := strings.Join(primaryValues, "_")
-
-		// completion column
-		resRow := &Row{
-			GroupByKey: row.GroupByKey,
-			Values:     make(RowValues),
-		}
-		for _, column := range schema.Columns {
-			for rowColumnName, columnValues := range row.Values {
-				if rowColumnName == column.Name {
-					resRow.Values[column.Name] = columnValues
-					break
-				}
-			}
-			if _, has := resRow.Values[column.Name]; !has {
-				resRow.Values[column.Name] = NewGenericColumnValue(column, "")
-			}
-		}
-		primaryKeyMap[k] = resRow
-	}
-	return primaryKeyMap, nil
 }
 
 const (
@@ -179,13 +194,26 @@ const (
 
 type KeyType int
 
+func (kt KeyType) String() string {
+	switch kt {
+	case KeyTypePrimary:
+		return "PrimaryKey"
+	case KeyTypeUnique:
+		return "UniqueKey"
+	case KeyTypeIndex:
+		return "Index"
+	default:
+		return fmt.Sprintf("<unknown type: %d>", kt)
+	}
+}
+
 type Key struct {
 	KeyType     KeyType
 	ColumnNames []string
 }
 
 func (k *Key) String() string {
-	return fmt.Sprintf("%d:%v", k.KeyType, strings.Join(k.ColumnNames, ","))
+	return fmt.Sprintf("%s:%v", k.KeyType, strings.Join(k.ColumnNames, ","))
 }
 
 type Schema struct {
@@ -200,12 +228,4 @@ func (sc *Schema) String() string {
 		sts = append(sts, c.String())
 	}
 	return fmt.Sprintf("%s(%s) PK=(%s)", sc.Name, strings.Join(sts, ", "), sc.PrimaryKey)
-}
-
-func (sc *Schema) GetColumnNames() []string {
-	var colNames []string
-	for _, col := range sc.Columns {
-		colNames = append(colNames, col.Name)
-	}
-	return colNames
 }
