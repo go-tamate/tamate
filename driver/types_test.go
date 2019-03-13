@@ -130,7 +130,7 @@ func Test_GenericColumnValueToBool(t *testing.T) {
 
 func Test_RowToString(t *testing.T) {
 	var (
-		fakeId = &GenericColumnValue{
+		fakeID = &GenericColumnValue{
 			Column: NewColumn("id", 0, ColumnTypeInt, true, true),
 			Value:  1,
 		}
@@ -140,7 +140,7 @@ func Test_RowToString(t *testing.T) {
 		}
 		fakeRow = &Row{
 			Values: RowValues{
-				"id":   fakeId,
+				"id":   fakeID,
 				"name": fakeName,
 			},
 		}
@@ -165,12 +165,12 @@ func Test_SchemaToString(t *testing.T) {
 			KeyType:     KeyTypePrimary,
 			ColumnNames: []string{"id"},
 		}
-		fakeIdColumn   = NewColumn("id", 0, ColumnTypeInt, true, true)
+		fakeIDColumn   = NewColumn("id", 0, ColumnTypeInt, true, true)
 		fakeNameColumn = NewColumn("name", 1, ColumnTypeString, true, false)
 		fakeSchema     = &Schema{
 			Name:       "Class",
 			PrimaryKey: fakePK,
-			Columns:    []*Column{fakeIdColumn, fakeNameColumn},
+			Columns:    []*Column{fakeIDColumn, fakeNameColumn},
 		}
 	)
 
