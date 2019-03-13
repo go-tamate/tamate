@@ -17,8 +17,20 @@ type DataSource struct {
 	stop       func()
 }
 
-func (ds *DataSource) DriverConn() driver.Conn {
-	return ds.driverConn
+func (ds *DataSource) GetSchema(ctx context.Context, name string) (*driver.Schema, error) {
+	return ds.driverConn.GetSchema(ctx, name)
+}
+
+func (ds *DataSource) SetSchema(ctx context.Context, name string, schema *driver.Schema) error {
+	return ds.driverConn.SetSchema(ctx, name, schema)
+}
+
+func (ds *DataSource) GetRows(ctx context.Context, name string) ([]*driver.Row, error) {
+	return ds.driverConn.GetRows(ctx, name)
+}
+
+func (ds *DataSource) SetRows(ctx context.Context, name string, rows []*driver.Row) error {
+	return ds.driverConn.SetRows(ctx, name, rows)
 }
 
 func (ds *DataSource) Close() error {
