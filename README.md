@@ -6,35 +6,80 @@
 
 [![CircleCI](https://circleci.com/gh/Mitu217/tamate.svg?style=svg)](https://circleci.com/gh/Mitu217/tamate)
 
-Getting diffs between table-based data.
+A library to handle table-based data generically.
 
-![Summary](https://user-images.githubusercontent.com/3307063/47960958-54827080-e045-11e8-9aaf-6831dbc1cedf.png)
+---------------------------------------
+
+  * [Features](#features)
+  * [Requirements](#requirements)
+  * [Support Drivers](#support-drivers)
+  * [Installation](#installation)
+  * [Usage](#usage)
+    * [DataSource](#datasource)
+      * [DSN](#dsn-data-source-name)
+  * [Testing / Development](#testing--development)
+  * [License](#license)
+
+---------------------------------------
+
+## Features
+ * Unification of ambiguous names like `left/right`
+ * Goroutine safe
+ * GetRows returns iterator
+ * Support TSV
+ * Support SQLite
+ * Support PostgleSQL
+
+## Requirements
+ * Go 1.12 or higher. We aim to support the 3 latest versions of Go.
+
+## Support Drivers
+- [CSV](https://github.com/Mitu217/tamate-csv)
+- [MySQL](https://github.com/Mitu217/tamate-mysql)
+- [Spanner](https://github.com/Mitu217/tamate-spanner)
+
+---------------------------------------
 
 ## Installation
-
-```sh
+Simple install the package to your [$GOPATH](https://github.com/golang/go/wiki/GOPATH "GOPATH") with the [go tool](https://golang.org/cmd/go/ "go command") from shell:
+```bash
 $ go get -u github.com/Mitu217/tamate
 ```
+Make sure [Git is installed](https://git-scm.com/downloads) on your machine and in your system's `PATH`.
 
-## Contribution
+## Usage
+_Tamate Driver_ is an implementation of `tamate/driver` interface.
 
-### Run tests
+Use `csv` as `driverName` and a valid [DSN](#dsn-data-source-name)  as `dataSourceName`:
+```go
+import  "github.com/Mitu217/tamate"
+import  _ "github.com/Mitu217/tamate-csv"
 
-```sh
+ds, err := tamate.Open("csv", "./")
+```
+
+### DataSource
+
+DataSource represents the connection destination where table-based data supported by _Tamate_.
+
+Use this to `Get`, `Set`, `GettingDiff`, etc.
+
+#### DSN (Data Source Name)
+
+[DSN](#dsn-data-source-name) is not only common format such as used in `database/sql`.
+
+Please refer to the usage of the driver to use.
+
+## Testing / Development
+
+Please execute the following command at the root of the project
+
+```bash
 go test ./...
 ```
 
-### Additional tests
+---------------------------------------
 
-```bash
-# For MySQLDatasource test
-docker-compose up -d
-export TAMATE_MYSQL_DSN=root:example@tcp(localhost:3306)/
-
-# For SpannerDatasource test
-export GOOGLE_APPLICATION_CREDENTIALS=/path/to/spanner_credentials.json
-export TAMATE_SPANNER_DSN_PARENT=/projects/<GCP_PROJECT_ID>/instances/<SPANNER_INSTANCE_ID>
-
-# For SpreadsheetDatasource test
-export TAMATE_SPREADSHEET_SERVICE_ACCOUNT_JSON_BASE64=<base64 encoded service account key JSON>
-```
+## License
+* MIT
+    * see [LICENSE](./LICENSE)

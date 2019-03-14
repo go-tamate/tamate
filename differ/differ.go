@@ -1,8 +1,6 @@
 package differ
 
-import (
-	"github.com/Mitu217/tamate/datasource"
-)
+import "github.com/Mitu217/tamate/driver"
 
 type Diff struct {
 	DiffColumns *DiffColumns
@@ -18,38 +16,24 @@ type Differ struct {
 	row    *rowDiffer
 }
 
-func NewDiffer(opts ...Option) (*Differ, error) {
-	colDiffer, err := newColumnDiffer()
-	if err != nil {
-		return nil, err
-	}
-	rowDiffer, err := newRowDiffer()
-	if err != nil {
-		return nil, err
-	}
+func NewDiffer(opts ...DifferOption) (*Differ, error) {
 	d := &Differ{
-		column: colDiffer,
-		row:    rowDiffer,
+		column: newColumnDiffer(),
+		row:    newRowDiffer(),
 	}
-
+	// set options
 	for _, opt := range opts {
 		opt(d)
 	}
 	return d, nil
 }
 
-func (d *Differ) setIgnoreColumnName(name string) error {
-	d.column.setIgnoreColumnName(name)
-	d.row.setIgnoreColumnName(name)
-	return nil
-}
-
-func (d *Differ) Diff(schema1, schema2 *datasource.Schema, rows1, rows2 []*datasource.Row) (*Diff, error) {
-	dcols, err := d.DiffColumns(schema1, schema2)
+func (d *Differ) Diff(schema1, schema2 *driver.Schema, rows1, rows2 []*driver.Row) (*Diff, error) {
+	dcols, err := d.column.diff(schema1, schema2)
 	if err != nil {
 		return nil, err
 	}
-	drows, err := d.DiffRows(schema1, rows1, rows2)
+	drows, err := d.row.diff(schema1, rows1, rows2)
 	if err != nil {
 		return nil, err
 	}
@@ -59,10 +43,22 @@ func (d *Differ) Diff(schema1, schema2 *datasource.Schema, rows1, rows2 []*datas
 	}, nil
 }
 
-func (d *Differ) DiffColumns(schema1, schema2 *datasource.Schema) (*DiffColumns, error) {
+// Deprecated:
+func (d *Differ) DiffColumns(schema1, schema2 *driver.Schema) (*DiffColumns, error) {
 	return d.column.diff(schema1, schema2)
 }
 
-func (d *Differ) DiffRows(schema1 *datasource.Schema, rows1, rows2 []*datasource.Row) (*DiffRows, error) {
+// Deprecated:
+func (d *Differ) DiffRows(schema1 *driver.Schema, rows1, rows2 []*driver.Row) (*DiffRows, error) {
 	return d.row.diff(schema1, rows1, rows2)
+}
+
+type DifferOption func(*Differ) error
+
+func IgnoreColumn(name string) DifferOption {
+	return func(d *Differ) error {
+		d.column.setIgnoreColumnName(name)
+		d.row.setIgnoreColumnName(name)
+		return nil
+	}
 }

@@ -7,10 +7,6 @@ jobs:
         environment:
           - GO111MODULE: "on"
           - REVIEWDOG_VERSION: 0.9.8
-          - TAMATE_MYSQL_DSN: "root:example@tcp(localhost:3306)/"
-      - image: circleci/mysql:5.7
-        environment:
-          - MYSQL_ROOT_PASSWORD: example
     steps:
       - checkout
       - restore_cache:
@@ -29,7 +25,4 @@ jobs:
             go get honnef.co/go/tools/cmd/megacheck
             go get github.com/kisielk/errcheck
       - run: ./reviewdog -ci="circle-ci" -conf=.reviewdog.yml
-      - run:
-          name: Wait for db
-          command: dockerize -wait tcp://localhost:3306 -timeout 1m
       - run: go test -v -race ./...

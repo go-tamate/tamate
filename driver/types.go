@@ -1,7 +1,6 @@
-package datasource
+package driver
 
 import (
-	"context"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -10,38 +9,6 @@ import (
 
 	"github.com/araddon/dateparse"
 )
-
-type Datasource interface {
-	GetSchema(ctx context.Context, name string) (*Schema, error)
-	SetSchema(ctx context.Context, sc *Schema) error
-	GetRows(ctx context.Context, sc *Schema) ([]*Row, error)
-	SetRows(ctx context.Context, sc *Schema, rows []*Row) error
-}
-
-/*
- * Key
- */
-
-const (
-	KeyTypePrimary KeyType = iota
-	KeyTypeUnique
-	KeyTypeIndex
-)
-
-type KeyType int
-
-type Key struct {
-	KeyType     KeyType
-	ColumnNames []string
-}
-
-func (k *Key) String() string {
-	return fmt.Sprintf("%d:%v", k.KeyType, strings.Join(k.ColumnNames, ","))
-}
-
-/*
- * Column
- */
 
 const (
 	ColumnTypeNull ColumnType = iota
@@ -62,15 +29,6 @@ const (
 )
 
 type ColumnType int
-
-func (ct ColumnType) IsArray() bool {
-	switch ct {
-	case ColumnTypeBoolArray, ColumnTypeBytesArray, ColumnTypeDateArray, ColumnTypeDatetimeArray,
-		ColumnTypeFloatArray, ColumnTypeIntArray, ColumnTypeStringArray:
-		return true
-	}
-	return false
-}
 
 func (ct ColumnType) String() string {
 	switch ct {
@@ -109,6 +67,10 @@ func (ct ColumnType) String() string {
 	}
 }
 
+func (ct ColumnType) IsArray() bool {
+	return strings.Index(ct.String(), "array") > -1
+}
+
 type Column struct {
 	Name            string
 	OrdinalPosition int
@@ -117,61 +79,19 @@ type Column struct {
 	AutoIncrement   bool
 }
 
+func NewColumn(name string, ordinalPosition int, columnType ColumnType, notNull bool, authIncrement bool) *Column {
+	return &Column{
+		Name:            name,
+		OrdinalPosition: ordinalPosition,
+		Type:            columnType,
+		NotNull:         notNull,
+		AutoIncrement:   authIncrement,
+	}
+}
+
 func (c *Column) String() string {
 	return fmt.Sprintf("%s %s", c.Name, c.Type)
 }
-
-/*
- * Schema
- */
-
-type Schema struct {
-	Name       string
-	PrimaryKey *Key
-	Columns    []*Column
-}
-
-func (sc *Schema) String() string {
-	var sts []string
-	for _, c := range sc.Columns {
-		sts = append(sts, c.String())
-	}
-	return fmt.Sprintf("%s(%s) PK=(%s)", sc.Name, strings.Join(sts, ", "), sc.PrimaryKey)
-}
-
-// GetColumnNames is return name list of columns
-func (sc *Schema) GetColumnNames() []string {
-	var colNames []string
-	for _, col := range sc.Columns {
-		colNames = append(colNames, col.Name)
-	}
-	return colNames
-}
-
-/*
- * Row
- */
-
-type RowValues map[string]*GenericColumnValue
-
-type GroupByKey map[string][]*GenericColumnValue
-
-type Row struct {
-	GroupByKey GroupByKey
-	Values     RowValues
-}
-
-func (r *Row) String() string {
-	var sentences []string
-	for key := range r.Values {
-		sentences = append(sentences, fmt.Sprintf("%s: %+v", key, r.Values[key].StringValue()))
-	}
-	return "{" + strings.Join(sentences, ", ") + "}"
-}
-
-/*
- * Column Value
- */
 
 type GenericColumnValue struct {
 	Column *Column
@@ -185,7 +105,12 @@ func NewGenericColumnValue(column *Column, value interface{}) *GenericColumnValu
 	}
 }
 
+// Deprecated:
 func (cv *GenericColumnValue) StringValue() string {
+	return cv.String()
+}
+
+func (cv *GenericColumnValue) String() string {
 	val := reflect.ValueOf(cv.Value)
 	if cv.Column.Type.IsArray() {
 		kind := val.Kind()
@@ -195,33 +120,46 @@ func (cv *GenericColumnValue) StringValue() string {
 			for i := 0; i < vlen; i++ {
 				ss[i] = fmt.Sprintf("%v", val.Index(i).Interface())
 			}
-			return strings.Join(ss, ",")
+			return "[" + strings.Join(ss, ", ") + "]"
 		}
 	}
 	return fmt.Sprintf("%v", cv.Value)
 }
 
+// Deprecated:
 func (cv *GenericColumnValue) TimeValue() (time.Time, error) {
+	return cv.Time(), nil
+}
+
+func (cv *GenericColumnValue) Time() time.Time {
 	switch cv.Value.(type) {
 	case time.Time:
-		return cv.Value.(time.Time), nil
+		return cv.Value.(time.Time)
 	default:
-		tv, err := dateparse.ParseAny(cv.StringValue())
+		tv, err := dateparse.ParseAny(cv.String())
 		if err != nil {
-			return time.Time{}, err
+			return time.Time{}
 		}
-		return tv, nil
+		return tv
 	}
 }
 
+// Deprecated:
 func (cv *GenericColumnValue) BoolValue() bool {
+	return cv.Bool()
+}
+
+func (cv *GenericColumnValue) Bool() bool {
 	switch cv.Value.(type) {
 	case bool:
 		return cv.Value.(bool)
 	default:
-		s := cv.StringValue()
+		s := cv.String()
 		if strings.ToLower(s) == "true" {
 			return true
+		}
+		if strings.ToLower(s) == "false" {
+			return false
 		}
 		num, err := strconv.Atoi(s)
 		if err == nil {
@@ -229,4 +167,72 @@ func (cv *GenericColumnValue) BoolValue() bool {
 		}
 	}
 	return false
+}
+
+type RowValues map[string]*GenericColumnValue
+
+type GroupByKey map[string][]*GenericColumnValue
+
+type Row struct {
+	GroupByKey GroupByKey
+	Values     RowValues
+}
+
+func (r *Row) String() string {
+	// Sorting by OrdinalPosition
+	keys := make([]string, len(r.Values))
+	for k, val := range r.Values {
+		pos := val.Column.OrdinalPosition
+		keys[pos] = k
+	}
+
+	var sentences []string
+	for _, key := range keys {
+		sentences = append(sentences, fmt.Sprintf("%s: %+v", key, r.Values[key].String()))
+	}
+	return "{" + strings.Join(sentences, ", ") + "}"
+}
+
+const (
+	KeyTypePrimary KeyType = iota
+	KeyTypeUnique
+	KeyTypeIndex
+)
+
+type KeyType int
+
+func (kt KeyType) String() string {
+	switch kt {
+	case KeyTypePrimary:
+		return "PrimaryKey"
+	case KeyTypeUnique:
+		return "UniqueKey"
+	case KeyTypeIndex:
+		return "Index"
+	default:
+		return fmt.Sprintf("<unknown type: %d>", kt)
+	}
+}
+
+type Key struct {
+	KeyType     KeyType
+	ColumnNames []string
+}
+
+func (k *Key) String() string {
+	return fmt.Sprintf("%s:%v", k.KeyType, strings.Join(k.ColumnNames, ","))
+}
+
+type Schema struct {
+	Name       string
+	PrimaryKey *Key
+	Columns    []*Column
+}
+
+func (sc *Schema) String() string {
+	var sts []string
+	for _, c := range sc.Columns {
+		sts = append(sts, c.String())
+	}
+	return fmt.Sprintf("%s(%s) PK=(%s)", sc.Name, strings.Join(sts, ", "), sc.PrimaryKey)
 }

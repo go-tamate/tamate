@@ -1,10 +1,10 @@
 package differ
 
-import "github.com/Mitu217/tamate/datasource"
+import "github.com/Mitu217/tamate/driver"
 
 type DiffColumns struct {
-	Left  []*datasource.Column
-	Right []*datasource.Column
+	Left  []*driver.Column
+	Right []*driver.Column
 }
 
 func (dc *DiffColumns) HasDiff() bool {
@@ -15,10 +15,10 @@ type columnDiffer struct {
 	ignoreColumnNames []string
 }
 
-func newColumnDiffer() (*columnDiffer, error) {
+func newColumnDiffer() *columnDiffer {
 	return &columnDiffer{
 		ignoreColumnNames: make([]string, 0),
-	}, nil
+	}
 }
 
 func (cd *columnDiffer) setIgnoreColumnName(columnName string) {
@@ -34,7 +34,7 @@ func (cd *columnDiffer) shouldIgnore(columnName string) bool {
 	return false
 }
 
-func (cd *columnDiffer) diff(left, right *datasource.Schema) (*DiffColumns, error) {
+func (cd *columnDiffer) diff(left, right *driver.Schema) (*DiffColumns, error) {
 	lmap, err := columnsToNameMap(left.Columns)
 	if err != nil {
 		return nil, err
@@ -45,8 +45,8 @@ func (cd *columnDiffer) diff(left, right *datasource.Schema) (*DiffColumns, erro
 	}
 
 	diff := &DiffColumns{
-		Left:  make([]*datasource.Column, 0),
-		Right: make([]*datasource.Column, 0),
+		Left:  make([]*driver.Column, 0),
+		Right: make([]*driver.Column, 0),
 	}
 	ldiff := &diff.Left
 	rdiff := &diff.Right
@@ -72,17 +72,20 @@ func (cd *columnDiffer) diff(left, right *datasource.Schema) (*DiffColumns, erro
 	return diff, nil
 }
 
-func columnsToNameMap(cols []*datasource.Column) (map[string]*datasource.Column, error) {
-	colMap := make(map[string]*datasource.Column, len(cols))
-	for _, col := range cols {
-		colMap[col.Name] = col
-	}
-	return colMap, nil
-}
-
-func isSameColumn(left, right *datasource.Column) bool {
+// column専用のcomparatorを作る
+func isSameColumn(left, right *driver.Column) bool {
 	return left.Name == right.Name &&
 		left.Type == right.Type &&
 		left.NotNull == right.NotNull &&
 		left.AutoIncrement == right.AutoIncrement
+}
+
+// そもそも必須？
+// ColumnsStructを作ってそこに依存させるべき？
+func columnsToNameMap(cols []*driver.Column) (map[string]*driver.Column, error) {
+	colMap := make(map[string]*driver.Column, len(cols))
+	for _, col := range cols {
+		colMap[col.Name] = col
+	}
+	return colMap, nil
 }
