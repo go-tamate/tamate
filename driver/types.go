@@ -180,7 +180,7 @@ type Row struct {
 
 func (r *Row) String() string {
 	// Sorting by OrdinalPosition
-	keys := make([]string, 0, len(r.Values))
+	keys := make([]string, len(r.Values))
 	for k, val := range r.Values {
 		pos := val.Column.OrdinalPosition
 		keys[pos] = k
