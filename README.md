@@ -51,14 +51,14 @@ $ go get -u github.com/Mitu217/tamate
 Make sure [Git is installed](https://git-scm.com/downloads) on your machine and in your system's `PATH`.
 
 ## Usage
-_Tamate Driver_ is an implementation of Go's `tamate/driver` interface. You only need to import the driver and can use the full [`database/sql`](https://golang.org/pkg/database/sql/) API then.
+_Tamate Driver_ is an implementation of `tamate/driver` interface.
 
 Use `csv` as `driverName` and a valid [DSN](#dsn-data-source-name)  as `dataSourceName`:
 ```go
 import  "github.com/Mitu217/tamate"
 import  _ "github.com/Mitu217/tamate-csv"
 
-ds, err := tamate.Open("csv", "./sample.csv")
+ds, err := tamate.Open("csv", "./")
 ```
 
 ### DataSource
