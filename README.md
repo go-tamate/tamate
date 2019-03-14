@@ -35,6 +35,7 @@ A library to handle table-based data generically.
 
 ## Support Drivers
 - [CSV](https://github.com/Mitu217/tamate-csv)
+- [Spreadsheet](https://github.com/Mitu217/tamate-spreadsheet)
 - [MySQL](https://github.com/Mitu217/tamate-mysql)
 - [Spanner](https://github.com/Mitu217/tamate-spanner)
 
