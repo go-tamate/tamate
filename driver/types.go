@@ -179,8 +179,15 @@ type Row struct {
 }
 
 func (r *Row) String() string {
+	// Sorting by OrdinalPosition
+	keys := make([]string, 0, len(r.Values))
+	for k, val := range r.Values {
+		pos := val.Column.OrdinalPosition
+		keys[pos] = k
+	}
+
 	var sentences []string
-	for key := range r.Values {
+	for _, key := range keys {
 		sentences = append(sentences, fmt.Sprintf("%s: %+v", key, r.Values[key].String()))
 	}
 	return "{" + strings.Join(sentences, ", ") + "}"
