@@ -17,9 +17,6 @@ A library to handle table-based data generically.
   * [Usage](#usage)
     * [DataSource](#datasource)
       * [DSN](#dsn-data-source-name)
-    * [Diff](#dsn-data-source-name)
-      * [Options](#diff-options)
-      * [Examples](#examples)
   * [Testing / Development](#testing--development)
   * [License](#license)
 
@@ -63,27 +60,23 @@ ds, err := tamate.Open("csv", "./")
 
 ### DataSource
 
-TODO:
+DataSource represents the connection destination where table-based data supported by _Tamate_.
 
-### DSN (Data Source Name)
+Use this to `Get`, `Set`, `GettingDiff`, etc.
 
-TODO:
+#### DSN (Data Source Name)
 
-### Diff
+[DSN](#dsn-data-source-name) is not only common format such as used in `database/sql`.
 
-TODO:
-
-#### Options
-
-TODO:
-
-#### Examples
-
-TODO:
+Please refer to the usage of the driver to use.
 
 ## Testing / Development
 
-TODO:
+Please execute the following command at the root of the project
+
+```bash
+go test ./...
+```
 
 ---------------------------------------
 
