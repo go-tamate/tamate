@@ -35,8 +35,8 @@ func Test_ColumnTypeToString(t *testing.T) {
 
 func Test_IsArrayColumnType(t *testing.T) {
 	// unknown
-	const columnTypeUnknown ColumnType = -1
-	assert.Equal(t, false, columnTypeUnknown.IsArray())
+	const ColumnTypeUnknown ColumnType = -1
+	assert.Equal(t, false, ColumnTypeUnknown.IsArray())
 
 	// primary
 	assert.Equal(t, false, ColumnTypeNull.IsArray())
@@ -151,8 +151,8 @@ func Test_RowToString(t *testing.T) {
 
 func Test_KeyToString(t *testing.T) {
 	// unknown
-	const keyTypeUnknown KeyType = -1
-	assert.Equal(t, "<unknown type: -1>", keyTypeUnknown.String())
+	const KeyTypeUnknown KeyType = -1
+	assert.Equal(t, "<unknown type: -1>", KeyTypeUnknown.String())
 
 	assert.Equal(t, "PrimaryKey", KeyTypePrimary.String())
 	assert.Equal(t, "UniqueKey", KeyTypeUnique.String())
