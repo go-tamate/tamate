@@ -2,15 +2,16 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
-### Added
-- Support TSV
-- Support SQLite
-- Support PostgleSQL
-
 ### Changed
 - Unification of ambiguous names like `left/right`
 - GetRows returns iterator
+
+## [0.2.0]
+### Changed
 - Remove relations on each drivers
+- Deprecate differ's `DiffColumns` and `DiffRows` method
+- Rename types's `StringValue`, `TimeValue`, `BoolValue` to `String`, `Time`, `Bool`
+- Deprecate differ's `StringValue`, `TimeValue` and `BoolValue` method
 
 ## [0.1.0]
 ### Changed
