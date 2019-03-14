@@ -6,7 +6,7 @@
 
 [![CircleCI](https://circleci.com/gh/Mitu217/tamate.svg?style=svg)](https://circleci.com/gh/Mitu217/tamate)
 
-Getting diffs between table-based data.
+A library to handle table-based data generically.
 
 ---------------------------------------
 
@@ -16,6 +16,7 @@ Getting diffs between table-based data.
   * [Installation](#installation)
   * [Usage](#usage)
     * [DataSource](#datasource)
+      * [DSN](#dsn-data-source-name)
     * [Diff](#dsn-data-source-name)
       * [Options](#diff-options)
       * [Examples](#examples)
@@ -50,19 +51,21 @@ $ go get -u github.com/Mitu217/tamate
 Make sure [Git is installed](https://git-scm.com/downloads) on your machine and in your system's `PATH`.
 
 ## Usage
-_Go MySQL Driver_ is an implementation of Go's `database/sql/driver` interface. You only need to import the driver and can use the full [`database/sql`](https://golang.org/pkg/database/sql/) API then.
+_Tamate Driver_ is an implementation of Go's `tamate/driver` interface. You only need to import the driver and can use the full [`database/sql`](https://golang.org/pkg/database/sql/) API then.
 
-Use `mysql` as `driverName` and a valid [DSN](#dsn-data-source-name)  as `dataSourceName`:
+Use `csv` as `driverName` and a valid [DSN](#dsn-data-source-name)  as `dataSourceName`:
 ```go
-import "database/sql"
-import _ "github.com/go-sql-driver/mysql"
+import  "github.com/Mitu217/tamate"
+import  _ "github.com/Mitu217/tamate-csv"
 
-db, err := sql.Open("mysql", "user:password@/dbname")
+ds, err := tamate.Open("csv", "./sample.csv")
 ```
 
-[Examples are available in our Wiki](https://github.com/go-sql-driver/mysql/wiki/Examples "Go-MySQL-Driver Examples").
-
 ### DataSource
+
+TODO:
+
+### DSN (Data Source Name)
 
 TODO:
 
@@ -79,12 +82,8 @@ TODO:
 TODO:
 
 ## Testing / Development
-To run the driver tests you may need to adjust the configuration. See the [Testing Wiki-Page](https://github.com/go-sql-driver/mysql/wiki/Testing "Testing") for details.
 
-Go-MySQL-Driver is not feature-complete yet. Your help is very appreciated.
-If you want to contribute, you can work on an [open issue](https://github.com/go-sql-driver/mysql/issues?state=open) or review a [pull request](https://github.com/go-sql-driver/mysql/pulls).
-
-See the [Contribution Guidelines](https://github.com/go-sql-driver/mysql/blob/master/CONTRIBUTING.md) for details.
+TODO:
 
 ---------------------------------------
 
