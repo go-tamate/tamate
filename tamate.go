@@ -60,6 +60,10 @@ func Register(name string, driver driver.Driver) {
 	drivers[name] = driver
 }
 
+func Drivers() map[string]driver.Driver {
+	return drivers
+}
+
 func Open(name string, dsn string) (*DataSource, error) {
 	driveri, ok := drivers[name]
 	if !ok {
