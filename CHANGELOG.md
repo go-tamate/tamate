@@ -6,6 +6,10 @@ All notable changes to this project will be documented in this file.
 - Unification of ambiguous names like `left/right`
 - GetRows returns iterator
 
+## [0.2.1]
+### Add
+- Drivers method
+
 ## [0.2.0]
 ### Changed
 - Remove relations on each drivers
