@@ -6,9 +6,13 @@ All notable changes to this project will be documented in this file.
 - Unification of ambiguous names like `left/right`
 - GetRows returns iterator
 
+## [0.2.2]
+### Add
+- Add ColumnNames() to RowValues
+
 ## [0.2.1]
 ### Add
-- Drivers method
+- Add Drivers() to tamate's core
 
 ## [0.2.0]
 ### Changed
