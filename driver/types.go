@@ -171,6 +171,14 @@ func (cv *GenericColumnValue) Bool() bool {
 
 type RowValues map[string]*GenericColumnValue
 
+func (rv RowValues) ColumnNames() []string {
+	columnNames := make([]string, len(rv))
+	for key, val := range rv {
+		columnNames[val.Column.OrdinalPosition] = key
+	}
+	return columnNames
+}
+
 type GroupByKey map[string][]*GenericColumnValue
 
 type Row struct {
