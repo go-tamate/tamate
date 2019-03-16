@@ -1,4 +1,4 @@
-module github.com/Mitu217/tamate
+module github.com/go-tamate/tamate
 
 go 1.12
 

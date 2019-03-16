@@ -1,7 +1,7 @@
 version: 2
 jobs:
   build:
-    working_directory: /go/src/github.com/Mitu217/tamate
+    working_directory: /go/src/github.com/go-tamate/tamate
     docker:
       - image: circleci/golang:1.12
         environment:

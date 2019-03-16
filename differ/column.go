@@ -1,6 +1,6 @@
 package differ
 
-import "github.com/Mitu217/tamate/driver"
+import "github.com/go-tamate/tamate/driver"
 
 type DiffColumns struct {
 	Left  []*driver.Column

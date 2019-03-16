@@ -1,10 +1,10 @@
 # tamate
 
 [![LICENSE](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![GoDoc](https://godoc.org/github.com/Mitu217/tamate?status.svg)](https://godoc.org/github.com/Mitu217/tamate)
-[![Go Report Card](https://goreportcard.com/badge/github.com/Mitu217/tamate)](https://goreportcard.com/report/github.com/Mitu217/tamate)
+[![GoDoc](https://godoc.org/github.com/go-tamate/tamate?status.svg)](https://godoc.org/github.com/go-tamate/tamate)
+[![Go Report Card](https://goreportcard.com/badge/github.com/go-tamate/tamate)](https://goreportcard.com/report/github.com/go-tamate/tamate)
 
-[![CircleCI](https://circleci.com/gh/Mitu217/tamate.svg?style=svg)](https://circleci.com/gh/Mitu217/tamate)
+[![CircleCI](https://circleci.com/gh/go-tamate/tamate.svg?style=svg)](https://circleci.com/gh/go-tamate/tamate)
 
 A library to handle table-based data generically.
 
@@ -36,7 +36,7 @@ A library to handle table-based data generically.
 ## Support Drivers
 - [CSV](https://github.com/Mitu217/tamate-csv)
 - [Spreadsheet](https://github.com/Mitu217/tamate-spreadsheet)
-- [MySQL](https://github.com/Mitu217/tamate-mysql)
+- [MySQL](https://github.com/go-tamate/tamate-mysql)
 - [Spanner](https://github.com/Mitu217/tamate-spanner)
 
 ---------------------------------------
@@ -44,7 +44,7 @@ A library to handle table-based data generically.
 ## Installation
 Simple install the package to your [$GOPATH](https://github.com/golang/go/wiki/GOPATH "GOPATH") with the [go tool](https://golang.org/cmd/go/ "go command") from shell:
 ```bash
-$ go get -u github.com/Mitu217/tamate
+$ go get -u github.com/go-tamate/tamate
 ```
 Make sure [Git is installed](https://git-scm.com/downloads) on your machine and in your system's `PATH`.
 
@@ -53,8 +53,8 @@ _Tamate Driver_ is an implementation of `tamate/driver` interface.
 
 Use `csv` as `driverName` and a valid [DSN](#dsn-data-source-name)  as `dataSourceName`:
 ```go
-import  "github.com/Mitu217/tamate"
-import  _ "github.com/Mitu217/tamate-csv"
+import  "github.com/go-tamate/tamate"
+import  _ "github.com/go-tamate/tamate-csv"
 
 ds, err := tamate.Open("csv", "./")
 ```

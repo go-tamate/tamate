@@ -3,7 +3,7 @@ package differ
 import (
 	"testing"
 
-	"github.com/Mitu217/tamate/driver"
+	"github.com/go-tamate/tamate/driver"
 )
 
 func TestDiffer_DiffColumns(t *testing.T) {

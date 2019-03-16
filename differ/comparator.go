@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/Mitu217/tamate/driver"
+	"github.com/go-tamate/tamate/driver"
 )
 
 type ComparatorMap map[driver.ColumnType]ValueComparator
