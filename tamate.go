@@ -70,10 +70,10 @@ func Open(name string, dsn string) (*DataSource, error) {
 		return nil, fmt.Errorf("tamate: unknown datasource %q (forgotten import?)", name)
 	}
 
-	return OpenDataSource(&dsnConnector{dsn: dsn, driver: driveri}), nil
+	return OpenDataSource(&dsnConnector{dsn: dsn, driver: driveri})
 }
 
-func OpenDataSource(connector driver.Connector) *DataSource {
+func OpenDataSource(connector driver.Connector) (*DataSource, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	dataSource := &DataSource{
@@ -83,9 +83,9 @@ func OpenDataSource(connector driver.Connector) *DataSource {
 
 	driverConn, err := connector.Connect(ctx)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-
 	dataSource.driverConn = driverConn
-	return dataSource
+
+	return dataSource, nil
 }
