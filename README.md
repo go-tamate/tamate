@@ -26,9 +26,6 @@ A library to handle table-based data generically.
  * Unification of ambiguous names like `left/right`
  * Goroutine safe
  * GetRows returns iterator
- * Support TSV
- * Support SQLite
- * Support PostgleSQL
 
 ## Requirements
  * Go 1.12 or higher. We aim to support the 3 latest versions of Go.
