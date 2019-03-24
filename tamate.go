@@ -2,6 +2,7 @@ package tamate
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/go-tamate/tamate/driver"
