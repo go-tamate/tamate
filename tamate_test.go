@@ -3,11 +3,144 @@ package tamate
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"sync"
 	"testing"
 
 	"github.com/go-tamate/tamate/driver"
 	"github.com/stretchr/testify/assert"
 )
+
+type fakeDriver struct {
+	fakeConn *fakeConn
+}
+
+func (d *fakeDriver) Open(ctx context.Context, dsn string) (driver.Conn, error) {
+	return nil, nil
+}
+
+func TestRegister(t *testing.T) {
+	type args struct {
+		name   string
+		driver driver.Driver
+	}
+	tests := []struct {
+		name      string
+		args      args
+		wantPanic bool
+	}{
+		{
+			name: "ok",
+			args: args{
+				name:   "test",
+				driver: &fakeDriver{},
+			},
+			wantPanic: false,
+		},
+		{
+			name: "driver is nil",
+			args: args{
+				name:   "test",
+				driver: nil,
+			},
+			wantPanic: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			defer func() {
+				unregisterAllDrivers()
+				err := recover()
+				if (err != nil) != tt.wantPanic {
+					t.Errorf("got panic = %v, wantPanic %v", err, tt.wantPanic)
+					return
+				}
+			}()
+			Register(tt.args.name, tt.args.driver)
+			assert.Contains(t, Drivers(), tt.args.name)
+		})
+	}
+}
+
+func TestRegister_CalledTwiceWithName(t *testing.T) {
+	type args struct {
+		name   string
+		driver driver.Driver
+	}
+	tests := []struct {
+		name      string
+		args      args
+		wantPanic bool
+	}{
+		{
+			name: "called twice with name",
+			args: args{
+				name:   "test",
+				driver: &fakeDriver{},
+			},
+			wantPanic: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			defer func() {
+				unregisterAllDrivers()
+				err := recover()
+				if (err != nil) != tt.wantPanic {
+					t.Errorf("got panic = %v, wantPanic %v", err, tt.wantPanic)
+					return
+				}
+			}()
+			Register(tt.args.name, tt.args.driver)
+			Register(tt.args.name, tt.args.driver)
+			assert.Contains(t, Drivers(), tt.args.name)
+		})
+	}
+}
+
+func TestRegister_Goroutine(t *testing.T) {
+	const total = 1000
+
+	type args struct {
+		driver driver.Driver
+	}
+	tests := []struct {
+		name      string
+		args      args
+		wantPanic bool
+	}{
+		{
+			name: "go routine",
+			args: args{
+				driver: &fakeDriver{},
+			},
+			wantPanic: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			defer func() {
+				unregisterAllDrivers()
+				err := recover()
+				if (err != nil) != tt.wantPanic {
+					t.Errorf("got panic = %v, wantPanic %v", err, tt.wantPanic)
+					return
+				}
+			}()
+			wg := &sync.WaitGroup{}
+			for i := 0; i < total; i++ {
+				wg.Add(1)
+				name := strconv.Itoa(i)
+				go func() {
+					Register(name, tt.args.driver)
+					wg.Done()
+				}()
+			}
+			wg.Wait()
+			assert.Equal(t, len(Drivers()), total)
+		})
+	}
+}
 
 type fakeRows struct {
 	max            int
