@@ -4,13 +4,45 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sort"
+	"sync"
 
 	"github.com/go-tamate/tamate/driver"
 )
 
 var (
-	drivers = make(map[string]driver.Driver)
+	driversMu sync.RWMutex
+	drivers   = make(map[string]driver.Driver)
 )
+
+func Register(name string, driver driver.Driver) {
+	driversMu.Lock()
+	defer driversMu.Unlock()
+	if driver == nil {
+		panic("tamate: Register driver is nil")
+	}
+	if _, dup := drivers[name]; dup {
+		panic("tamate: Register called twice for driver " + name)
+	}
+	drivers[name] = driver
+}
+
+func unregisterAllDrivers() {
+	driversMu.Lock()
+	defer driversMu.Unlock()
+	drivers = make(map[string]driver.Driver)
+}
+
+func Drivers() []string {
+	driversMu.RLock()
+	defer driversMu.RUnlock()
+	var list []string
+	for name := range drivers {
+		list = append(list, name)
+	}
+	sort.Strings(list)
+	return list
+}
 
 type Rows struct {
 	rowsi    driver.Rows
@@ -87,20 +119,6 @@ func (c *dsnConnector) Connect(ctx context.Context) (driver.Conn, error) {
 
 func (c *dsnConnector) Driver() driver.Driver {
 	return c.driver
-}
-
-func Register(name string, driver driver.Driver) {
-	if driver == nil {
-		panic("tamate: Register driver is nil")
-	}
-	if _, dup := drivers[name]; dup {
-		panic("tamate: Register called twice for driver " + name)
-	}
-	drivers[name] = driver
-}
-
-func Drivers() map[string]driver.Driver {
-	return drivers
 }
 
 func Open(name string, dsn string) (*DataSource, error) {
