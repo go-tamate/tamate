@@ -7,11 +7,11 @@ All notable changes to this project will be documented in this file.
 - GetRows returns iterator
 
 ## [0.2.2]
-### Add
+### Added
 - Add ColumnNames() to RowValues
 
 ## [0.2.1]
-### Add
+### Added
 - Add Drivers() to tamate's core
 
 ## [0.2.0]
