@@ -1,10 +1,11 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
-### Changed
-- Unification of ambiguous names like `left/right`
-- GetRows returns iterator
+## [0.4.0]
+### Added
+ - Goroutine safe
+### Change
+ - GetRows returns iterator
 
 ## [0.2.2]
 ### Added
