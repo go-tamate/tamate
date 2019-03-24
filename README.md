@@ -22,11 +22,6 @@ A library to handle table-based data generically.
 
 ---------------------------------------
 
-## Features
- * Unification of ambiguous names like `left/right`
- * Goroutine safe
- * GetRows returns iterator
-
 ## Requirements
  * Go 1.12 or higher. We aim to support the 3 latest versions of Go.
 
