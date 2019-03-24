@@ -2,15 +2,42 @@ package tamate
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/go-tamate/tamate/driver"
 	"github.com/stretchr/testify/assert"
 )
 
+type fakeRows struct {
+	max            int
+	current        int
+	fakeColumns    []*driver.Column
+	fakeRowsValues [][]driver.Value
+}
+
+func (rs *fakeRows) Columns() []*driver.Column {
+	return rs.fakeColumns
+}
+
+func (rs *fakeRows) Close() error {
+	return nil
+}
+
+func (rs *fakeRows) Next(dest []driver.Value) error {
+	rs.current++
+	if rs.current >= rs.max {
+		return fmt.Errorf("current is larger than max")
+	}
+	for i := range dest {
+		dest[i] = rs.fakeRowsValues[rs.current][i]
+	}
+	return nil
+}
+
 type fakeConn struct {
 	fakeSchema *driver.Schema
-	fakeRows   []*driver.Row
+	fakeRows   *fakeRows
 	fakeErr    error
 }
 
@@ -29,18 +56,18 @@ func (c *fakeConn) SetSchema(ctx context.Context, name string, schema *driver.Sc
 	return nil
 }
 
-func (c *fakeConn) GetRows(ctx context.Context, name string) ([]*driver.Row, error) {
+func (c *fakeConn) GetRows(ctx context.Context, name string) (driver.Rows, error) {
 	if c.fakeErr != nil {
 		return nil, c.fakeErr
 	}
 	return c.fakeRows, nil
 }
 
-func (c *fakeConn) SetRows(ctx context.Context, name string, rows []*driver.Row) error {
+func (c *fakeConn) SetRows(ctx context.Context, name string, rowsValues [][]driver.Value) error {
 	if c.fakeErr != nil {
 		return c.fakeErr
 	}
-	c.fakeRows = rows
+	c.fakeRows.fakeRowsValues = rowsValues
 	return nil
 }
 
@@ -148,9 +175,75 @@ func TestGetRows(t *testing.T) {
 		driverName = "GetRows"
 		schemaName = "Test"
 		dsn        = ""
+
+		rowsValues = [][]driver.Value{
+			[]driver.Value{1, "hana", 16},
+			[]driver.Value{2, "tamate", 15},
+			[]driver.Value{3, "kamuri", 15},
+			[]driver.Value{4, "eiko", 15},
+		}
 	)
 
-	fakeRows := []*driver.Row{}
+	fakeRows := &fakeRows{
+		max:            len(rowsValues),
+		current:        -1,
+		fakeRowsValues: rowsValues,
+		fakeColumns: []*driver.Column{
+			driver.NewColumn("id", 0, driver.ColumnTypeInt, false, false),
+			driver.NewColumn("name", 1, driver.ColumnTypeString, false, false),
+			driver.NewColumn("age", 2, driver.ColumnTypeInt, false, false),
+		},
+	}
+	fakeConn := &fakeConn{
+		fakeRows: fakeRows,
+	}
+	fakeDriver := &fakeDriver{
+		fakeConn: fakeConn,
+	}
+
+	Register(driverName, fakeDriver)
+	ds, err := Open(driverName, dsn)
+	defer func() {
+		cerr := ds.Close()
+		assert.NoError(t, cerr)
+	}()
+	if assert.NoError(t, err) {
+		rows, err := ds.GetRows(ctx, schemaName)
+		defer func() {
+			cerr := rows.Close()
+			assert.NoError(t, cerr)
+		}()
+		if assert.NoError(t, err) {
+			res := make([][]driver.Value, 0)
+			for rows.Next() {
+				rowVals, err := rows.GetRow()
+				if assert.NoError(t, err) {
+					res = append(res, rowVals)
+				}
+			}
+			assert.Equal(t, rowsValues, res)
+		}
+	}
+}
+
+func TestSetRows(t *testing.T) {
+	var (
+		ctx        = context.Background()
+		driverName = "SetRows"
+		schemaName = "Test"
+		dsn        = ""
+
+		rowsValues = [][]driver.Value{
+			[]driver.Value{1, "hana", 16},
+			[]driver.Value{2, "tamate", 15},
+			[]driver.Value{3, "kamuri", 15},
+			[]driver.Value{4, "eiko", 15},
+		}
+	)
+
+	fakeRows := &fakeRows{
+		fakeRowsValues: [][]driver.Value{},
+	}
 	fakeConn := &fakeConn{
 		fakeRows: fakeRows,
 	}
@@ -165,37 +258,9 @@ func TestGetRows(t *testing.T) {
 		assert.NoError(t, cerr)
 	}()
 	if assert.NoError(t, err) {
-		rows, err := ds.GetRows(ctx, schemaName)
+		err := ds.SetRows(ctx, schemaName, rowsValues)
 		if assert.NoError(t, err) {
-			assert.EqualValues(t, fakeRows, rows)
-		}
-	}
-}
-
-func TestSetRows(t *testing.T) {
-	var (
-		ctx        = context.Background()
-		driverName = "SetRows"
-		schemaName = "Test"
-		dsn        = ""
-	)
-
-	fakeRows := []*driver.Row{}
-	fakeConn := &fakeConn{}
-	driver := &fakeDriver{
-		fakeConn: fakeConn,
-	}
-
-	Register(driverName, driver)
-	ds, err := Open(driverName, dsn)
-	defer func() {
-		cerr := ds.Close()
-		assert.NoError(t, cerr)
-	}()
-	if assert.NoError(t, err) {
-		err := ds.SetRows(ctx, schemaName, fakeRows)
-		if assert.NoError(t, err) {
-			assert.EqualValues(t, fakeRows, fakeConn.fakeRows)
+			//assert.EqualValues(t, settingRowsValues, fakeConn.fakeRows)
 		}
 	}
 }

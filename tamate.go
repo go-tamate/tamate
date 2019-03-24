@@ -2,6 +2,7 @@ package tamate
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/go-tamate/tamate/driver"
@@ -10,6 +11,38 @@ import (
 var (
 	drivers = make(map[string]driver.Driver)
 )
+
+type Rows struct {
+	rowsi    driver.Rows
+	lastcols []driver.Value
+	lasterr  error
+}
+
+func (rs *Rows) Next() bool {
+	if rs.lastcols == nil {
+		rs.lastcols = make([]driver.Value, len(rs.rowsi.Columns()))
+	}
+	rs.lasterr = rs.rowsi.Next(rs.lastcols)
+	return rs.lasterr == nil
+}
+
+func (rs *Rows) GetRow() ([]driver.Value, error) {
+	if rs.lastcols == nil {
+		return nil, errors.New("tamate: GetRow called without calling Next")
+	}
+
+	dest := make([]driver.Value, len(rs.lastcols))
+	for i := range rs.lastcols {
+		if err := convertAssign(&dest[i], rs.lastcols[i]); err != nil {
+			return nil, err
+		}
+	}
+	return dest, nil
+}
+
+func (rs *Rows) Close() error {
+	return rs.rowsi.Close()
+}
 
 type DataSource struct {
 	connector  driver.Connector
@@ -25,12 +58,18 @@ func (ds *DataSource) SetSchema(ctx context.Context, name string, schema *driver
 	return ds.driverConn.SetSchema(ctx, name, schema)
 }
 
-func (ds *DataSource) GetRows(ctx context.Context, name string) ([]*driver.Row, error) {
-	return ds.driverConn.GetRows(ctx, name)
+func (ds *DataSource) GetRows(ctx context.Context, name string) (*Rows, error) {
+	rowsi, err := ds.driverConn.GetRows(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+	return &Rows{
+		rowsi: rowsi,
+	}, nil
 }
 
-func (ds *DataSource) SetRows(ctx context.Context, name string, rows []*driver.Row) error {
-	return ds.driverConn.SetRows(ctx, name, rows)
+func (ds *DataSource) SetRows(ctx context.Context, name string, rowsValues [][]driver.Value) error {
+	return ds.driverConn.SetRows(ctx, name, rowsValues)
 }
 
 func (ds *DataSource) Close() error {

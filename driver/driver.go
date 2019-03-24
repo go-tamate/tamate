@@ -1,6 +1,16 @@
 package driver
 
-import "context"
+import (
+	"context"
+)
+
+type Value interface{}
+
+type Rows interface {
+	Columns() []*Column
+	Close() error
+	Next(dest []Value) error
+}
 
 type Driver interface {
 	Open(context.Context, string) (Conn, error)
@@ -9,8 +19,8 @@ type Driver interface {
 type Conn interface {
 	GetSchema(context.Context, string) (*Schema, error)
 	SetSchema(context.Context, string, *Schema) error
-	GetRows(context.Context, string) ([]*Row, error)
-	SetRows(context.Context, string, []*Row) error
+	GetRows(context.Context, string) (Rows, error)
+	SetRows(context.Context, string, [][]Value) error
 
 	Close() error
 }
