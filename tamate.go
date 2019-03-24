@@ -4,13 +4,73 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sort"
+	"sync"
 
 	"github.com/go-tamate/tamate/driver"
 )
 
 var (
-	drivers = make(map[string]driver.Driver)
+	driversMu sync.RWMutex
+	drivers   = make(map[string]driver.Driver)
 )
+
+type tamateError struct {
+	Func string
+	Err  error
+}
+
+func (e *tamateError) Error() string {
+	return fmt.Sprintf("tamate.%s: %s", e.Func, e.Err.Error())
+}
+
+func registerNilDriverError(fn string) *tamateError {
+	return &tamateError{
+		Func: fn,
+		Err:  errors.New("driver is nil"),
+	}
+}
+
+func registerDuplicatedNameError(fn string, name string) *tamateError {
+	return &tamateError{
+		Func: fn,
+		Err:  fmt.Errorf("called twice for driver %s", name),
+	}
+}
+
+// Register makes tamate driver available by the provided name.
+// If Register is called twice with the same name or if driver is nil, it panic.
+func Register(name string, driver driver.Driver) {
+	const funcName = "Register"
+
+	driversMu.Lock()
+	defer driversMu.Unlock()
+	if driver == nil {
+		panic(registerNilDriverError(funcName).Error())
+	}
+	if _, dup := drivers[name]; dup {
+		panic(registerDuplicatedNameError(funcName, name).Error())
+	}
+	drivers[name] = driver
+}
+
+// For test.
+func unregisterAllDrivers() {
+	driversMu.Lock()
+	defer driversMu.Unlock()
+	drivers = make(map[string]driver.Driver)
+}
+
+func Drivers() []string {
+	driversMu.RLock()
+	defer driversMu.RUnlock()
+	var list []string
+	for name := range drivers {
+		list = append(list, name)
+	}
+	sort.Strings(list)
+	return list
+}
 
 type Rows struct {
 	rowsi    driver.Rows
@@ -87,20 +147,6 @@ func (c *dsnConnector) Connect(ctx context.Context) (driver.Conn, error) {
 
 func (c *dsnConnector) Driver() driver.Driver {
 	return c.driver
-}
-
-func Register(name string, driver driver.Driver) {
-	if driver == nil {
-		panic("tamate: Register driver is nil")
-	}
-	if _, dup := drivers[name]; dup {
-		panic("tamate: Register called twice for driver " + name)
-	}
-	drivers[name] = driver
-}
-
-func Drivers() map[string]driver.Driver {
-	return drivers
 }
 
 func Open(name string, dsn string) (*DataSource, error) {
