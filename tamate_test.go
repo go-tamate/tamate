@@ -209,7 +209,10 @@ func TestGetRows(t *testing.T) {
 	}()
 	if assert.NoError(t, err) {
 		rows, err := ds.GetRows(ctx, schemaName)
-		defer rows.Close()
+		defer func() {
+			cerr := rows.Close()
+			assert.NoError(t, cerr)
+		}()
 		if assert.NoError(t, err) {
 			res := make([][]driver.Value, 0)
 			for rows.Next() {

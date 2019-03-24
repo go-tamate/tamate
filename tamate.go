@@ -23,10 +23,7 @@ func (rs *Rows) Next() bool {
 		rs.lastcols = make([]driver.Value, len(rs.rowsi.Columns()))
 	}
 	rs.lasterr = rs.rowsi.Next(rs.lastcols)
-	if rs.lasterr != nil {
-		return false
-	}
-	return true
+	return rs.lasterr == nil
 }
 
 func (rs *Rows) GetRow() ([]driver.Value, error) {
