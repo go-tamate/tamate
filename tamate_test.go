@@ -3,9 +3,12 @@ package tamate
 import (
 	"context"
 	"fmt"
+	"math/rand"
+	"reflect"
 	"strconv"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/go-tamate/tamate/driver"
 	"github.com/stretchr/testify/assert"
@@ -138,6 +141,66 @@ func TestRegister_Goroutine(t *testing.T) {
 			}
 			wg.Wait()
 			assert.Equal(t, len(Drivers()), total)
+		})
+	}
+}
+
+func TestDrivers(t *testing.T) {
+	const (
+		name1 = "driver1"
+		name2 = "driver2"
+	)
+	Register(name1, &fakeDriver{})
+	Register(name2, &fakeDriver{})
+
+	tests := []struct {
+		name string
+		want []string
+	}{
+		{
+			name: "ok",
+			want: []string{
+				name1,
+				name2,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := Drivers(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Drivers() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestDrivers_Goroutine(t *testing.T) {
+	const total = 1000
+	rand.Seed(time.Now().UnixNano())
+
+	tests := []struct {
+		name string
+	}{
+		{
+			name: "ok goroutine",
+		},
+	}
+	for _, tt := range tests {
+
+		t.Run(tt.name, func(t *testing.T) {
+			wg := &sync.WaitGroup{}
+			for i := 0; i < total; i++ {
+				wg.Add(1)
+				index := i
+				if rand.Intn(2) == 0 {
+					Register(strconv.Itoa(index), &fakeDriver{})
+				}
+				go func() {
+					Drivers()
+					wg.Done()
+				}()
+			}
+			wg.Wait()
 		})
 	}
 }

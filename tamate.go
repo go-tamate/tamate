@@ -61,6 +61,7 @@ func unregisterAllDrivers() {
 	drivers = make(map[string]driver.Driver)
 }
 
+// Drivers returns a sorted list of the names of the registered drivers.
 func Drivers() []string {
 	driversMu.RLock()
 	defer driversMu.RUnlock()
