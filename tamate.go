@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"sort"
 	"sync"
 
@@ -76,20 +77,27 @@ func Drivers() []string {
 type Rows struct {
 	rowsi    driver.Rows
 	lastcols []driver.Value
-	lasterr  error
+
+	// closemu guards lasterr and closed.
+	closeMu sync.RWMutex
+	closed  bool
+	lasterr error
 }
 
 func (rs *Rows) Next() bool {
-	if rs.lastcols == nil {
-		rs.lastcols = make([]driver.Value, len(rs.rowsi.Columns()))
+	doClose, ok := rs.nextLocked()
+	if doClose {
+		rs.Close()
 	}
-	rs.lasterr = rs.rowsi.Next(rs.lastcols)
-	return rs.lasterr == nil
+	return ok
 }
 
 func (rs *Rows) GetRow() ([]driver.Value, error) {
 	if rs.lastcols == nil {
 		return nil, errors.New("tamate: GetRow called without calling Next")
+func (rs *Rows) nextLocked() (doClose, ok bool) {
+	if rs.closed {
+		return false, false
 	}
 
 	dest := make([]driver.Value, len(rs.lastcols))
@@ -101,15 +109,13 @@ func (rs *Rows) GetRow() ([]driver.Value, error) {
 	return dest, nil
 }
 
-func (rs *Rows) Close() error {
-	return rs.rowsi.Close()
-}
-
 type DataSource struct {
 	connector  driver.Connector
 	driverConn driver.Conn
 	stop       func()
 }
+	rs.closeMu.RLock()
+	defer rs.closeMu.RUnlock()
 
 func (ds *DataSource) GetSchema(ctx context.Context, name string) (*driver.Schema, error) {
 	return ds.driverConn.GetSchema(ctx, name)
@@ -123,6 +129,8 @@ func (ds *DataSource) GetRows(ctx context.Context, name string) (*Rows, error) {
 	rowsi, err := ds.driverConn.GetRows(ctx, name)
 	if err != nil {
 		return nil, err
+	if rs.lastcols == nil {
+		rs.lastcols = make([]driver.Value, len(rs.rowsi.Columns()))
 	}
 	return &Rows{
 		rowsi: rowsi,
@@ -154,9 +162,23 @@ func Open(name string, dsn string) (*DataSource, error) {
 	driveri, ok := drivers[name]
 	if !ok {
 		return nil, fmt.Errorf("tamate: unknown datasource %q (forgotten import?)", name)
+	rs.lasterr = rs.rowsi.Next(rs.lastcols)
+	if rs.lasterr != nil {
+		if rs.lasterr != io.EOF {
+			return true, false
+		}
+		nextResultSet, ok := rs.rowsi.(driver.RowsNextResultSet)
+		if !ok {
+			return true, false
+		}
+		if !nextResultSet.HasNextResultSet() {
+			doClose = true
+		}
+		return doClose, false
 	}
 
 	return OpenDataSource(&dsnConnector{dsn: dsn, driver: driveri})
+	return false, true
 }
 
 func OpenDataSource(connector driver.Connector) (*DataSource, error) {
@@ -165,13 +187,22 @@ func OpenDataSource(connector driver.Connector) (*DataSource, error) {
 	dataSource := &DataSource{
 		connector: connector,
 		stop:      cancel,
+func (rs *Rows) Close() error {
+	rs.closeMu.Lock()
+	defer rs.closeMu.Unlock()
+	if rs.closed {
+		return nil
 	}
 
 	driverConn, err := connector.Connect(ctx)
 	if err != nil {
 		return nil, err
+	rs.closed = true
+	if err := rs.rowsi.Close(); err != nil {
+		return err
 	}
 	dataSource.driverConn = driverConn
 
 	return dataSource, nil
+	return nil
 }

@@ -2,21 +2,18 @@ package tamate
 
 import (
 	"context"
-	"fmt"
-	"math/rand"
+	"errors"
+	"io"
 	"reflect"
 	"strconv"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/go-tamate/tamate/driver"
 	"github.com/stretchr/testify/assert"
 )
 
-type fakeDriver struct {
-	fakeConn *fakeConn
-}
+type fakeDriver struct{}
 
 func (d *fakeDriver) Open(ctx context.Context, dsn string) (driver.Conn, error) {
 	return nil, nil
@@ -176,7 +173,6 @@ func TestDrivers(t *testing.T) {
 
 func TestDrivers_Goroutine(t *testing.T) {
 	const total = 1000
-	rand.Seed(time.Now().UnixNano())
 
 	tests := []struct {
 		name string
@@ -192,9 +188,7 @@ func TestDrivers_Goroutine(t *testing.T) {
 			for i := 0; i < total; i++ {
 				wg.Add(1)
 				index := i
-				if rand.Intn(2) == 0 {
-					Register(strconv.Itoa(index), &fakeDriver{})
-				}
+				Register(strconv.Itoa(index), &fakeDriver{})
 				go func() {
 					Drivers()
 					wg.Done()
@@ -206,257 +200,254 @@ func TestDrivers_Goroutine(t *testing.T) {
 }
 
 type fakeRows struct {
-	max            int
 	current        int
 	fakeColumns    []*driver.Column
 	fakeRowsValues [][]driver.Value
 }
 
-func (rs *fakeRows) Columns() []*driver.Column {
-	return rs.fakeColumns
+func (f *fakeRows) Columns() []*driver.Column {
+	return f.fakeColumns
 }
 
-func (rs *fakeRows) Close() error {
+func (f *fakeRows) Close() error {
 	return nil
 }
 
-func (rs *fakeRows) Next(dest []driver.Value) error {
-	rs.current++
-	if rs.current >= rs.max {
-		return fmt.Errorf("current is larger than max")
+func (f *fakeRows) Next(dest []driver.Value) error {
+	if f.current >= len(f.fakeRowsValues) {
+		return io.EOF
 	}
 	for i := range dest {
-		dest[i] = rs.fakeRowsValues[rs.current][i]
+		dest[i] = f.fakeRowsValues[f.current][i]
 	}
+	f.current++
 	return nil
 }
 
-type fakeConn struct {
-	fakeSchema *driver.Schema
-	fakeRows   *fakeRows
-	fakeErr    error
+func (f *fakeRows) HasNextResultSet() bool {
+	return false
 }
 
-func (c *fakeConn) GetSchema(ctx context.Context, name string) (*driver.Schema, error) {
-	if c.fakeErr != nil {
-		return nil, c.fakeErr
-	}
-	return c.fakeSchema, nil
-}
-
-func (c *fakeConn) SetSchema(ctx context.Context, name string, schema *driver.Schema) error {
-	if c.fakeErr != nil {
-		return c.fakeErr
-	}
-	c.fakeSchema = schema
+func (f *fakeRows) NextResultSet() error {
 	return nil
 }
 
-func (c *fakeConn) GetRows(ctx context.Context, name string) (driver.Rows, error) {
-	if c.fakeErr != nil {
-		return nil, c.fakeErr
+type notExpandRows struct{}
+
+func (f *notExpandRows) Columns() []*driver.Column { return []*driver.Column{} }
+
+func (f *notExpandRows) Close() error { return nil }
+
+func (f *notExpandRows) Next(dest []driver.Value) error { return io.EOF }
+
+type errorRows struct{}
+
+func (f *errorRows) Columns() []*driver.Column { return []*driver.Column{} }
+
+func (f *errorRows) Close() error { return errors.New("same error") }
+
+func (f *errorRows) Next(dest []driver.Value) error { return errors.New("same error") }
+
+func TestRows_Next(t *testing.T) {
+	type fields struct {
+		rowsi    driver.Rows
+		lastcols []driver.Value
+		closed   bool
+		lasterr  error
 	}
-	return c.fakeRows, nil
-}
-
-func (c *fakeConn) SetRows(ctx context.Context, name string, rowsValues [][]driver.Value) error {
-	if c.fakeErr != nil {
-		return c.fakeErr
-	}
-	c.fakeRows.fakeRowsValues = rowsValues
-	return nil
-}
-
-func (c *fakeConn) Close() error {
-	return nil
-}
-
-type fakeDriver struct {
-	fakeConn *fakeConn
-}
-
-func (d *fakeDriver) Open(ctx context.Context, dsn string) (driver.Conn, error) {
-	return d.fakeConn, nil
-}
-
-func TestRegister(t *testing.T) {
-	Register("Register", &fakeDriver{})
-}
-
-func TestOpen(t *testing.T) {
-	var (
-		driverName = "Open"
-		dsn        = ""
-	)
-
-	driver := &fakeDriver{}
-	Register(driverName, driver)
-
-	ds, err := Open(driverName, dsn)
-	defer func() {
-		cerr := ds.Close()
-		assert.NoError(t, cerr)
-	}()
-	if assert.NoError(t, err) {
-		// Check if it matches the registered one
-		assert.Equal(t, driver, ds.connector.Driver())
-	}
-}
-
-func TestGetSchema(t *testing.T) {
-	var (
-		ctx        = context.Background()
-		driverName = "GetSchema"
-		schemaName = "Test"
-		dsn        = ""
-	)
-
-	fakeSchema := &driver.Schema{
-		Name: schemaName,
-	}
-	fakeConn := &fakeConn{
-		fakeSchema: fakeSchema,
-	}
-	driver := &fakeDriver{
-		fakeConn: fakeConn,
-	}
-
-	Register(driverName, driver)
-	ds, err := Open(driverName, dsn)
-	defer func() {
-		cerr := ds.Close()
-		assert.NoError(t, cerr)
-	}()
-	if assert.NoError(t, err) {
-		schema, err := ds.GetSchema(ctx, schemaName)
-		if assert.NoError(t, err) {
-			assert.EqualValues(t, fakeSchema, schema)
-		}
-	}
-}
-
-func TestSetSchema(t *testing.T) {
-	var (
-		ctx        = context.Background()
-		driverName = "SetSchema"
-		schemaName = "Test"
-		dsn        = ""
-	)
-
-	fakeSchema := &driver.Schema{
-		Name: schemaName,
-	}
-	fakeConn := &fakeConn{}
-	driver := &fakeDriver{
-		fakeConn: fakeConn,
-	}
-
-	Register(driverName, driver)
-	ds, err := Open(driverName, dsn)
-	defer func() {
-		cerr := ds.Close()
-		assert.NoError(t, cerr)
-	}()
-	if assert.NoError(t, err) {
-		err := ds.SetSchema(ctx, schemaName, fakeSchema)
-		if assert.NoError(t, err) {
-			assert.EqualValues(t, fakeSchema, fakeConn.fakeSchema)
-		}
-	}
-}
-
-func TestGetRows(t *testing.T) {
-	var (
-		ctx        = context.Background()
-		driverName = "GetRows"
-		schemaName = "Test"
-		dsn        = ""
-
-		rowsValues = [][]driver.Value{
-			[]driver.Value{1, "hana", 16},
-			[]driver.Value{2, "tamate", 15},
-			[]driver.Value{3, "kamuri", 15},
-			[]driver.Value{4, "eiko", 15},
-		}
-	)
-
-	fakeRows := &fakeRows{
-		max:            len(rowsValues),
-		current:        -1,
-		fakeRowsValues: rowsValues,
-		fakeColumns: []*driver.Column{
-			driver.NewColumn("id", 0, driver.ColumnTypeInt, false, false),
-			driver.NewColumn("name", 1, driver.ColumnTypeString, false, false),
-			driver.NewColumn("age", 2, driver.ColumnTypeInt, false, false),
+	tests := []struct {
+		name   string
+		fields fields
+		want   bool
+	}{
+		{
+			name: "successfully",
+			fields: fields{
+				rowsi: &fakeRows{
+					fakeRowsValues: [][]driver.Value{[]driver.Value{}},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "already closed",
+			fields: fields{
+				closed: true,
+			},
+			want: false,
+		},
+		{
+			name: "lastcol is nil",
+			fields: fields{
+				rowsi: &fakeRows{},
+			},
+			want: false,
+		},
+		{
+			name: "not expand rows",
+			fields: fields{
+				rowsi: &notExpandRows{},
+			},
+			want: false,
+		},
+		{
+			name: "Next() returns same error",
+			fields: fields{
+				rowsi: &errorRows{},
+			},
+			want: false,
 		},
 	}
-	fakeConn := &fakeConn{
-		fakeRows: fakeRows,
-	}
-	fakeDriver := &fakeDriver{
-		fakeConn: fakeConn,
-	}
-
-	Register(driverName, fakeDriver)
-	ds, err := Open(driverName, dsn)
-	defer func() {
-		cerr := ds.Close()
-		assert.NoError(t, cerr)
-	}()
-	if assert.NoError(t, err) {
-		rows, err := ds.GetRows(ctx, schemaName)
-		defer func() {
-			cerr := rows.Close()
-			assert.NoError(t, cerr)
-		}()
-		if assert.NoError(t, err) {
-			res := make([][]driver.Value, 0)
-			for rows.Next() {
-				rowVals, err := rows.GetRow()
-				if assert.NoError(t, err) {
-					res = append(res, rowVals)
-				}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rs := &Rows{
+				rowsi:    tt.fields.rowsi,
+				lastcols: tt.fields.lastcols,
+				closed:   tt.fields.closed,
+				lasterr:  tt.fields.lasterr,
 			}
-			assert.Equal(t, rowsValues, res)
-		}
+			if got := rs.Next(); got != tt.want {
+				t.Errorf("Rows.Next() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }
 
-func TestSetRows(t *testing.T) {
-	var (
-		ctx        = context.Background()
-		driverName = "SetRows"
-		schemaName = "Test"
-		dsn        = ""
+func TestRows_Next_Goroutine(t *testing.T) {
+	const total = 1000
 
-		rowsValues = [][]driver.Value{
-			[]driver.Value{1, "hana", 16},
-			[]driver.Value{2, "tamate", 15},
-			[]driver.Value{3, "kamuri", 15},
-			[]driver.Value{4, "eiko", 15},
-		}
-	)
+	type fields struct {
+		rowsi    driver.Rows
+		lastcols []driver.Value
+		closed   bool
+		lasterr  error
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   bool
+	}{
+		{
+			name: "ok goroutine",
+			fields: fields{
+				rowsi: &fakeRows{},
+			},
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			wg := &sync.WaitGroup{}
+			for i := 0; i < total; i++ {
+				wg.Add(1)
+				go func() {
+					rs := &Rows{
+						rowsi:    tt.fields.rowsi,
+						lastcols: tt.fields.lastcols,
+						closed:   tt.fields.closed,
+						lasterr:  tt.fields.lasterr,
+					}
+					if got := rs.Next(); got != tt.want {
+						t.Errorf("Rows.Next() = %v, want %v", got, tt.want)
+					}
+					wg.Done()
+				}()
+			}
+			wg.Wait()
+		})
+	}
+}
 
-	fakeRows := &fakeRows{
-		fakeRowsValues: [][]driver.Value{},
+func TestRows_Close(t *testing.T) {
+	type fields struct {
+		rowsi    driver.Rows
+		lastcols []driver.Value
+		closed   bool
+		lasterr  error
 	}
-	fakeConn := &fakeConn{
-		fakeRows: fakeRows,
+	tests := []struct {
+		name    string
+		fields  fields
+		wantErr bool
+	}{
+		{
+			name: "successfully",
+			fields: fields{
+				rowsi: &fakeRows{},
+			},
+			wantErr: false,
+		},
+		{
+			name: "already closed",
+			fields: fields{
+				closed: true,
+			},
+			wantErr: false,
+		},
+		{
+			name: "Close() returns same error",
+			fields: fields{
+				rowsi: &errorRows{},
+			},
+			wantErr: true,
+		},
 	}
-	driver := &fakeDriver{
-		fakeConn: fakeConn,
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rs := &Rows{
+				rowsi:    tt.fields.rowsi,
+				lastcols: tt.fields.lastcols,
+				closed:   tt.fields.closed,
+				lasterr:  tt.fields.lasterr,
+			}
+			if err := rs.Close(); (err != nil) != tt.wantErr {
+				t.Errorf("Rows.Close() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
 	}
+}
 
-	Register(driverName, driver)
-	ds, err := Open(driverName, dsn)
-	defer func() {
-		cerr := ds.Close()
-		assert.NoError(t, cerr)
-	}()
-	if assert.NoError(t, err) {
-		err := ds.SetRows(ctx, schemaName, rowsValues)
-		if assert.NoError(t, err) {
-			//assert.EqualValues(t, settingRowsValues, fakeConn.fakeRows)
-		}
+func TestRows_Close_Goroutine(t *testing.T) {
+	const total = 1000
+
+	type fields struct {
+		rowsi    driver.Rows
+		lastcols []driver.Value
+		closed   bool
+		lasterr  error
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		wantErr bool
+	}{
+		{
+			name: "ok goroutine",
+			fields: fields{
+				rowsi: &fakeRows{},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			wg := &sync.WaitGroup{}
+			for i := 0; i < total; i++ {
+				wg.Add(1)
+				go func() {
+					rs := &Rows{
+						rowsi:    tt.fields.rowsi,
+						lastcols: tt.fields.lastcols,
+						closed:   tt.fields.closed,
+						lasterr:  tt.fields.lasterr,
+					}
+					if err := rs.Close(); (err != nil) != tt.wantErr {
+						t.Errorf("Rows.Close() error = %v, wantErr %v", err, tt.wantErr)
+					}
+					wg.Done()
+				}()
+			}
+			wg.Wait()
+		})
 	}
 }
