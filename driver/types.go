@@ -119,9 +119,3 @@ func NewKey(kt KeyType, ColumnNames []string) *Key {
 		ColumnNames: ColumnNames,
 	}
 }
-
-type Schema struct {
-	Name       string
-	PrimaryKey *Key
-	Columns    []*Column
-}

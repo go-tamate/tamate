@@ -21,6 +21,7 @@ type tamateError struct {
 	Err  error
 }
 
+// Error ...
 func (e *tamateError) Error() string {
 	return fmt.Sprintf("tamate.%s: %s", e.Func, e.Err.Error())
 }
@@ -32,10 +33,38 @@ func registerNilDriverError(fn string) *tamateError {
 	}
 }
 
-func registerDuplicatedNameError(fn string, name string) *tamateError {
+func registerDuplicatedNameError(fn, name string) *tamateError {
 	return &tamateError{
 		Func: fn,
 		Err:  fmt.Errorf("called twice for driver %s", name),
+	}
+}
+
+func notRegisterDriverErr(fn, driverName string) *tamateError {
+	return &tamateError{
+		Func: fn,
+		Err:  fmt.Errorf("tamate: unknown driver %q (forgotten import?)", driverName),
+	}
+}
+
+func notCalledNextError(fn string) *tamateError {
+	return &tamateError{
+		Func: fn,
+		Err:  errors.New("called without called Next()"),
+	}
+}
+
+func alreadyClosedError(fn string) *tamateError {
+	return &tamateError{
+		Func: fn,
+		Err:  errors.New("already closed"),
+	}
+}
+
+func notEqualColumnLengthError(fn string, exp, act int) *tamateError {
+	return &tamateError{
+		Func: fn,
+		Err:  fmt.Errorf("tamate: expected %d destination columns, not %d", exp, act),
 	}
 }
 
@@ -74,9 +103,10 @@ func Drivers() []string {
 	return list
 }
 
+// Rows ...
 type Rows struct {
 	rowsi    driver.Rows
-	lastcols []driver.Value
+	lastcols []driver.ColumnValue
 
 	// closemu guards lasterr and closed.
 	closeMu sync.RWMutex
@@ -84,6 +114,7 @@ type Rows struct {
 	lasterr error
 }
 
+// Next ...
 func (rs *Rows) Next() bool {
 	doClose, ok := rs.nextLocked()
 	if doClose {
@@ -92,76 +123,18 @@ func (rs *Rows) Next() bool {
 	return ok
 }
 
-func (rs *Rows) GetRow() ([]driver.Value, error) {
-	if rs.lastcols == nil {
-		return nil, errors.New("tamate: GetRow called without calling Next")
 func (rs *Rows) nextLocked() (doClose, ok bool) {
 	if rs.closed {
 		return false, false
 	}
 
-	dest := make([]driver.Value, len(rs.lastcols))
-	for i := range rs.lastcols {
-		if err := convertAssign(&dest[i], rs.lastcols[i]); err != nil {
-			return nil, err
-		}
-	}
-	return dest, nil
-}
-
-type DataSource struct {
-	connector  driver.Connector
-	driverConn driver.Conn
-	stop       func()
-}
 	rs.closeMu.RLock()
 	defer rs.closeMu.RUnlock()
 
-func (ds *DataSource) GetSchema(ctx context.Context, name string) (*driver.Schema, error) {
-	return ds.driverConn.GetSchema(ctx, name)
-}
-
-func (ds *DataSource) SetSchema(ctx context.Context, name string, schema *driver.Schema) error {
-	return ds.driverConn.SetSchema(ctx, name, schema)
-}
-
-func (ds *DataSource) GetRows(ctx context.Context, name string) (*Rows, error) {
-	rowsi, err := ds.driverConn.GetRows(ctx, name)
-	if err != nil {
-		return nil, err
 	if rs.lastcols == nil {
-		rs.lastcols = make([]driver.Value, len(rs.rowsi.Columns()))
+		rs.lastcols = make([]driver.ColumnValue, len(rs.rowsi.Columns()))
 	}
-	return &Rows{
-		rowsi: rowsi,
-	}, nil
-}
 
-func (ds *DataSource) SetRows(ctx context.Context, name string, rowsValues [][]driver.Value) error {
-	return ds.driverConn.SetRows(ctx, name, rowsValues)
-}
-
-func (ds *DataSource) Close() error {
-	return ds.driverConn.Close()
-}
-
-type dsnConnector struct {
-	dsn    string
-	driver driver.Driver
-}
-
-func (c *dsnConnector) Connect(ctx context.Context) (driver.Conn, error) {
-	return c.driver.Open(ctx, c.dsn)
-}
-
-func (c *dsnConnector) Driver() driver.Driver {
-	return c.driver
-}
-
-func Open(name string, dsn string) (*DataSource, error) {
-	driveri, ok := drivers[name]
-	if !ok {
-		return nil, fmt.Errorf("tamate: unknown datasource %q (forgotten import?)", name)
 	rs.lasterr = rs.rowsi.Next(rs.lastcols)
 	if rs.lasterr != nil {
 		if rs.lasterr != io.EOF {
@@ -176,33 +149,118 @@ func Open(name string, dsn string) (*DataSource, error) {
 		}
 		return doClose, false
 	}
-
-	return OpenDataSource(&dsnConnector{dsn: dsn, driver: driveri})
 	return false, true
 }
 
-func OpenDataSource(connector driver.Connector) (*DataSource, error) {
-	ctx, cancel := context.WithCancel(context.Background())
-
-	dataSource := &DataSource{
-		connector: connector,
-		stop:      cancel,
+// Close ...
 func (rs *Rows) Close() error {
 	rs.closeMu.Lock()
 	defer rs.closeMu.Unlock()
 	if rs.closed {
 		return nil
 	}
+	rs.closed = true
+	return rs.rowsi.Close()
+}
 
-	driverConn, err := connector.Connect(ctx)
+// Scan ...
+func (rs *Rows) Scan(dest []driver.ColumnValue) error {
+	const fnName = "Scan"
+
+	rs.closeMu.RLock()
+	defer rs.closeMu.RUnlock()
+
+	if rs.lasterr != nil && rs.lasterr != io.EOF {
+		return rs.lasterr
+	}
+	if rs.closed {
+		return alreadyClosedError(fnName)
+	}
+	if rs.lastcols == nil {
+		return notCalledNextError(fnName)
+	}
+	if len(rs.rowsi.Columns()) != len(rs.lastcols) {
+		return notEqualColumnLengthError(fnName, len(rs.lastcols), len(rs.rowsi.Columns()))
+	}
+	dest = make([]driver.ColumnValue, len(rs.lastcols))
+	for i, sc := range rs.lastcols {
+		dest[i] = sc
+	}
+	return nil
+}
+
+// DataSource ...
+type DataSource struct {
+	ctx driver.DriverContext
+
+	// protected closed
+	closeMu sync.RWMutex
+	closed  bool
+}
+
+// OpenDataSource
+func OpenDataSource(ctx driver.DriverContext) *DataSource {
+	return &DataSource{
+		ctx: ctx,
+
+		closed: false,
+	}
+}
+
+// GetSchema ...
+func (ds *DataSource) GetSchema(ctx context.Context, name string) (driver.Schema, error) {
+	const fnName = "GetSchema"
+
+	ds.closeMu.RLock()
+	defer ds.closeMu.RUnlock()
+
+	if ds.closed {
+		return nil, alreadyClosedError(fnName)
+	}
+
+	return ds.ctx.GetSchema(ctx, name)
+}
+
+// GetRows ...
+func (ds *DataSource) GetRows(ctx context.Context, name string) (driver.Rows, error) {
+	const fnName = "GetRows"
+
+	ds.closeMu.RLock()
+	defer ds.closeMu.RUnlock()
+
+	if ds.closed {
+		return nil, alreadyClosedError(fnName)
+	}
+
+	return ds.ctx.GetRows(ctx, name)
+}
+
+// Close ...
+func (ds *DataSource) Close() error {
+	ds.closeMu.Lock()
+	defer ds.closeMu.Unlock()
+
+	if ds.closed {
+		return nil
+	}
+	ds.closed = true
+	return ds.ctx.Close()
+}
+
+// Open ...
+func Open(driverName, dataSourceName string) (*DataSource, error) {
+	const fnName = "Open"
+
+	driversMu.RLock()
+	defer driversMu.RUnlock()
+
+	driveri, ok := drivers[driverName]
+	if !ok {
+		return nil, notRegisterDriverErr(fnName, driverName)
+	}
+	driverCtx, err := driveri.Open(context.Background(), dataSourceName)
 	if err != nil {
 		return nil, err
-	rs.closed = true
-	if err := rs.rowsi.Close(); err != nil {
-		return err
 	}
-	dataSource.driverConn = driverConn
-
-	return dataSource, nil
-	return nil
+	return OpenDataSource(driverCtx), nil
 }

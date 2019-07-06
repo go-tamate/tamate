@@ -20,28 +20,31 @@ type RowsNextResultSet interface {
 	NextResultSet() error
 }
 
-type Value interface{}
+// ColumnValue ...
+type ColumnValue struct {
+	ColumnName string
+	ColumnType ColumnType
+	Value      interface{}
+}
 
+// Rows ...
 type Rows interface {
-	Columns() []*Column
+	Columns() []string
 	Close() error
-	Next(dest []Value) error
+	Next(dest []ColumnValue) error
 }
 
+// Schema ...
+type Schema interface{}
+
+// Driver ...
 type Driver interface {
-	Open(context.Context, string) (Conn, error)
+	Open(context.Context, string) (DriverContext, error)
 }
 
-type Conn interface {
-	GetSchema(context.Context, string) (*Schema, error)
-	SetSchema(context.Context, string, *Schema) error
+// DriverContext
+type DriverContext interface {
+	GetSchema(ctx context.Context, tableName string) (Schema, error)
 	GetRows(context.Context, string) (Rows, error)
-	SetRows(context.Context, string, [][]Value) error
-
 	Close() error
-}
-
-type Connector interface {
-	Connect(context.Context) (Conn, error)
-	Driver() Driver
 }

@@ -15,8 +15,11 @@ import (
 
 type fakeDriver struct{}
 
-func (d *fakeDriver) Open(ctx context.Context, dsn string) (driver.Conn, error) {
-	return nil, nil
+func (d *fakeDriver) Open(ctx context.Context, dsn string) (driver.DriverContext, error) {
+	if dsn == "test" {
+		return &fakeDriverContext{}, nil
+	}
+	return nil, errors.New("same error")
 }
 
 func TestRegister(t *testing.T) {
@@ -201,11 +204,11 @@ func TestDrivers_Goroutine(t *testing.T) {
 
 type fakeRows struct {
 	current        int
-	fakeColumns    []*driver.Column
-	fakeRowsValues [][]driver.Value
+	fakeColumns    []string
+	fakeRowsValues [][]driver.ColumnValue
 }
 
-func (f *fakeRows) Columns() []*driver.Column {
+func (f *fakeRows) Columns() []string {
 	return f.fakeColumns
 }
 
@@ -213,7 +216,7 @@ func (f *fakeRows) Close() error {
 	return nil
 }
 
-func (f *fakeRows) Next(dest []driver.Value) error {
+func (f *fakeRows) Next(dest []driver.ColumnValue) error {
 	if f.current >= len(f.fakeRowsValues) {
 		return io.EOF
 	}
@@ -234,24 +237,24 @@ func (f *fakeRows) NextResultSet() error {
 
 type notExpandRows struct{}
 
-func (f *notExpandRows) Columns() []*driver.Column { return []*driver.Column{} }
+func (f *notExpandRows) Columns() []string { return []string{} }
 
 func (f *notExpandRows) Close() error { return nil }
 
-func (f *notExpandRows) Next(dest []driver.Value) error { return io.EOF }
+func (f *notExpandRows) Next(dest []driver.ColumnValue) error { return io.EOF }
 
 type errorRows struct{}
 
-func (f *errorRows) Columns() []*driver.Column { return []*driver.Column{} }
+func (f *errorRows) Columns() []string { return []string{} }
 
 func (f *errorRows) Close() error { return errors.New("same error") }
 
-func (f *errorRows) Next(dest []driver.Value) error { return errors.New("same error") }
+func (f *errorRows) Next(dest []driver.ColumnValue) error { return errors.New("same error") }
 
 func TestRows_Next(t *testing.T) {
 	type fields struct {
 		rowsi    driver.Rows
-		lastcols []driver.Value
+		lastcols []driver.ColumnValue
 		closed   bool
 		lasterr  error
 	}
@@ -264,7 +267,7 @@ func TestRows_Next(t *testing.T) {
 			name: "successfully",
 			fields: fields{
 				rowsi: &fakeRows{
-					fakeRowsValues: [][]driver.Value{[]driver.Value{}},
+					fakeRowsValues: [][]driver.ColumnValue{[]driver.ColumnValue{}},
 				},
 			},
 			want: true,
@@ -318,7 +321,7 @@ func TestRows_Next_Goroutine(t *testing.T) {
 
 	type fields struct {
 		rowsi    driver.Rows
-		lastcols []driver.Value
+		lastcols []driver.ColumnValue
 		closed   bool
 		lasterr  error
 	}
@@ -361,7 +364,7 @@ func TestRows_Next_Goroutine(t *testing.T) {
 func TestRows_Close(t *testing.T) {
 	type fields struct {
 		rowsi    driver.Rows
-		lastcols []driver.Value
+		lastcols []driver.ColumnValue
 		closed   bool
 		lasterr  error
 	}
@@ -412,7 +415,7 @@ func TestRows_Close_Goroutine(t *testing.T) {
 
 	type fields struct {
 		rowsi    driver.Rows
-		lastcols []driver.Value
+		lastcols []driver.ColumnValue
 		closed   bool
 		lasterr  error
 	}
@@ -448,6 +451,368 @@ func TestRows_Close_Goroutine(t *testing.T) {
 				}()
 			}
 			wg.Wait()
+		})
+	}
+}
+
+func TestRows_Scan(t *testing.T) {
+	type fields struct {
+		rowsi    driver.Rows
+		lastcols []driver.ColumnValue
+		closed   bool
+		lasterr  error
+	}
+	type args struct {
+		dest []driver.ColumnValue
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "ok",
+			fields: fields{
+				rowsi: &fakeRows{
+					fakeColumns: []string{"a"},
+				},
+				lastcols: []driver.ColumnValue{
+					driver.ColumnValue{
+						ColumnName: "a",
+						ColumnType: driver.ColumnTypeInt,
+						Value:      1,
+					},
+				},
+				closed:  false,
+				lasterr: nil,
+			},
+			args:    args{},
+			wantErr: false,
+		},
+		{
+			name: "has error",
+			fields: fields{
+				rowsi:    &fakeRows{},
+				lastcols: []driver.ColumnValue{},
+				closed:   false,
+				lasterr:  errors.New("same errorw"),
+			},
+			args:    args{},
+			wantErr: true,
+		},
+		{
+			name: "already closed",
+			fields: fields{
+				rowsi:    &fakeRows{},
+				lastcols: []driver.ColumnValue{},
+				closed:   true,
+				lasterr:  nil,
+			},
+			args:    args{},
+			wantErr: true,
+		},
+		{
+			name: "not called Next()",
+			fields: fields{
+				rowsi:    &fakeRows{},
+				lastcols: nil,
+				closed:   false,
+				lasterr:  nil,
+			},
+			args:    args{},
+			wantErr: true,
+		},
+		{
+			name: "not equal length of lastcol and columns",
+			fields: fields{
+				rowsi: &fakeRows{
+					fakeColumns: []string{"col1"},
+				},
+				lastcols: []driver.ColumnValue{},
+				closed:   false,
+				lasterr:  nil,
+			},
+			args:    args{},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rs := &Rows{
+				rowsi:    tt.fields.rowsi,
+				lastcols: tt.fields.lastcols,
+				closed:   tt.fields.closed,
+				lasterr:  tt.fields.lasterr,
+			}
+			if err := rs.Scan(tt.args.dest); (err != nil) != tt.wantErr {
+				t.Errorf("Rows.Scan() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+type fakeSchema struct{}
+
+type fakeDriverContext struct{}
+
+func (f *fakeDriverContext) GetSchema(ctx context.Context, tableName string) (driver.Schema, error) {
+	return &fakeSchema{}, nil
+}
+
+func (f *fakeDriverContext) GetRows(context.Context, string) (driver.Rows, error) {
+	return &fakeRows{}, nil
+}
+
+func (f *fakeDriverContext) Close() error {
+	return nil
+}
+
+func TestOpenDataSource(t *testing.T) {
+	type args struct {
+		ctx driver.DriverContext
+	}
+	tests := []struct {
+		name string
+		args args
+		want *DataSource
+	}{
+		{
+			name: "ok",
+			args: args{
+				ctx: &fakeDriverContext{},
+			},
+			want: &DataSource{
+				ctx:    &fakeDriverContext{},
+				closed: false,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := OpenDataSource(tt.args.ctx); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("OpenDataSource() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestDataSource_GetSchema(t *testing.T) {
+	type fields struct {
+		ctx    driver.DriverContext
+		closed bool
+	}
+	type args struct {
+		ctx  context.Context
+		name string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    driver.Schema
+		wantErr bool
+	}{
+		{
+			name: "ok",
+			fields: fields{
+				ctx:    &fakeDriverContext{},
+				closed: false,
+			},
+			args: args{
+				ctx:  context.Background(),
+				name: "",
+			},
+			want:    &fakeSchema{},
+			wantErr: false,
+		},
+		{
+			name: "already closed",
+			fields: fields{
+				ctx:    &fakeDriverContext{},
+				closed: true,
+			},
+			args: args{
+				ctx:  context.Background(),
+				name: "",
+			},
+			want:    nil,
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ds := &DataSource{
+				ctx:    tt.fields.ctx,
+				closed: tt.fields.closed,
+			}
+			got, err := ds.GetSchema(tt.args.ctx, tt.args.name)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("DataSource.GetSchema() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("DataSource.GetSchema() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestDataSource_GetRows(t *testing.T) {
+	type fields struct {
+		ctx    driver.DriverContext
+		closed bool
+	}
+	type args struct {
+		ctx  context.Context
+		name string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    driver.Rows
+		wantErr bool
+	}{
+		{
+			name: "ok",
+			fields: fields{
+				ctx:    &fakeDriverContext{},
+				closed: false,
+			},
+			args: args{
+				ctx:  context.Background(),
+				name: "",
+			},
+			want:    &fakeRows{},
+			wantErr: false,
+		},
+		{
+			name: "already closed",
+			fields: fields{
+				ctx:    &fakeDriverContext{},
+				closed: true,
+			},
+			args: args{
+				ctx:  context.Background(),
+				name: "",
+			},
+			want:    nil,
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ds := &DataSource{
+				ctx:    tt.fields.ctx,
+				closed: tt.fields.closed,
+			}
+			got, err := ds.GetRows(tt.args.ctx, tt.args.name)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("DataSource.GetRows() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("DataSource.GetRows() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestDataSource_Close(t *testing.T) {
+	type fields struct {
+		ctx    driver.DriverContext
+		closed bool
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		wantErr bool
+	}{
+		{
+			name: "ok",
+			fields: fields{
+				ctx:    &fakeDriverContext{},
+				closed: false,
+			},
+			wantErr: false,
+		},
+		{
+			name: "already closed",
+			fields: fields{
+				ctx:    &fakeDriverContext{},
+				closed: true,
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ds := &DataSource{
+				ctx:    tt.fields.ctx,
+				closed: tt.fields.closed,
+			}
+			if err := ds.Close(); (err != nil) != tt.wantErr {
+				t.Errorf("DataSource.Close() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestOpen(t *testing.T) {
+	const driverName = "test"
+	Register(driverName, &fakeDriver{})
+
+	type args struct {
+		driverName     string
+		dataSourceName string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    *DataSource
+		wantErr bool
+	}{
+		{
+			name: "ok",
+			args: args{
+				driverName:     driverName,
+				dataSourceName: "test",
+			},
+			want: &DataSource{
+				ctx:    &fakeDriverContext{},
+				closed: false,
+			},
+			wantErr: false,
+		},
+		{
+			name: "driver open error",
+			args: args{
+				driverName:     driverName,
+				dataSourceName: "same error",
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "open not register driver",
+			args: args{
+				driverName: "not register",
+			},
+			want:    nil,
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := Open(tt.args.driverName, tt.args.dataSourceName)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Open() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Open() = %v, want %v", got, tt.want)
+			}
 		})
 	}
 }
