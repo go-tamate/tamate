@@ -205,7 +205,7 @@ func TestDrivers_Goroutine(t *testing.T) {
 type fakeRows struct {
 	current        int
 	fakeColumns    []string
-	fakeRowsValues [][]driver.ColumnValue
+	fakeRowsValues [][]driver.NamedValue
 }
 
 func (f *fakeRows) Columns() []string {
@@ -216,7 +216,7 @@ func (f *fakeRows) Close() error {
 	return nil
 }
 
-func (f *fakeRows) Next(dest []driver.ColumnValue) error {
+func (f *fakeRows) Next(dest []driver.NamedValue) error {
 	if f.current >= len(f.fakeRowsValues) {
 		return io.EOF
 	}
@@ -241,7 +241,7 @@ func (f *notExpandRows) Columns() []string { return []string{} }
 
 func (f *notExpandRows) Close() error { return nil }
 
-func (f *notExpandRows) Next(dest []driver.ColumnValue) error { return io.EOF }
+func (f *notExpandRows) Next(dest []driver.NamedValue) error { return io.EOF }
 
 type errorRows struct{}
 
@@ -249,12 +249,12 @@ func (f *errorRows) Columns() []string { return []string{} }
 
 func (f *errorRows) Close() error { return errors.New("same error") }
 
-func (f *errorRows) Next(dest []driver.ColumnValue) error { return errors.New("same error") }
+func (f *errorRows) Next(dest []driver.NamedValue) error { return errors.New("same error") }
 
 func TestRows_Next(t *testing.T) {
 	type fields struct {
 		rowsi    driver.Rows
-		lastcols []driver.ColumnValue
+		lastcols []driver.NamedValue
 		closed   bool
 		lasterr  error
 	}
@@ -267,7 +267,7 @@ func TestRows_Next(t *testing.T) {
 			name: "successfully",
 			fields: fields{
 				rowsi: &fakeRows{
-					fakeRowsValues: [][]driver.ColumnValue{[]driver.ColumnValue{}},
+					fakeRowsValues: [][]driver.NamedValue{[]driver.NamedValue{}},
 				},
 			},
 			want: true,
@@ -321,7 +321,7 @@ func TestRows_Next_Goroutine(t *testing.T) {
 
 	type fields struct {
 		rowsi    driver.Rows
-		lastcols []driver.ColumnValue
+		lastcols []driver.NamedValue
 		closed   bool
 		lasterr  error
 	}
@@ -364,7 +364,7 @@ func TestRows_Next_Goroutine(t *testing.T) {
 func TestRows_Close(t *testing.T) {
 	type fields struct {
 		rowsi    driver.Rows
-		lastcols []driver.ColumnValue
+		lastcols []driver.NamedValue
 		closed   bool
 		lasterr  error
 	}
@@ -415,7 +415,7 @@ func TestRows_Close_Goroutine(t *testing.T) {
 
 	type fields struct {
 		rowsi    driver.Rows
-		lastcols []driver.ColumnValue
+		lastcols []driver.NamedValue
 		closed   bool
 		lasterr  error
 	}
@@ -458,12 +458,12 @@ func TestRows_Close_Goroutine(t *testing.T) {
 func TestRows_Scan(t *testing.T) {
 	type fields struct {
 		rowsi    driver.Rows
-		lastcols []driver.ColumnValue
+		lastcols []driver.NamedValue
 		closed   bool
 		lasterr  error
 	}
 	type args struct {
-		dest []driver.ColumnValue
+		dest []driver.NamedValue
 	}
 	tests := []struct {
 		name    string
@@ -477,11 +477,10 @@ func TestRows_Scan(t *testing.T) {
 				rowsi: &fakeRows{
 					fakeColumns: []string{"a"},
 				},
-				lastcols: []driver.ColumnValue{
-					driver.ColumnValue{
-						ColumnName: "a",
-						ColumnType: driver.ColumnTypeInt,
-						Value:      1,
+				lastcols: []driver.NamedValue{
+					driver.NamedValue{
+						Name:  "a",
+						Value: 1,
 					},
 				},
 				closed:  false,
@@ -494,7 +493,7 @@ func TestRows_Scan(t *testing.T) {
 			name: "has error",
 			fields: fields{
 				rowsi:    &fakeRows{},
-				lastcols: []driver.ColumnValue{},
+				lastcols: []driver.NamedValue{},
 				closed:   false,
 				lasterr:  errors.New("same errorw"),
 			},
@@ -505,7 +504,7 @@ func TestRows_Scan(t *testing.T) {
 			name: "already closed",
 			fields: fields{
 				rowsi:    &fakeRows{},
-				lastcols: []driver.ColumnValue{},
+				lastcols: []driver.NamedValue{},
 				closed:   true,
 				lasterr:  nil,
 			},
@@ -529,7 +528,7 @@ func TestRows_Scan(t *testing.T) {
 				rowsi: &fakeRows{
 					fakeColumns: []string{"col1"},
 				},
-				lastcols: []driver.ColumnValue{},
+				lastcols: []driver.NamedValue{},
 				closed:   false,
 				lasterr:  nil,
 			},

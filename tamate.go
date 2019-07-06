@@ -106,7 +106,7 @@ func Drivers() []string {
 // Rows ...
 type Rows struct {
 	rowsi    driver.Rows
-	lastcols []driver.ColumnValue
+	lastcols []driver.NamedValue
 
 	// closemu guards lasterr and closed.
 	closeMu sync.RWMutex
@@ -132,7 +132,7 @@ func (rs *Rows) nextLocked() (doClose, ok bool) {
 	defer rs.closeMu.RUnlock()
 
 	if rs.lastcols == nil {
-		rs.lastcols = make([]driver.ColumnValue, len(rs.rowsi.Columns()))
+		rs.lastcols = make([]driver.NamedValue, len(rs.rowsi.Columns()))
 	}
 
 	rs.lasterr = rs.rowsi.Next(rs.lastcols)
@@ -164,7 +164,7 @@ func (rs *Rows) Close() error {
 }
 
 // Scan ...
-func (rs *Rows) Scan(dest []driver.ColumnValue) error {
+func (rs *Rows) Scan(dest []driver.NamedValue) error {
 	const fnName = "Scan"
 
 	rs.closeMu.RLock()
@@ -182,7 +182,7 @@ func (rs *Rows) Scan(dest []driver.ColumnValue) error {
 	if len(rs.rowsi.Columns()) != len(rs.lastcols) {
 		return notEqualColumnLengthError(fnName, len(rs.lastcols), len(rs.rowsi.Columns()))
 	}
-	dest = make([]driver.ColumnValue, len(rs.lastcols))
+	dest = make([]driver.NamedValue, len(rs.lastcols))
 	for i, sc := range rs.lastcols {
 		dest[i] = sc
 	}

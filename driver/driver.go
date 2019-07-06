@@ -9,29 +9,25 @@ import (
 type RowsNextResultSet interface {
 	Rows
 
-	// HasNextResultSet is called at the end of the current result set and
-	// reports whether there is another result set after the current one.
 	HasNextResultSet() bool
 
-	// NextResultSet advances the driver to the next result set even
-	// if there are remaining rows in the current result set.
-	//
-	// NextResultSet should return io.EOF when there are no more result sets.
 	NextResultSet() error
 }
 
-// ColumnValue ...
-type ColumnValue struct {
-	ColumnName string
-	ColumnType ColumnType
-	Value      interface{}
+type Value interface{}
+
+// NamedValue ...
+type NamedValue struct {
+	Name    string
+	Ordinal int
+	Value   Value
 }
 
 // Rows ...
 type Rows interface {
 	Columns() []string
 	Close() error
-	Next(dest []ColumnValue) error
+	Next(dest []NamedValue) error
 }
 
 // Schema ...
