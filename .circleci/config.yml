@@ -6,7 +6,6 @@ jobs:
       - image: circleci/golang:1.12
         environment:
           - GO111MODULE: "on"
-          - REVIEWDOG_VERSION: 0.9.8
     steps:
       - checkout
       - restore_cache:
@@ -17,12 +16,4 @@ jobs:
           key: gomod-{{ .Branch }}-{{ checksum "go.mod" }}
           paths:
             - /go/pkg/mod/cache
-      - run:
-          name: Install linters
-          command: |
-            curl -fSL https://github.com/haya14busa/reviewdog/releases/download/$REVIEWDOG_VERSION/reviewdog_linux_amd64 -o ./reviewdog && chmod +x ./reviewdog
-            go get github.com/mgechev/revive
-            go get honnef.co/go/tools/cmd/megacheck
-            go get github.com/kisielk/errcheck
-      - run: ./reviewdog -ci="circle-ci" -conf=.reviewdog.yml
       - run: go test -v -race ./...
