@@ -670,7 +670,7 @@ func TestDataSource_GetRows(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		want    driver.Rows
+		want    *Rows
 		wantErr bool
 	}{
 		{
@@ -683,7 +683,9 @@ func TestDataSource_GetRows(t *testing.T) {
 				ctx:  context.Background(),
 				name: "",
 			},
-			want:    &fakeRows{},
+			want: &Rows{
+				rowsi: &fakeRows{},
+			},
 			wantErr: false,
 		},
 		{
