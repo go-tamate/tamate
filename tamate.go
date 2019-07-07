@@ -189,6 +189,13 @@ func (rs *Rows) Scan(dest []*driver.NamedValue) error {
 	return nil
 }
 
+// Err ...
+func (rs *Rows) Err() error {
+	rs.closeMu.RLock()
+	defer rs.closeMu.RUnlock()
+	return rs.lasterr
+}
+
 // DataSource ...
 type DataSource struct {
 	ctx driver.DriverContext
