@@ -106,7 +106,7 @@ func Drivers() []string {
 // Rows ...
 type Rows struct {
 	rowsi    driver.Rows
-	lastcols []driver.NamedValue
+	lastcols []*driver.NamedValue
 
 	// closemu guards lasterr and closed.
 	closeMu sync.RWMutex
@@ -132,7 +132,7 @@ func (rs *Rows) nextLocked() (doClose, ok bool) {
 	defer rs.closeMu.RUnlock()
 
 	if rs.lastcols == nil {
-		rs.lastcols = make([]driver.NamedValue, len(rs.rowsi.Columns()))
+		rs.lastcols = make([]*driver.NamedValue, len(rs.rowsi.Columns()))
 	}
 
 	rs.lasterr = rs.rowsi.Next(rs.lastcols)
@@ -164,7 +164,7 @@ func (rs *Rows) Close() error {
 }
 
 // Scan ...
-func (rs *Rows) Scan(dest []driver.NamedValue) error {
+func (rs *Rows) Scan(dest []*driver.NamedValue) error {
 	const fnName = "Scan"
 
 	rs.closeMu.RLock()
@@ -182,7 +182,7 @@ func (rs *Rows) Scan(dest []driver.NamedValue) error {
 	if len(rs.rowsi.Columns()) != len(rs.lastcols) {
 		return notEqualColumnLengthError(fnName, len(rs.lastcols), len(rs.rowsi.Columns()))
 	}
-	dest = make([]driver.NamedValue, len(rs.lastcols))
+	dest = make([]*driver.NamedValue, len(rs.lastcols))
 	for i, sc := range rs.lastcols {
 		dest[i] = sc
 	}
@@ -222,7 +222,7 @@ func (ds *DataSource) GetSchema(ctx context.Context, name string) (driver.Schema
 }
 
 // GetRows ...
-func (ds *DataSource) GetRows(ctx context.Context, name string) (driver.Rows, error) {
+func (ds *DataSource) GetRows(ctx context.Context, name string) (*Rows, error) {
 	const fnName = "GetRows"
 
 	ds.closeMu.RLock()
@@ -232,7 +232,13 @@ func (ds *DataSource) GetRows(ctx context.Context, name string) (driver.Rows, er
 		return nil, alreadyClosedError(fnName)
 	}
 
-	return ds.ctx.GetRows(ctx, name)
+	rows, err := ds.ctx.GetRows(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+	return &Rows{
+		rowsi: rows,
+	}, nil
 }
 
 // Close ...

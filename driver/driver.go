@@ -27,7 +27,7 @@ type NamedValue struct {
 type Rows interface {
 	Columns() []string
 	Close() error
-	Next(dest []NamedValue) error
+	Next(dest []*NamedValue) error
 }
 
 // Schema ...
